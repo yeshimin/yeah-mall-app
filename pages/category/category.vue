@@ -13,20 +13,36 @@
 			</view>
 		</scroll-view>
 		
-		<!-- 二级分类 -->
-		<scroll-view class="secondary-category" scroll-y>
-			<view class="secondary-grid">
+		<!-- 右侧区域 -->
+		<view class="secondary-container">
+			<!-- 二级分类 tab -->
+			<scroll-view class="secondary-tabs" scroll-x>
 				<view 
-					class="secondary-item" 
+					class="secondary-tab" 
+					:class="{ active: currentSecondaryIndex === index }"
 					v-for="(item, index) in secondaryCategories" 
 					:key="index"
-					@click="goToProductList(item)"
+					@click="selectSecondaryCategory(index)"
 				>
-					<image class="secondary-icon" :src="item.icon"></image>
-					<text class="secondary-name">{{ item.name }}</text>
+					{{ item.name }}
 				</view>
-			</view>
-		</scroll-view>
+			</scroll-view>
+			
+			<!-- 三级分类 -->
+			<scroll-view class="tertiary-category" scroll-y>
+				<view class="tertiary-grid">
+					<view 
+						class="tertiary-item" 
+						v-for="(item, index) in tertiaryCategories" 
+						:key="index"
+						@click="goToProductList(item)"
+					>
+						<image class="tertiary-icon" :src="item.icon"></image>
+						<text class="tertiary-name">{{ item.name }}</text>
+					</view>
+				</view>
+			</scroll-view>
+		</view>
 	</view>
 </template>
 
@@ -35,6 +51,7 @@
 		data() {
 			return {
 				currentPrimaryIndex: 0,
+				currentSecondaryIndex: 0,
 				primaryCategories: [
 					{ id: 1, name: '服装' },
 					{ id: 2, name: '电子产品' },
@@ -45,34 +62,109 @@
 				// 二级分类数据，按一级分类ID分组
 				secondaryCategoriesData: {
 					1: [
-						{ id: 11, name: '男装', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 12, name: '女装', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 13, name: '童装', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 14, name: '内衣', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+						{ id: 11, name: '男装' },
+						{ id: 12, name: '女装' },
+						{ id: 13, name: '童装' },
+						{ id: 14, name: '内衣' }
 					],
 					2: [
-						{ id: 21, name: '手机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 22, name: '电脑', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 23, name: '耳机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 24, name: '相机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+						{ id: 21, name: '手机' },
+						{ id: 22, name: '电脑' },
+						{ id: 23, name: '耳机' },
+						{ id: 24, name: '相机' }
 					],
 					3: [
-						{ id: 31, name: '家具', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 32, name: '厨具', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 33, name: '装饰', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+						{ id: 31, name: '家具' },
+						{ id: 32, name: '厨具' },
+						{ id: 33, name: '装饰' }
 					],
 					4: [
-						{ id: 41, name: '护肤品', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 42, name: '彩妆', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 43, name: '香水', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+						{ id: 41, name: '护肤品' },
+						{ id: 42, name: '彩妆' },
+						{ id: 43, name: '香水' }
 					],
 					5: [
-						{ id: 51, name: '零食', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 52, name: '饮料', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-						{ id: 53, name: '生鲜', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+						{ id: 51, name: '零食' },
+						{ id: 52, name: '饮料' },
+						{ id: 53, name: '生鲜' }
 					]
 				},
-				secondaryCategories: []
+				secondaryCategories: [],
+				// 三级分类数据，按二级分类ID分组
+				tertiaryCategoriesData: {
+					11: [
+						{ id: 111, name: 'T恤', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 112, name: '衬衫', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 113, name: '裤子', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					12: [
+						{ id: 121, name: '连衣裙', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 122, name: '半身裙', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 123, name: '外套', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					13: [
+						{ id: 131, name: '上衣', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 132, name: '裤子', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 133, name: '鞋子', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					14: [
+						{ id: 141, name: '文胸', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 142, name: '内裤', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					21: [
+						{ id: 211, name: '智能手机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 212, name: '功能手机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					22: [
+						{ id: 221, name: '笔记本电脑', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 222, name: '台式电脑', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					23: [
+						{ id: 231, name: '有线耳机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 232, name: '无线耳机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					24: [
+						{ id: 241, name: '单反相机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 242, name: '微单相机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					31: [
+						{ id: 311, name: '沙发', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 312, name: '床', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					32: [
+						{ id: 321, name: '锅具', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 322, name: '餐具', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					33: [
+						{ id: 331, name: '壁画', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 332, name: '摆件', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					41: [
+						{ id: 411, name: '面霜', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 412, name: '精华', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					42: [
+						{ id: 421, name: '口红', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 422, name: '粉底', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					43: [
+						{ id: 431, name: '淡香水', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 432, name: '浓香水', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					51: [
+						{ id: 511, name: '坚果', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 512, name: '糖果', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					52: [
+						{ id: 521, name: '碳酸饮料', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 522, name: '果汁', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					53: [
+						{ id: 531, name: '蔬菜', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 532, name: '水果', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					]
+				},
+				tertiaryCategories: []
 			}
 		},
 		computed: {
@@ -84,9 +176,24 @@
 				// 根据选中的一级分类更新二级分类
 				const primaryId = this.primaryCategories[index].id;
 				this.secondaryCategories = this.secondaryCategoriesData[primaryId] || [];
+				// 重置二级分类选中项
+				this.currentSecondaryIndex = 0;
+				// 根据选中的二级分类更新三级分类
+				if (this.secondaryCategories.length > 0) {
+					const secondaryId = this.secondaryCategories[0].id;
+					this.tertiaryCategories = this.tertiaryCategoriesData[secondaryId] || [];
+				} else {
+					this.tertiaryCategories = [];
+				}
+			},
+			selectSecondaryCategory(index) {
+				this.currentSecondaryIndex = index;
+				// 根据选中的二级分类更新三级分类
+				const secondaryId = this.secondaryCategories[index].id;
+				this.tertiaryCategories = this.tertiaryCategoriesData[secondaryId] || [];
 			},
 			goToProductList(item) {
-				// 跳转到商品列表页面，传递二级分类ID
+				// 跳转到商品列表页面，传递三级分类ID和名称
 				uni.navigateTo({
 					url: `/pages/product/list?categoryId=${item.id}&categoryName=${item.name}`
 				});
@@ -95,6 +202,10 @@
 		mounted() {
 			// 初始化二级分类数据
 			this.secondaryCategories = this.secondaryCategoriesData[this.primaryCategories[0].id] || [];
+			// 初始化三级分类数据
+			if (this.secondaryCategories.length > 0) {
+				this.tertiaryCategories = this.tertiaryCategoriesData[this.secondaryCategories[0].id] || [];
+			}
 		}
 	}
 </script>
@@ -128,18 +239,44 @@
 		border-left: 6rpx solid #ff0000;
 	}
 	
-	.secondary-category {
+	.secondary-container {
 		flex: 1;
 		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 	
-	.secondary-grid {
+	.secondary-tabs {
+		height: 80rpx;
+		white-space: nowrap;
+		background-color: #fff;
+		border-bottom: 1rpx solid #eee;
+	}
+	
+	.secondary-tab {
+		display: inline-block;
+		height: 100%;
+		padding: 0 30rpx;
+		line-height: 80rpx;
+		font-size: 28rpx;
+	}
+	
+	.secondary-tab.active {
+		color: #ff0000;
+		font-weight: bold;
+	}
+	
+	.tertiary-category {
+		flex: 1;
+	}
+	
+	.tertiary-grid {
 		display: flex;
 		flex-wrap: wrap;
 		padding: 20rpx;
 	}
 	
-	.secondary-item {
+	.tertiary-item {
 		width: 33.33%;
 		display: flex;
 		flex-direction: column;
@@ -147,13 +284,13 @@
 		margin-bottom: 30rpx;
 	}
 	
-	.secondary-icon {
+	.tertiary-icon {
 		width: 80rpx;
 		height: 80rpx;
 		margin-bottom: 10rpx;
 	}
 	
-	.secondary-name {
+	.tertiary-name {
 		font-size: 24rpx;
 	}
 </style>
