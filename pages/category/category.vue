@@ -260,7 +260,7 @@
 	}
 	
 	.primary-category {
-		width: 200rpx;
+		width: 20%;
 		height: 100%;
 	}
 	
