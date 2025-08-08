@@ -1,7 +1,7 @@
 <template>
 	<view class="category-container">
 		<!-- 一级分类 -->
-		<scroll-view class="primary-category" scroll-y>
+		<scroll-view class="primary-category" scroll-y :showScrollbar="false">
 			<view 
 				class="primary-item" 
 				:class="{ active: currentPrimaryIndex === index }"
@@ -16,17 +16,27 @@
 		<!-- 右侧区域 -->
 		<view class="secondary-container">
 			<!-- 二级分类 tab -->
-			<scroll-view class="secondary-tabs" scroll-x>
-				<view 
-					class="secondary-tab" 
-					:class="{ active: currentSecondaryIndex === index }"
-					v-for="(item, index) in secondaryCategories" 
-					:key="index"
-					@click="selectSecondaryCategory(index)"
+			<view class="secondary-tabs-wrapper">
+				<scroll-view 
+					class="secondary-tabs" 
+					scroll-x 
+					:scroll-with-animation="true"
+					:show-scrollbar="false"
+					:enhanced="true"
 				>
-					{{ item.name }}
-				</view>
-			</scroll-view>
+					<view class="secondary-tabs-content">
+						<view 
+							class="secondary-tab" 
+							:class="{ active: currentSecondaryIndex === index }"
+							v-for="(item, index) in secondaryCategories" 
+							:key="index"
+							@click="selectSecondaryCategory(index)"
+						>
+							{{ item.name }}
+						</view>
+					</view>
+				</scroll-view>
+			</view>
 			
 			<!-- 三级分类 -->
 			<scroll-view class="tertiary-category" scroll-y>
@@ -57,7 +67,18 @@
 					{ id: 2, name: '电子产品' },
 					{ id: 3, name: '家居' },
 					{ id: 4, name: '美妆' },
-					{ id: 5, name: '食品' }
+					{ id: 5, name: '食品' },
+					{ id: 114, name: '美妆' },
+					{ id: 224, name: '美妆' },
+					{ id: 334, name: '美妆' },
+					{ id: 444, name: '美妆' },
+					{ id: 554, name: '美妆' },
+					{ id: 664, name: '美妆' },
+					{ id: 774, name: '美妆' },
+					{ id: 884, name: '美妆' },
+					{ id: 994, name: '美妆' },
+					{ id: 914, name: '美妆' },
+					{ id: 924, name: '美妆' }
 				],
 				// 二级分类数据，按一级分类ID分组
 				secondaryCategoriesData: {
@@ -65,7 +86,11 @@
 						{ id: 11, name: '男装' },
 						{ id: 12, name: '女装' },
 						{ id: 13, name: '童装' },
-						{ id: 14, name: '内衣' }
+						{ id: 14, name: '内衣' },
+						{ id: 15, name: '运动装' },
+						{ id: 115, name: '运动装2' },
+						{ id: 215, name: '运动装3' },
+						{ id: 315, name: '运动装4' }
 					],
 					2: [
 						{ id: 21, name: '手机' },
@@ -110,6 +135,22 @@
 					14: [
 						{ id: 141, name: '文胸', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
 						{ id: 142, name: '内裤', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					15: [
+						{ id: 151, name: '运动鞋', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 152, name: '运动服', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					115: [
+						{ id: 1151, name: '跑步装备', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 1152, name: '健身器材', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					215: [
+						{ id: 2151, name: '户外装备', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 2152, name: '骑行用品', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+					],
+					315: [
+						{ id: 3151, name: '球类运动', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+						{ id: 3152, name: '游泳用品', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
 					],
 					21: [
 						{ id: 211, name: '智能手机', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
@@ -214,13 +255,13 @@
 	.category-container {
 		display: flex;
 		height: 100vh;
+		width: 100%;
 		padding-top: var(--status-bar-height);
 	}
 	
 	.primary-category {
 		width: 200rpx;
 		height: 100%;
-		background-color: #f5f5f5;
 	}
 	
 	.primary-item {
@@ -242,28 +283,64 @@
 	.secondary-container {
 		flex: 1;
 		height: 100%;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 	}
 	
-	.secondary-tabs {
-		height: 80rpx;
-		white-space: nowrap;
-		background-color: #fff;
+	.secondary-tabs-wrapper {
+		/* height: 80rpx; */
+		width: 100%;
 		border-bottom: 1rpx solid #eee;
+	}
+	
+	.secondary-tabs {
+		width: 100%;
+		height: 100%;
+		white-space: nowrap;
+	}
+	
+	.secondary-tabs-content {
+		height: 100%;
+		width: 0rpx; /* 设置任意值都行，不然左侧一级分类布局宽度会坍塌，原因未知 by yeshimin */
+		white-space: nowrap;
+		padding: 0 20rpx;
+		/* 移除 flex 布局，使用默认布局 */
 	}
 	
 	.secondary-tab {
 		display: inline-block;
-		height: 100%;
-		padding: 0 30rpx;
+		min-width: 160rpx; /* 设置最小宽度 */
+		height: 80rpx;
 		line-height: 80rpx;
 		font-size: 28rpx;
+		position: relative;
+		text-align: center; /* 文字居中 */
+		margin-left: 20rpx;
 	}
 	
 	.secondary-tab.active {
 		color: #ff0000;
 		font-weight: bold;
+	}
+	
+	.secondary-tab.active::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 40rpx;
+		height: 4rpx;
+		background-color: #ff0000;
+	}
+	
+	/* 隐藏滚动条 */
+	::-webkit-scrollbar {
+		display: none;
+		width: 0;
+		height: 0;
+		background-color: transparent;
 	}
 	
 	.tertiary-category {
