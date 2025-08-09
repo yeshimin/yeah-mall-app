@@ -23,6 +23,18 @@
 			"style" : {
 				"navigationBarTitleText" : "商品详情"
 			}
+		},
+		{
+			"path" : "pages/cart/cart",
+			"style" : {
+				"navigationBarTitleText" : "购物车"
+			}
+		},
+		{
+			"path" : "pages/profile/profile",
+			"style" : {
+				"navigationBarTitleText" : "我的"
+			}
 		}
 	],
 	"globalStyle": {
@@ -49,6 +61,14 @@
 			{
 				"pagePath": "pages/category/category",
 				"text": "分类"
+			},
+			{
+				"pagePath": "pages/cart/cart",
+				"text": "购物车"
+			},
+			{
+				"pagePath": "pages/profile/profile",
+				"text": "我的"
 			}
 		]
 	}
