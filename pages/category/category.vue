@@ -234,9 +234,9 @@
 				this.tertiaryCategories = this.tertiaryCategoriesData[secondaryId] || [];
 			},
 			goToProductList(item) {
-				// 跳转到商品列表页面，传递三级分类ID和名称
+				// 跳转到商品列表页面，传递三级分类ID和名称，并将分类名称作为搜索关键词
 				uni.navigateTo({
-					url: `/pages/product/list?categoryId=${item.id}&categoryName=${item.name}`
+					url: `/pages/product/list?categoryId=${item.id}&categoryName=${item.name}&searchKeyword=${item.name}`
 				});
 			}
 		},

@@ -98,6 +98,10 @@
 			if (options.categoryName) {
 				this.categoryName = options.categoryName;
 			}
+			// 获取搜索关键词并填充到搜索框
+			if (options.searchKeyword) {
+				this.searchKeyword = options.searchKeyword;
+			}
 		}
 	}
 </script>
