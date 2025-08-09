@@ -7,57 +7,74 @@
 			<text class="more-btn">...</text>
 		</view>
 		
-		<!-- 商品图片轮播 -->
-		<swiper class="product-swiper" indicator-dots autoplay>
-			<swiper-item>
-				<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-			</swiper-item>
-			<swiper-item>
-				<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-			</swiper-item>
-			<swiper-item>
-				<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-			</swiper-item>
-		</swiper>
-		
-		<!-- 商品信息 -->
-		<view class="product-info">
-			<text class="product-name">商品名称商品名称商品名称商品名称商品名称</text>
-			<view class="product-price-section">
+		<scroll-view class="detail-scroll" scroll-y :show-scrollbar="false">
+			<!-- 商品图片轮播 -->
+			<swiper class="product-swiper" indicator-dots autoplay>
+				<swiper-item>
+					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+				</swiper-item>
+				<swiper-item>
+					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+				</swiper-item>
+				<swiper-item>
+					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+				</swiper-item>
+			</swiper>
+			
+			<!-- 价格区域 -->
+			<view class="price-section">
 				<text class="current-price">￥199.00</text>
 				<text class="original-price">￥299.00</text>
+				<view class="sales-info">
+					<text class="sales-count">销量: 1234</text>
+					<text class="collect-count">收藏: 567</text>
+				</view>
 			</view>
-			<view class="product-sales">销量: 1234</view>
-		</view>
-		
-		<!-- 选择规格 -->
-		<view class="spec-section" @click="showSpecPopup">
-			<text>选择规格</text>
-			<text class="arrow">&gt;</text>
-		</view>
-		
-		<!-- 商品详情 -->
-		<view class="detail-section">
-			<text class="section-title">商品详情</text>
-			<view class="detail-content">
-				<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-				<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-				<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+			
+			<!-- 商品名称区域 -->
+			<view class="name-section">
+				<text class="product-name">商品名称商品名称商品名称商品名称商品名称</text>
+				<view class="product-tags">
+					<text class="tag">品牌直营</text>
+					<text class="tag">正品保证</text>
+					<text class="tag">7天无理由退换</text>
+				</view>
 			</view>
-		</view>
+			
+			<!-- 商品详情介绍图文区域 -->
+			<view class="detail-section">
+				<text class="section-title">商品详情</text>
+				<view class="detail-content">
+					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+					<view class="detail-text">
+						<text>这是商品的详细描述信息，包括商品的特点、材质、使用方法等。这里可以添加更多关于商品的详细信息，帮助用户更好地了解商品。</text>
+					</view>
+					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+				</view>
+			</view>
+		</scroll-view>
 		
 		<!-- 底部操作栏 -->
 		<view class="bottom-bar">
-			<view class="bar-item" @click="addToCart">
-				<text class="icon">🛒</text>
-				<text>购物车</text>
+			<view class="bar-item" @click="goToStore">
+				<text class="icon">🏠</text>
+				<text>店铺</text>
 			</view>
-			<view class="bar-item" @click="buyNow">
-				<text class="buy-now">立即购买</text>
+			<view class="bar-item" @click="contactService">
+				<text class="icon">💬</text>
+				<text>客服</text>
 			</view>
 			<view class="bar-item" @click="addToFavorites">
 				<text class="icon">❤️</text>
 				<text>收藏</text>
+			</view>
+			<view class="bar-item cart-item" @click="addToCart">
+				<text class="cart-text">加入购物车</text>
+			</view>
+			<view class="bar-item buy-item" @click="buyNow">
+				<text class="buy-text">购买</text>
 			</view>
 		</view>
 		
@@ -104,6 +121,20 @@
 		methods: {
 			goBack() {
 				uni.navigateBack();
+			},
+			goToStore() {
+				// 跳转到店铺页面
+				uni.showToast({
+					title: '跳转到店铺',
+					icon: 'none'
+				});
+			},
+			contactService() {
+				// 联系客服逻辑
+				uni.showToast({
+					title: '联系客服',
+					icon: 'none'
+				});
 			},
 			showSpecPopup() {
 				this.showSpec = true;
@@ -156,6 +187,7 @@
 	.product-detail-container {
 		height: 100vh;
 		padding-top: var(--status-bar-height);
+		position: relative;
 	}
 	
 	.top-nav {
@@ -182,9 +214,14 @@
 		font-weight: bold;
 	}
 	
+	.detail-scroll {
+		height: calc(100vh - 200rpx);
+		margin-top: 100rpx;
+		margin-bottom: 100rpx;
+	}
+	
 	.product-swiper {
 		height: 500rpx;
-		margin-top: 100rpx;
 	}
 	
 	.swiper-image {
@@ -192,10 +229,40 @@
 		height: 100%;
 	}
 	
-	.product-info {
+	.price-section {
 		padding: 20rpx;
 		background-color: #fff;
-		border-bottom: 10rpx solid #f5f5f5;
+		border-bottom: 1rpx solid #f5f5f5;
+	}
+	
+	.current-price {
+		font-size: 40rpx;
+		color: #ff0000;
+		font-weight: bold;
+		margin-right: 20rpx;
+	}
+	
+	.original-price {
+		font-size: 28rpx;
+		color: #888;
+		text-decoration: line-through;
+	}
+	
+	.sales-info {
+		display: flex;
+		margin-top: 10rpx;
+	}
+	
+	.sales-count, .collect-count {
+		font-size: 24rpx;
+		color: #888;
+		margin-right: 20rpx;
+	}
+	
+	.name-section {
+		padding: 20rpx;
+		background-color: #fff;
+		border-bottom: 1rpx solid #f5f5f5;
 	}
 	
 	.product-name {
@@ -204,41 +271,17 @@
 		margin-bottom: 20rpx;
 	}
 	
-	.product-price-section {
+	.product-tags {
 		display: flex;
-		align-items: center;
-		margin-bottom: 10rpx;
 	}
 	
-	.current-price {
-		font-size: 36rpx;
+	.tag {
+		font-size: 20rpx;
 		color: #ff0000;
-		margin-right: 20rpx;
-	}
-	
-	.original-price {
-		font-size: 24rpx;
-		color: #888;
-		text-decoration: line-through;
-	}
-	
-	.product-sales {
-		font-size: 24rpx;
-		color: #888;
-	}
-	
-	.spec-section {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 20rpx;
-		background-color: #fff;
-		border-bottom: 10rpx solid #f5f5f5;
-	}
-	
-	.arrow {
-		font-size: 28rpx;
-		color: #888;
+		border: 1rpx solid #ff0000;
+		border-radius: 5rpx;
+		padding: 5rpx 10rpx;
+		margin-right: 10rpx;
 	}
 	
 	.detail-section {
@@ -264,6 +307,13 @@
 		margin-bottom: 20rpx;
 	}
 	
+	.detail-text {
+		font-size: 28rpx;
+		line-height: 40rpx;
+		margin-bottom: 20rpx;
+		padding: 0 20rpx;
+	}
+	
 	.bottom-bar {
 		display: flex;
 		height: 100rpx;
@@ -273,6 +323,7 @@
 		width: 100%;
 		background-color: #fff;
 		border-top: 1rpx solid #eee;
+		z-index: 100;
 	}
 	
 	.bar-item {
@@ -283,16 +334,30 @@
 		justify-content: center;
 	}
 	
+	.cart-item {
+		flex: 2;
+		background-color: #ff9900;
+		color: #fff;
+	}
+	
+	.buy-item {
+		flex: 2;
+		background-color: #ff0000;
+		color: #fff;
+	}
+	
 	.icon {
 		font-size: 40rpx;
 		margin-bottom: 5rpx;
 	}
 	
-	.buy-now {
-		background-color: #ff0000;
+	.cart-text, .buy-text {
+		font-size: 32rpx;
+		font-weight: bold;
+	}
+	
+	.buy-text {
 		color: #fff;
-		padding: 15rpx 40rpx;
-		border-radius: 50rpx;
 	}
 	
 	.spec-popup {
