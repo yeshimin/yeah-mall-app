@@ -254,14 +254,20 @@
 <style scoped>
 	.category-container {
 		display: flex;
-		height: 100vh;
+		height: 100%;
 		width: 100%;
 		padding-top: var(--status-bar-height);
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
 	}
 	
 	.primary-category {
 		width: 20%;
 		height: 100%;
+		background-color: #f5f5f5;
 	}
 	
 	.primary-item {
@@ -346,12 +352,14 @@
 	
 	.tertiary-category {
 		flex: 1;
+		overflow: hidden;
 	}
 	
 	.tertiary-grid {
 		display: flex;
 		flex-wrap: wrap;
 		padding: 20rpx;
+		box-sizing: border-box;
 	}
 	
 	.tertiary-item {
