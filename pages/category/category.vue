@@ -310,13 +310,14 @@
 	
 	.secondary-tab {
 		display: inline-block;
-		min-width: 160rpx; /* 设置最小宽度 */
+		min-width: 120rpx; /* 减小最小宽度 */
 		height: 80rpx;
 		line-height: 80rpx;
 		font-size: 28rpx;
 		position: relative;
 		text-align: center; /* 文字居中 */
-		margin-left: 20rpx;
+		margin-left: 10rpx; /* 减小左边距 */
+		margin-right: 10rpx; /* 增加右边距，确保item之间有适当间距 */
 	}
 	
 	.secondary-tab.active {
