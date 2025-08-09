@@ -1,58 +1,56 @@
 <template>
   <view class="page-container">
-    <view class="cart-container">
-      <!-- 顶部导航栏 -->
-      <view class="cart-header">
-        <text class="header-title">购物车</text>
-        <text class="edit-btn" @click="toggleEdit">{{ isEditing ? '完成' : '编辑' }}</text>
+    <!-- 顶部导航栏 -->
+    <!-- <view class="cart-header">
+      <text class="header-title">购物车</text>
+      <text class="edit-btn" @click="toggleEdit">{{ isEditing ? '完成' : '编辑' }}</text>
+    </view> -->
+
+    <!-- 购物车商品列表 -->
+    <scroll-view class="cart-content" scroll-y>
+      <!-- 按店铺分组展示商品 -->
+      <view class="shop-group" v-for="(shop, shopIndex) in groupedCartItems" :key="shopIndex">
+        <!-- 店铺头部 -->
+        <view class="shop-header">
+          <view class="shop-selector" @click="toggleShopSelection(shopIndex)">
+            <view class="selector" :class="{ selected: shop.selected }">
+              <text class="checkmark" v-if="shop.selected">✓</text>
+            </view>
+          </view>
+          <text class="shop-name">{{ shop.shopName }}</text>
+        </view>
+
+        <!-- 店铺内商品列表 -->
+        <view class="cart-item" v-for="(item, itemIndex) in shop.items" :key="itemIndex">
+          <view class="item-selector" @click="toggleItemSelection(shopIndex, itemIndex)">
+            <view class="selector" :class="{ selected: item.selected }">
+              <text class="checkmark" v-if="item.selected">✓</text>
+            </view>
+          </view>
+          <view class="item-image">
+            <image :src="item.image" mode="aspectFill"></image>
+          </view>
+          <view class="item-info">
+            <text class="item-name">{{ item.name }}</text>
+            <text class="item-spec">{{ item.spec }}</text>
+            <view class="item-price-controls">
+              <text class="item-price">¥{{ item.price }}</text>
+              <view class="quantity-controls" v-if="!isEditing">
+                <text class="control-btn" @click="decreaseQuantity(shopIndex, itemIndex)">-</text>
+                <text class="quantity">{{ item.quantity }}</text>
+                <text class="control-btn" @click="increaseQuantity(shopIndex, itemIndex)">+</text>
+              </view>
+              <text class="item-delete" v-else @click="deleteItem(shopIndex, itemIndex)">删除</text>
+            </view>
+          </view>
+        </view>
       </view>
 
-      <!-- 购物车商品列表 -->
-      <scroll-view class="cart-content" scroll-y>
-        <!-- 按店铺分组展示商品 -->
-        <view class="shop-group" v-for="(shop, shopIndex) in groupedCartItems" :key="shopIndex">
-          <!-- 店铺头部 -->
-          <view class="shop-header">
-            <view class="shop-selector" @click="toggleShopSelection(shopIndex)">
-              <view class="selector" :class="{ selected: shop.selected }">
-                <text class="checkmark" v-if="shop.selected">✓</text>
-              </view>
-            </view>
-            <text class="shop-name">{{ shop.shopName }}</text>
-          </view>
-
-          <!-- 店铺内商品列表 -->
-          <view class="cart-item" v-for="(item, itemIndex) in shop.items" :key="itemIndex">
-            <view class="item-selector" @click="toggleItemSelection(shopIndex, itemIndex)">
-              <view class="selector" :class="{ selected: item.selected }">
-                <text class="checkmark" v-if="item.selected">✓</text>
-              </view>
-            </view>
-            <view class="item-image">
-              <image :src="item.image" mode="aspectFill"></image>
-            </view>
-            <view class="item-info">
-              <text class="item-name">{{ item.name }}</text>
-              <text class="item-spec">{{ item.spec }}</text>
-              <view class="item-price-controls">
-                <text class="item-price">¥{{ item.price }}</text>
-                <view class="quantity-controls" v-if="!isEditing">
-                  <text class="control-btn" @click="decreaseQuantity(shopIndex, itemIndex)">-</text>
-                  <text class="quantity">{{ item.quantity }}</text>
-                  <text class="control-btn" @click="increaseQuantity(shopIndex, itemIndex)">+</text>
-                </view>
-                <text class="item-delete" v-else @click="deleteItem(shopIndex, itemIndex)">删除</text>
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <!-- 空购物车提示 -->
-        <view class="empty-cart" v-if="groupedCartItems.length === 0">
-          <text class="empty-text">购物车为空</text>
-        </view>
-      </scroll-view>
-    </view>
+      <!-- 空购物车提示 -->
+      <view class="empty-cart" v-if="groupedCartItems.length === 0">
+        <text class="empty-text">购物车为空</text>
+      </view>
+    </scroll-view>
 
     <!-- 底部结算栏 -->
     <view class="cart-footer">
@@ -370,16 +368,13 @@ export default {
 <style scoped>
 /* 购物车容器 */
 .page-container {
-  min-height: 100vh;
+  background-color: #ff6b35;
   display: flex;
   flex-direction: column;
-}
 
-.cart-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
+  height: 100vh;
+  margin-bottom: 10rpx;
+  padding-top: var(--status-bar-height);
 }
 
 /* 顶部导航栏 */
@@ -387,9 +382,11 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 88rpx;
-  background-color: #fff;
+  /* height: 200rpx; */
+  background-color: #999;
   padding: 0 30rpx;
+  padding-top: 16rpx;
+  padding-bottom: 16rpx;
   border-bottom: 1rpx solid #eee;
 }
 
@@ -406,11 +403,8 @@ export default {
 
 /* 购物车内容区域 */
 .cart-content {
-  /* display: none; */
   flex: 1;
-  height: 0;
-  background-color: #999;
-  /* 解决 iOS scroll-view 高度问题 */
+  padding-bottom: calc(var(--window-bottom) + 100rpx);
 }
 
 /* 店铺分组 */
@@ -540,19 +534,19 @@ export default {
 }
 
 .cart-footer {
-  display: flex;
-  height: 250rpx;
   position: fixed;
-  bottom: 0;
-  left: 0;
+  bottom: var(--window-bottom);
   width: 100%;
-  background-color: #333;
-  border-top: 1rpx solid #eee;
-  z-index: 100;
-  justify-content: space-between;
+  height: 100rpx;
+  /* height: 100rpx; */
+  display: flex;
   align-items: center;
-  padding: 0 30rpx;
-  box-sizing: border-box;
+  justify-content: space-between;
+  padding: 0 20rpx;
+  /* padding-bottom: 100rpx; */
+  background-color: antiquewhite;
+  border-top: 1px solid #eee;
+  z-index: 999;
 }
 
 .footer-left {
