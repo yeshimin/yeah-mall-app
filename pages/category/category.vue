@@ -257,16 +257,11 @@
 		height: 100%;
 		width: 100%;
 		padding-top: var(--status-bar-height);
-		position: fixed;
-		left: 0;
-		right: 0;
-		top: 0;
-		bottom: 0;
 	}
 	
 	.primary-category {
 		width: 20%;
-		height: 100%;
+		height: calc(100% - var(--status-bar-height));
 		background-color: #f5f5f5;
 	}
 	
@@ -288,7 +283,7 @@
 	
 	.secondary-container {
 		flex: 1;
-		height: 100%;
+		height: calc(100% - var(--status-bar-height));
 		width: 100%;
 		display: flex;
 		flex-direction: column;
