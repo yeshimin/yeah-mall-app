@@ -26,12 +26,31 @@
 	/* 页面容器样式 */
 	page {
 		height: 100%;
-		overflow: hidden;
 	}
 	
 	/* 设置页面根元素的样式 */
 	uni-page-body {
 		height: 100%;
-		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	/* 设置页面主要内容区域的样式 */
+	.page-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		height: 100%;
+	}
+	
+	/* 设置固定定位元素的基准 */
+	.fixed-bottom {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 100;
+		background-color: #fff;
 	}
 </style>

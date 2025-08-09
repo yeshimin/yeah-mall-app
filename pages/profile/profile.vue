@@ -18,6 +18,8 @@ export default {
 <style scoped>
 .profile-container {
   height: 100vh;
+  background-color: aqua;
+  margin-bottom: 10rpx;
   padding-top: var(--status-bar-height);
 }
 
