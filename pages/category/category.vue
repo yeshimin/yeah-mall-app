@@ -39,16 +39,19 @@
 			</view>
 			
 			<!-- 三级分类 -->
-			<scroll-view class="tertiary-category" scroll-y>
-				<view class="tertiary-grid">
-					<view 
-						class="tertiary-item" 
-						v-for="(item, index) in tertiaryCategories" 
-						:key="item.id"
-						@click="goToProductList(item)"
-					>
-						<image class="tertiary-icon" :src="item.icon || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
-						<text class="tertiary-name">{{ item.name }}</text>
+			<scroll-view class="tertiary-category" scroll-y :scroll-top="tertiaryScrollTop" ref="tertiaryScrollView">
+				<view class="tertiary-section" v-for="(secondary, sIndex) in secondaryCategories" :key="secondary.id" :id="'secondarySection' + sIndex" :ref="'secondarySection' + sIndex">
+					<view class="secondary-title">{{ secondary.name }}</view>
+					<view class="tertiary-grid">
+						<view 
+							class="tertiary-item" 
+							v-for="(item, index) in secondary.children" 
+							:key="item.id"
+							@click="goToProductList(item)"
+						>
+							<image class="tertiary-icon" :src="item.icon || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
+							<text class="tertiary-name">{{ item.name }}</text>
+						</view>
 					</view>
 				</view>
 			</scroll-view>
@@ -64,7 +67,7 @@
 				currentSecondaryIndex: 0,
 				primaryCategories: [],
 				secondaryCategories: [],
-				tertiaryCategories: []
+				tertiaryScrollTop: 0
 			}
 		},
 		computed: {
@@ -78,18 +81,37 @@
 				this.secondaryCategories = selectedCategory.children || [];
 				// 重置二级分类选中项
 				this.currentSecondaryIndex = 0;
-				// 根据选中的二级分类更新三级分类
-				if (this.secondaryCategories.length > 0) {
-					this.tertiaryCategories = this.secondaryCategories[0].children || [];
-				} else {
-					this.tertiaryCategories = [];
-				}
+				// 滚动到第一个二级分类
+				this.$nextTick(() => {
+					this.scrollToSecondary(0);
+				});
 			},
 			selectSecondaryCategory(index) {
 				this.currentSecondaryIndex = index;
-				// 根据选中的二级分类更新三级分类
-				const selectedCategory = this.secondaryCategories[index];
-				this.tertiaryCategories = selectedCategory.children || [];
+				// 滚动到选中的二级分类对应的三级分类部分
+				this.$nextTick(() => {
+					this.scrollToSecondary(index);
+				});
+			},
+			scrollToSecondary(index) {
+				// 滚动到指定的二级分类对应的三级分类部分
+				this.$nextTick(() => {
+					const query = uni.createSelectorQuery().in(this);
+					// 获取滚动容器的位置信息
+					query.select('.tertiary-category').boundingClientRect();
+					// 获取目标元素的位置信息
+					query.select(`#secondarySection${index}`).boundingClientRect();
+					
+					query.exec((res) => {
+						if (res[0] && res[1]) {
+							const scrollViewRect = res[0];
+							const targetRect = res[1];
+							// 计算目标元素相对于滚动容器的偏移量
+							const offsetTop = targetRect.top - scrollViewRect.top;
+							this.tertiaryScrollTop = offsetTop;
+						}
+					});
+				});
 			},
 			goToProductList(item) {
 				// 跳转到商品列表页面，传递三级分类ID和名称，并将分类名称作为搜索关键词
@@ -106,10 +128,6 @@
 					// 初始化二级分类数据
 					if (this.primaryCategories.length > 0) {
 						this.secondaryCategories = this.primaryCategories[0].children || [];
-					}
-					// 初始化三级分类数据
-					if (this.secondaryCategories.length > 0) {
-						this.tertiaryCategories = this.secondaryCategories[0].children || [];
 					}
 				}).catch((error) => {
 					console.error('Failed to fetch category data:', error);
@@ -216,6 +234,18 @@
 	.tertiary-category {
 		flex: 1;
 		overflow: hidden;
+	}
+	
+	.tertiary-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.secondary-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		padding: 20rpx;
+		background-color: #f8f8f8;
+		border-bottom: 1rpx solid #eee;
 	}
 	
 	.tertiary-grid {
