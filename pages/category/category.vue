@@ -152,11 +152,11 @@
 	}
 	
 	.primary-item {
-		height: 100rpx;
+		height: 110rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 28rpx;
+		font-size: 30rpx;
 		border-bottom: 1rpx solid #eee;
 	}
 	
@@ -164,7 +164,7 @@
 		background-color: #fff;
 		color: #ff0000;
 		font-weight: bold;
-		border-left: 6rpx solid #ff0000;
+		border-left: 8rpx solid #ff0000;
 	}
 	
 	.secondary-container {
@@ -197,14 +197,14 @@
 	
 	.secondary-tab {
 		display: inline-block;
-		min-width: 120rpx; /* 减小最小宽度 */
-		height: 80rpx;
-		line-height: 80rpx;
-		font-size: 28rpx;
+		min-width: 130rpx; /* 减小最小宽度 */
+		height: 85rpx;
+		line-height: 85rpx;
+		font-size: 30rpx;
 		position: relative;
 		text-align: center; /* 文字居中 */
-		margin-left: 10rpx; /* 减小左边距 */
-		margin-right: 10rpx; /* 增加右边距，确保item之间有适当间距 */
+		margin-left: 12rpx; /* 减小左边距 */
+		margin-right: 12rpx; /* 增加右边距，确保item之间有适当间距 */
 	}
 	
 	.secondary-tab.active {
@@ -218,9 +218,10 @@
 		bottom: 0;
 		left: 50%;
 		transform: translateX(-50%);
-		width: 40rpx;
-		height: 4rpx;
+		width: 50rpx;
+		height: 6rpx;
 		background-color: #ff0000;
+		border-radius: 3rpx;
 	}
 	
 	/* 隐藏滚动条 */
@@ -246,6 +247,7 @@
 		padding: 20rpx;
 		background-color: #f8f8f8;
 		border-bottom: 1rpx solid #eee;
+		color: #333;
 	}
 	
 	.tertiary-grid {
@@ -260,16 +262,17 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin-bottom: 30rpx;
+		margin-bottom: 25rpx;
 	}
 	
 	.tertiary-icon {
-		width: 80rpx;
-		height: 80rpx;
-		margin-bottom: 10rpx;
+		width: 70rpx;
+		height: 70rpx;
+		margin-bottom: 8rpx;
 	}
 	
 	.tertiary-name {
-		font-size: 24rpx;
+		font-size: 22rpx;
+		color: #666;
 	}
 </style>
