@@ -117,15 +117,7 @@
 					shippingOption: 'all' // all, free, fast
 				},
 				brands: ['品牌A', '品牌B', '品牌C', '品牌D'],
-				products: [
-					// 示例商品数据
-					{ id: 1, name: '商品1', price: 99.00, sales: 123, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-					{ id: 2, name: '商品2', price: 199.00, sales: 456, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-					{ id: 3, name: '商品3', price: 299.00, sales: 789, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-					{ id: 4, name: '商品4', price: 399.00, sales: 101, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-					{ id: 5, name: '商品5', price: 499.00, sales: 202, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-					{ id: 6, name: '商品6', price: 599.00, sales: 303, image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
-				]
+				products: []
 			}
 		},
 		methods: {
@@ -144,6 +136,8 @@
 				this.currentSort = sortType;
 				// 根据排序类型对商品进行排序
 				console.log('按' + sortType + '排序');
+				// 实际项目中这里会调用后端API进行排序
+				this.fetchProducts();
 			},
 			goToProductDetail(item) {
 				// 跳转到商品详情页面
@@ -159,6 +153,7 @@
 			searchProducts() {
 				console.log('搜索关键词：' + this.searchKeyword);
 				// 实际项目中这里会调用后端API进行搜索
+				this.fetchProducts();
 			},
 			// 筛选相关方法
 			toggleBrand(brand) {
@@ -186,6 +181,41 @@
 				console.log('应用筛选条件:', this.filterOptions);
 				// 实际项目中这里会调用后端API进行筛选
 				this.closeFilter();
+			},
+			
+			// 获取商品列表
+			fetchProducts() {
+				// 构建API请求URL，添加搜索关键词参数
+				let url = 'http://localhost:8080/app/product/query?sortBy=1';
+				if (this.searchKeyword) {
+					url += '&Keyword=' + encodeURIComponent(this.searchKeyword);
+				}
+				
+				uni.request({
+					url: url,
+					method: 'GET',
+					header: {
+						'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxIiwiaWF0IjoxNzU0ODMxOTI0LCJzdWIiOiJhcHAiLCJ0ZXJtIjoiYXBwIiwiaWF0TXMiOjE3NTQ4MzE5MjQ5NjksImV4cE1zIjoxNzU0ODM1NTI0OTY5fQ.T5UGHYy6ThASbwIae6aM1tJue15rJaAFnyXI945UhSk',
+						'Content-Type': 'application/json'
+					},
+					success: (res) => {
+						if (res.statusCode === 200 && res.data.code === 0) {
+							// 处理返回的商品数据，添加价格和销量的模拟值
+							const productsWithDetails = res.data.data.records.map(item => ({
+								...item,
+								price: (Math.random() * 1000).toFixed(2),
+								sales: Math.floor(Math.random() * 1000),
+								image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+							}));
+							this.products = productsWithDetails;
+						} else {
+							console.error('获取商品列表失败:', res.data.message);
+						}
+					},
+					fail: (err) => {
+						console.error('请求商品列表失败:', err);
+					}
+				});
 			}
 		},
 		onLoad(options) {
@@ -200,7 +230,10 @@
 			if (options.searchKeyword) {
 				this.searchKeyword = options.searchKeyword;
 			}
-		}
+			
+			// 调用接口获取商品列表
+			this.fetchProducts();
+		},
 	}
 </script>
 
