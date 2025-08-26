@@ -14,9 +14,9 @@
 		
 		<!-- 排序选项 -->
 		<view class="sort-options">
-			<view class="sort-item" :class="{ active: currentSort === 'default' }" @click="sortProducts('default')">综合</view>
-			<view class="sort-item" :class="{ active: currentSort === 'sales' }" @click="sortProducts('sales')">销量</view>
-			<view class="sort-item" :class="{ active: currentSort === 'price' }" @click="sortProducts('price')">价格</view>
+			<view class="sort-item" :class="{ active: currentSort === 'default' || currentSort === 'default-desc' }" @click="toggleSort('default')">综合</view>
+			<view class="sort-item" :class="{ active: currentSort === 'sales' || currentSort === 'sales-desc' }" @click="toggleSort('sales')">销量</view>
+			<view class="sort-item" :class="{ active: currentSort === 'price-asc' || currentSort === 'price-desc' }" @click="toggleSort('price')">价格</view>
 			<!-- View toggle: ⬜ for grid view, ▤ for list view -->
 			<view class="view-toggle" @click="toggleView">
 				<text v-if="isGridView">⬜</text>
@@ -85,41 +85,51 @@
 		</view>
 		
 		<!-- 商品列表 -->
-		<scroll-view class="product-list" scroll-y>
-			<view class="product-grid" :class="{ 'list-view': !isGridView }">
-				<view class="product-item" v-for="(item, index) in products" :key="index" @click="goToProductDetail(item)">
-					<image class="product-image" :src="item.image"></image>
-					<view class="product-info">
-						<text class="product-name">{{ item.name }}</text>
-						<text class="product-price">￥{{ item.price }}</text>
-						<text class="product-sales">销量: {{ item.sales }}</text>
+				<scroll-view class="product-list" scroll-y @scrolltolower="loadMore">
+					<view class="product-grid" :class="{ 'list-view': !isGridView }">
+						<view class="product-item" v-for="(item, index) in products" :key="index" @click="goToProductDetail(item)">
+							<image class="product-image" :src="item.image"></image>
+							<view class="product-info">
+								<text class="product-name">{{ item.name }}</text>
+								<text class="product-price">￥{{ item.price }}</text>
+								<text class="product-sales">销量: {{ item.sales }}</text>
+							</view>
+						</view>
 					</view>
-				</view>
-			</view>
-		</scroll-view>
+					
+					<!-- 加载更多提示 -->
+					<view class="loading-more" v-if="hasMore">
+						<text>加载中...</text>
+					</view>
+					<view class="loading-more" v-else-if="products.length > 0 && scrollToken">
+						<text>没有更多商品了</text>
+					</view>
+				</scroll-view>
 	</view>
 </template>
 
 <script>
 	export default {
 		data() {
-			return {
-				categoryName: '',
-				categoryId: 0,
-				currentSort: 'default',
-				isGridView: true, // true为双列，false为单列
-				searchKeyword: '', // 搜索关键词
-				showFilterPopup: false, // 是否显示筛选弹窗
-				filterOptions: {
-					minPrice: '',
-					maxPrice: '',
-					selectedBrands: [],
-					shippingOption: 'all' // all, free, fast
-				},
-				brands: ['品牌A', '品牌B', '品牌C', '品牌D'],
-				products: []
-			}
-		},
+				return {
+					categoryName: '',
+					categoryId: 0,
+					currentSort: 'default',
+					isGridView: true, // true为双列，false为单列
+					searchKeyword: '', // 搜索关键词
+					showFilterPopup: false, // 是否显示筛选弹窗
+					filterOptions: {
+						minPrice: '',
+						maxPrice: '',
+						selectedBrands: [],
+						shippingOption: 'all' // all, free, fast
+					},
+					brands: ['品牌A', '品牌B', '品牌C', '品牌D'],
+					products: [],
+					scrollToken: null, // 滚动分页token
+					hasMore: false // 是否还有更多数据
+				}
+			},
 		methods: {
 			goBack() {
 				uni.navigateBack();
@@ -137,6 +147,33 @@
 				// 根据排序类型对商品进行排序
 				console.log('按' + sortType + '排序');
 				// 实际项目中这里会调用后端API进行排序
+				this.scrollToken = null; // 重置滚动分页token
+						this.hasMore = false; // 重置更多数据标志
+						this.products = []; // 清空商品列表
+						this.fetchProducts();
+			},
+			// 切换排序方式
+			toggleSort(sortType) {
+				// 根据当前排序状态切换排序方式
+				let newSortType = sortType + '-asc'; // 默认为正序
+				
+				// 如果当前已经是该类型的正序，则切换为倒序
+				if (this.currentSort === sortType + '-asc') {
+					newSortType = sortType + '-desc';
+				} else if (this.currentSort === sortType + '-desc') {
+					// 如果当前是倒序，则切换回默认排序
+					newSortType = 'default';
+				}
+				
+				this.currentSort = newSortType;
+				console.log('按' + newSortType + '排序');
+				
+				// 重置分页相关状态
+				this.scrollToken = null;
+				this.hasMore = false;
+				this.products = [];
+				
+				// 重新获取商品列表
 				this.fetchProducts();
 			},
 			goToProductDetail(item) {
@@ -153,6 +190,9 @@
 			searchProducts() {
 				console.log('搜索关键词：' + this.searchKeyword);
 				// 实际项目中这里会调用后端API进行搜索
+				this.scrollToken = null; // 重置滚动分页token
+				this.hasMore = false; // 重置更多数据标志
+				this.products = []; // 清空商品列表
 				this.fetchProducts();
 			},
 			// 筛选相关方法
@@ -181,15 +221,55 @@
 				console.log('应用筛选条件:', this.filterOptions);
 				// 实际项目中这里会调用后端API进行筛选
 				this.closeFilter();
-			},
-			
-			// 获取商品列表
-			fetchProducts() {
-				// 构建API请求URL，添加搜索关键词参数
-				let url = 'http://localhost:8080/app/product/query?sortBy=1';
-				if (this.searchKeyword) {
-					url += '&Keyword=' + encodeURIComponent(this.searchKeyword);
+					},
+					
+					// 加载更多商品
+					loadMore() {
+						// 如果还有更多数据且当前不在加载中，则加载更多
+						if (this.hasMore && this.scrollToken) {
+							console.log('加载更多商品...');
+							this.fetchProducts();
+						}
+					},
+					
+					// 获取商品列表
+					fetchProducts() {
+				// 构建API请求URL
+				let url = 'http://localhost:8080/app/product/query';
+				
+				// 构建查询参数
+				let params = [];
+				
+				// 添加排序参数
+				let sortBy = '1'; // 默认综合排序
+				if (this.currentSort === 'sales-asc') {
+					sortBy = '2'; // 销量正序
+				} else if (this.currentSort === 'sales-desc') {
+					sortBy = '3'; // 销量倒序
+				} else if (this.currentSort === 'price-asc') {
+					sortBy = '4'; // 价格正序
+				} else if (this.currentSort === 'price-desc') {
+					sortBy = '5'; // 价格倒序
+				} else if (this.currentSort === 'default-desc') {
+					sortBy = '6'; // 综合倒序
 				}
+				params.push('sortBy=' + sortBy);
+				
+				// 添加关键词参数
+				if (this.searchKeyword) {
+					params.push('keyword=' + encodeURIComponent(this.searchKeyword));
+				}
+				
+				// 添加分页参数
+				params.push('pageSize=20'); // 设置每页大小
+				
+				// 添加滚动分页token
+				if (this.scrollToken) {
+					params.push('scrollToken=' + encodeURIComponent(this.scrollToken));
+				}
+				
+				// 拼接完整URL
+				url += '?' + params.join('&');
 				
 				uni.request({
 					url: url,
@@ -200,14 +280,27 @@
 					},
 					success: (res) => {
 						if (res.statusCode === 200 && res.data.code === 0) {
-							// 处理返回的商品数据，添加价格和销量的模拟值
-							const productsWithDetails = res.data.data.records.map(item => ({
+							// 处理返回的商品数据
+							const responseData = res.data.data;
+							
+							// 更新滚动分页相关变量
+							this.scrollToken = responseData.scrollToken || null;
+							this.hasMore = responseData.hasMore || false;
+							
+							// 处理商品数据，添加价格和销量的模拟值
+							const productsWithDetails = responseData.data.map(item => ({
 								...item,
-								price: (Math.random() * 1000).toFixed(2),
-								sales: Math.floor(Math.random() * 1000),
+								price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : (Math.random() * 1000).toFixed(2),
+								sales: item.sales !== undefined ? item.sales : Math.floor(Math.random() * 1000),
 								image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
 							}));
-							this.products = productsWithDetails;
+							
+							// 如果是加载更多，追加到现有商品列表；否则替换商品列表
+							if (this.scrollToken && this.products.length > 0) {
+								this.products = [...this.products, ...productsWithDetails];
+							} else {
+								this.products = productsWithDetails;
+							}
 						} else {
 							console.error('获取商品列表失败:', res.data.message);
 						}
@@ -616,6 +709,14 @@
 		
 		.product-sales {
 			font-size: 20rpx;
+			color: #888;
+		}
+		
+		/* 加载更多提示样式 */
+		.loading-more {
+			text-align: center;
+			padding: 20rpx;
+			font-size: 24rpx;
 			color: #888;
 		}
 </style>
