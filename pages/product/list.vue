@@ -14,9 +14,21 @@
 		
 		<!-- 排序选项 -->
 		<view class="sort-options">
-			<view class="sort-item" :class="{ active: currentSort === 'default' || currentSort === 'default-desc' }" @click="toggleSort('default')">综合</view>
-			<view class="sort-item" :class="{ active: currentSort === 'sales' || currentSort === 'sales-desc' }" @click="toggleSort('sales')">销量</view>
-			<view class="sort-item" :class="{ active: currentSort === 'price-asc' || currentSort === 'price-desc' }" @click="toggleSort('price')">价格</view>
+			<view class="sort-item default-sort">
+			<text :class="{ active: currentSort === 'default-asc' }" @click="toggleSort('default', 'asc')">↑</text>
+			综合
+			<text :class="{ active: currentSort === 'default-desc' }" @click="toggleSort('default', 'desc')">↓</text>
+		</view>
+			<view class="sort-item sales-sort">
+				<text :class="{ active: currentSort === 'sales-asc' }" @click="toggleSort('sales', 'asc')">↑</text>
+				销量
+				<text :class="{ active: currentSort === 'sales-desc' }" @click="toggleSort('sales', 'desc')">↓</text>
+			</view>
+			<view class="sort-item price-sort">
+				<text :class="{ active: currentSort === 'price-asc' }" @click="toggleSort('price', 'asc')">↑</text>
+				价格
+				<text :class="{ active: currentSort === 'price-desc' }" @click="toggleSort('price', 'desc')">↓</text>
+			</view>
 			<!-- View toggle: ⬜ for grid view, ▤ for list view -->
 			<view class="view-toggle" @click="toggleView">
 				<text v-if="isGridView">⬜</text>
@@ -98,12 +110,16 @@
 					</view>
 					
 					<!-- 加载更多提示 -->
-					<view class="loading-more" v-if="hasMore">
-						<text>加载中...</text>
-					</view>
-					<view class="loading-more" v-else-if="products.length > 0 && scrollToken">
-						<text>没有更多商品了</text>
-					</view>
+				<view class="loading-more" v-if="hasMore">
+					<text>加载中...</text>
+				</view>
+				<view class="loading-more" v-else-if="products.length > 0 && scrollToken">
+					<text>没有更多商品了</text>
+				</view>
+				<!-- 无数据提示 -->
+				<view class="no-data" v-if="products.length === 0 && !hasMore">
+					<text>暂无商品数据</text>
+				</view>
 				</scroll-view>
 	</view>
 </template>
@@ -114,7 +130,7 @@
 				return {
 					categoryName: '',
 					categoryId: 0,
-					currentSort: 'default',
+					currentSort: 'default-asc',
 					isGridView: true, // true为双列，false为单列
 					searchKeyword: '', // 搜索关键词
 					showFilterPopup: false, // 是否显示筛选弹窗
@@ -153,16 +169,22 @@
 						this.fetchProducts();
 			},
 			// 切换排序方式
-			toggleSort(sortType) {
-				// 根据当前排序状态切换排序方式
-				let newSortType = sortType + '-asc'; // 默认为正序
-				
-				// 如果当前已经是该类型的正序，则切换为倒序
-				if (this.currentSort === sortType + '-asc') {
-					newSortType = sortType + '-desc';
-				} else if (this.currentSort === sortType + '-desc') {
-					// 如果当前是倒序，则切换回默认排序
-					newSortType = 'default';
+			toggleSort(sortType, direction) {
+				// 如果传递了方向参数，直接使用；否则根据当前状态切换
+				let newSortType;
+				if (direction) {
+					newSortType = sortType + '-' + direction;
+				} else {
+					// 根据当前排序状态切换排序方式
+					newSortType = sortType + '-asc'; // 默认为正序
+					
+					// 如果当前已经是该类型的正序，则切换为倒序
+					if (this.currentSort === sortType + '-asc') {
+						newSortType = sortType + '-desc';
+					} else if (this.currentSort === sortType + '-desc') {
+						// 如果当前是倒序，则切换回默认排序
+						newSortType = 'default-asc';
+					}
 				}
 				
 				this.currentSort = newSortType;
@@ -241,7 +263,7 @@
 				let params = [];
 				
 				// 添加排序参数
-				let sortBy = '1'; // 默认综合排序
+				let sortBy = '1'; // 默认综合正序
 				if (this.currentSort === 'sales-asc') {
 					sortBy = '2'; // 销量正序
 				} else if (this.currentSort === 'sales-desc') {
@@ -300,6 +322,11 @@
 								this.products = [...this.products, ...productsWithDetails];
 							} else {
 								this.products = productsWithDetails;
+							}
+							
+							// 如果返回的数据为空，表示没有更多数据了，停止显示"加载中"
+							if (productsWithDetails.length === 0) {
+								this.hasMore = false;
 							}
 						} else {
 							console.error('获取商品列表失败:', res.data.message);
@@ -421,6 +448,25 @@
 		
 		.sort-item.active:hover {
 			background-color: #e60000;
+		}
+		
+		.default-sort, .sales-sort, .price-sort {
+			display: flex;
+			align-items: center;
+			gap: 5rpx;
+			position: relative;
+		}
+		
+		.default-sort text, .sales-sort text, .price-sort text {
+			font-size: 20rpx;
+			color: #999;
+			cursor: pointer;
+			line-height: 1;
+		}
+		
+		.default-sort text.active, .sales-sort text.active, .price-sort text.active {
+			color: #ff0000;
+			font-weight: bold;
 		}
 		
 		.view-toggle, .filter-btn {
@@ -717,6 +763,14 @@
 			text-align: center;
 			padding: 20rpx;
 			font-size: 24rpx;
+			color: #888;
+		}
+		
+		/* 无数据提示样式 */
+		.no-data {
+			text-align: center;
+			padding: 40rpx;
+			font-size: 28rpx;
 			color: #888;
 		}
 </style>
