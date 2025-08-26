@@ -19,15 +19,15 @@
 			综合
 			<text :class="{ active: currentSort === 'default-asc' || currentSort === 'default-desc' }">↓</text>
 		</view>
-			<view class="sort-item sales-sort">
-				<text :class="{ active: currentSort === 'sales-asc' }" @click="toggleSort('sales', 'asc')">↑</text>
+			<view class="sort-item sales-sort" @click="sortProducts('sales')">
+				<text :class="{ active: currentSort === 'sales-asc' || currentSort === 'sales-desc' }">↑</text>
 				销量
-				<text :class="{ active: currentSort === 'sales-desc' }" @click="toggleSort('sales', 'desc')">↓</text>
+				<text :class="{ active: currentSort === 'sales-asc' || currentSort === 'sales-desc' }">↓</text>
 			</view>
-			<view class="sort-item price-sort">
-				<text :class="{ active: currentSort === 'price-asc' }" @click="toggleSort('price', 'asc')">↑</text>
+			<view class="sort-item price-sort" @click="sortProducts('price')">
+				<text :class="{ active: currentSort === 'price-asc' || currentSort === 'price-desc' }">↑</text>
 				价格
-				<text :class="{ active: currentSort === 'price-desc' }" @click="toggleSort('price', 'desc')">↓</text>
+				<text :class="{ active: currentSort === 'price-asc' || currentSort === 'price-desc' }">↓</text>
 			</view>
 			<!-- View toggle: ⬜ for grid view, ▤ for list view -->
 			<view class="view-toggle" @click="toggleView">
@@ -159,9 +159,31 @@
 				this.showFilterPopup = false;
 			},
 			sortProducts(sortType) {
-				this.currentSort = sortType;
+				// 根据排序类型设置currentSort的值
+				if (sortType === 'sales') {
+					// 销量排序特殊处理：根据当前状态切换
+					if (this.currentSort === 'sales-asc') {
+						this.currentSort = 'sales-desc';
+					} else {
+						this.currentSort = 'sales-asc';
+					}
+				} else if (sortType === 'price') {
+					// 价格排序特殊处理：根据当前状态切换
+					if (this.currentSort === 'price-asc') {
+						this.currentSort = 'price-desc';
+					} else {
+						this.currentSort = 'price-asc';
+					}
+				} else if (sortType === 'default') {
+					// 综合排序保持不变
+					this.currentSort = sortType;
+				} else {
+					// 其他排序类型保持原有逻辑
+					this.currentSort = sortType;
+				}
+				
 				// 根据排序类型对商品进行排序
-				console.log('按' + sortType + '排序');
+				console.log('按' + this.currentSort + '排序');
 				// 实际项目中这里会调用后端API进行排序
 				this.scrollToken = null; // 重置滚动分页token
 				this.hasMore = false; // 重置更多数据标志
