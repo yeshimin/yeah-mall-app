@@ -14,10 +14,10 @@
 		
 		<!-- 排序选项 -->
 		<view class="sort-options">
-			<view class="sort-item default-sort">
-			<text :class="{ active: currentSort === 'default-asc' }" @click="toggleSort('default', 'asc')">↑</text>
+			<view class="sort-item default-sort" @click="sortProducts('default')">
+			<text :class="{ active: currentSort === 'default-asc' || currentSort === 'default-desc' }">↑</text>
 			综合
-			<text :class="{ active: currentSort === 'default-desc' }" @click="toggleSort('default', 'desc')">↓</text>
+			<text :class="{ active: currentSort === 'default-asc' || currentSort === 'default-desc' }">↓</text>
 		</view>
 			<view class="sort-item sales-sort">
 				<text :class="{ active: currentSort === 'sales-asc' }" @click="toggleSort('sales', 'asc')">↑</text>
@@ -164,9 +164,9 @@
 				console.log('按' + sortType + '排序');
 				// 实际项目中这里会调用后端API进行排序
 				this.scrollToken = null; // 重置滚动分页token
-						this.hasMore = false; // 重置更多数据标志
-						this.products = []; // 清空商品列表
-						this.fetchProducts();
+				this.hasMore = false; // 重置更多数据标志
+				this.products = []; // 清空商品列表
+				this.fetchProducts();
 			},
 			// 切换排序方式
 			toggleSort(sortType, direction) {
@@ -176,14 +176,23 @@
 					newSortType = sortType + '-' + direction;
 				} else {
 					// 根据当前排序状态切换排序方式
-					newSortType = sortType + '-asc'; // 默认为正序
-					
-					// 如果当前已经是该类型的正序，则切换为倒序
-					if (this.currentSort === sortType + '-asc') {
-						newSortType = sortType + '-desc';
-					} else if (this.currentSort === sortType + '-desc') {
-						// 如果当前是倒序，则切换回默认排序
-						newSortType = 'default-asc';
+					if (sortType === 'sales') {
+						// 销量排序特殊处理：只在2和3之间切换
+						if (this.currentSort === 'sales-asc') {
+							newSortType = 'sales-desc';
+						} else {
+							newSortType = 'sales-asc';
+						}
+					} else {
+						newSortType = sortType + '-asc'; // 默认为正序
+						
+						// 如果当前已经是该类型的正序，则切换为倒序
+						if (this.currentSort === sortType + '-asc') {
+							newSortType = sortType + '-desc';
+						} else if (this.currentSort === sortType + '-desc') {
+							// 如果当前是倒序，则切换回默认排序
+							newSortType = 'default-asc';
+						}
 					}
 				}
 				
