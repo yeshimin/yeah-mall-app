@@ -1,62 +1,61 @@
 <template>
   <view class="container">
     <!-- 搜索栏 -->
-    <view class="search-bar">
-      <input 
+    <view class="search-bar" style="position: fixed; top: 0; left: 0; right: 0; z-index: 999;">
+      <view 
         class="search-input" 
-        placeholder="搜索商品或商家" 
-        v-model="searchQuery" 
-        @confirm="handleSearch"
-      />
+        @click="handleSearch"
+      >
+        <text class="search-placeholder">搜索商品或商家</text>
+      </view>
       <button class="search-button" @click="handleSearch">搜索</button>
     </view>
 
-    <!-- 推荐商家 -->
-    <view class="section">
-      <view class="section-title">推荐商家</view>
-      <view class="shop-list">
-        <view 
-          class="shop-item" 
-          v-for="shop in recommendedShops" 
-          :key="shop.id"
-          @click="goToShop(shop.id)"
-        >
-          <image class="shop-logo" :src="shop.logo" />
-          <text class="shop-name">{{ shop.name }}</text>
-        </view>
+    <!-- 快捷入口 -->
+    <view class="quick-links" style="margin-top: 120rpx;">
+      <view class="quick-link-item" @click="goToSeckill">
+        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <text class="quick-link-text">秒杀</text>
       </view>
-    </view>
-
-    <!-- 商品分类 -->
-    <view class="section">
-      <view class="section-title">商品分类</view>
-      <view class="category-grid">
-        <view 
-          class="category-item" 
-          v-for="category in allCategories" 
-          :key="category.id"
-          @click="goToCategory(category.id)"
-        >
-          <image class="category-icon" :src="category.icon" />
-          <text class="category-name">{{ category.name }}</text>
-        </view>
+      <view class="quick-link-item" @click="goToGroupBuy">
+        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <text class="quick-link-text">拼团</text>
+      </view>
+      <view class="quick-link-item" @click="goToNewArrivals">
+        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <text class="quick-link-text">新品</text>
       </view>
     </view>
 
     <!-- 热门商品 -->
     <view class="section">
       <view class="section-title">热门商品</view>
-      <view class="product-grid">
-        <view 
-          class="product-item" 
-          v-for="product in hotProducts" 
-          :key="product.id"
-          @click="goToProduct(product.id)"
-        >
-          <image class="product-image" :src="product.image" />
-          <text class="product-name">{{ product.name }}</text>
-          <text class="product-price">￥{{ product.price }}</text>
-          <text class="product-sales">销量: {{ product.sales }}</text>
+      <view class="waterfall-container">
+        <view class="waterfall-column">
+          <view 
+            class="product-item" 
+            v-for="product in leftColumnProducts" 
+            :key="product.id"
+            @click="goToProduct(product.id)"
+          >
+            <image class="product-image" :src="product.image" />
+            <text class="product-name">{{ product.name }}</text>
+            <text class="product-price">￥{{ product.price }}</text>
+            <text class="product-sales">销量: {{ product.sales }}</text>
+          </view>
+        </view>
+        <view class="waterfall-column">
+          <view 
+            class="product-item" 
+            v-for="product in rightColumnProducts" 
+            :key="product.id"
+            @click="goToProduct(product.id)"
+          >
+            <image class="product-image" :src="product.image" />
+            <text class="product-name">{{ product.name }}</text>
+            <text class="product-price">￥{{ product.price }}</text>
+            <text class="product-sales">销量: {{ product.sales }}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -83,63 +82,74 @@ export default {
   data() {
     return {
       searchQuery: '',
-      // 模拟推荐商家数据
-      recommendedShops: [
-        { id: 1, name: '品牌旗舰店1', logo: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 2, name: '品牌旗舰店2', logo: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 3, name: '品牌旗舰店3', logo: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 4, name: '品牌旗舰店4', logo: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 5, name: '品牌旗舰店5', logo: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
-      ],
-      // 模拟商品分类数据
-      allCategories: [
-        { id: 1, name: '手机数码', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 2, name: '家用电器', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 3, name: '服装鞋帽', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 4, name: '美妆护肤', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 5, name: '家居用品', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 6, name: '运动户外', icon: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
-      ],
       // 模拟热门商品数据
       hotProducts: [
-        { id: 1, name: '热门商品1', price: '299.00', sales: '1000+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 2, name: '热门商品2', price: '199.00', sales: '800+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 3, name: '热门商品3', price: '399.00', sales: '1200+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 4, name: '热门商品4', price: '499.00', sales: '600+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 5, name: '热门商品5', price: '599.00', sales: '1500+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 6, name: '热门商品6', price: '699.00', sales: '400+', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
+        { id: 1, name: '无线蓝牙耳机', price: '299.00', sales: '1000+', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 2, name: '智能手表', price: '199.00', sales: '800+', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 3, name: '便携式充电宝', price: '399.00', sales: '1200+', image: 'https://images.unsplash.com/photo-1609592806839-5f4a0c1d0f2b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 4, name: '高清网络摄像头', price: '499.00', sales: '600+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 5, name: '机械键盘', price: '599.00', sales: '1500+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 6, name: '无线鼠标', price: '699.00', sales: '400+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 7, name: '平板电脑', price: '1299.00', sales: '2000+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 8, name: '游戏手柄', price: '399.00', sales: '900+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 9, name: '蓝牙音箱', price: '599.00', sales: '1100+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
+        { id: 10, name: '智能台灯', price: '199.00', sales: '700+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' }
       ],
-      // 模拟促销活动数据
-      promotions: [
-        { id: 1, title: '限时秒杀', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 2, title: '品牌特惠', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
-        { id: 3, title: '新品尝鲜', image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }
-      ]
+      // 瀑布流左右两列的商品数据
+      leftColumnProducts: [],
+      rightColumnProducts: []
     }
   },
   methods: {
     handleSearch() {
-      if (this.searchQuery.trim() !== '') {
-        uni.navigateTo({
-          url: `/pages/search/search?query=${this.searchQuery}`
-        })
-      }
-    },
-    goToShop(shopId) {
       uni.navigateTo({
-        url: `/pages/shop/detail?shopId=${shopId}`
-      })
-    },
-    goToCategory(categoryId) {
-      uni.navigateTo({
-        url: `/pages/category/list?categoryId=${categoryId}`
+        url: `/pages/product/list`
       })
     },
     goToProduct(productId) {
       uni.navigateTo({
         url: `/pages/product/detail?productId=${productId}`
       })
+    },
+    // 快捷入口点击方法
+    goToSeckill() {
+      uni.navigateTo({
+        url: `/pages/seckill/list`
+      })
+    },
+    goToGroupBuy() {
+      uni.navigateTo({
+        url: `/pages/groupbuy/list`
+      })
+    },
+    goToCoupons() {
+      uni.navigateTo({
+        url: `/pages/coupons/list`
+      })
+    },
+    goToNewArrivals() {
+      uni.navigateTo({
+        url: `/pages/newarrivals/list`
+      })
+    },
+    // 瀑布流布局方法
+    initWaterfall() {
+      // 简单的瀑布流实现，将商品交替分配到左右两列
+      this.leftColumnProducts = [];
+      this.rightColumnProducts = [];
+      
+      this.hotProducts.forEach((product, index) => {
+        if (index % 2 === 0) {
+          this.leftColumnProducts.push(product);
+        } else {
+          this.rightColumnProducts.push(product);
+        }
+      });
     }
+  },
+  // 在页面加载时初始化瀑布流布局
+  mounted() {
+    this.initWaterfall();
   }
 }
 </script>
@@ -150,10 +160,11 @@ export default {
   display: flex;
   padding: 20rpx;
   background-color: #fff;
-  border-radius: 40rpx;
+  border-radius: 0; /* 改为直角 */
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-  margin: 20rpx;
+  margin: 0;
   align-items: center;
+  width: 100%;
 }
 
 .search-input {
@@ -163,7 +174,15 @@ export default {
   border: none;
   outline: none;
   background-color: #f5f5f5;
-  border-radius: 30rpx;
+  border-radius: 0; /* 改为直角 */
+  min-width: 100rpx; /* 设置最小宽度防止过度收缩 */
+  display: flex;
+  align-items: center;
+  color: #999;
+}
+
+.search-placeholder {
+  color: #999;
 }
 
 .search-button {
@@ -171,11 +190,12 @@ export default {
   background-color: #ff5500;
   color: #fff;
   border: none;
-  border-radius: 40rpx;
+  border-radius: 0; /* 改为直角 */
   font-size: 28rpx;
   cursor: pointer;
   margin-left: 10rpx;
   font-weight: bold;
+  flex-shrink: 0; /* 防止按钮收缩 */
 }
 
 /* 推荐商家样式 */
@@ -273,57 +293,61 @@ export default {
 }
 
 /* 热门商品样式 */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 30rpx;
-  padding: 30rpx 20rpx;
-  background-color: #fff;
+.waterfall-container {
+  display: flex;
+  justify-content: space-between;
+  padding: 20rpx;
+  min-height: 800rpx; /* 设置最小高度确保两列显示 */
+  height: auto; /* 使用自动高度 */
+  overflow-y: visible; /* 禁用垂直滚动 */
+}
+
+.waterfall-column {
+  flex: 1;
+  margin: 0 10rpx;
+  width: 50%; /* 确保每列占据50%宽度 */
+}
+
+.waterfall-column:first-child {
+  margin-left: 0;
+}
+
+.waterfall-column:last-child {
+  margin-right: 0;
 }
 
 .product-item {
-  display: flex;
-  flex-direction: column;
-  padding: 20rpx;
-  background-color: #fff;
-  border-radius: 15rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.product-item:hover {
-  transform: translateY(-10rpx);
-  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 10rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+  margin-bottom: 20rpx;
 }
 
 .product-image {
   width: 100%;
-  height: 250rpx;
-  background-color: #f5f5f5;
-  border-radius: 10rpx;
-  margin-bottom: 15rpx;
+  height: 300rpx;
+}
+
+.product-info {
+  padding: 20rpx;
 }
 
 .product-name {
-  font-size: 30rpx;
-  color: #333;
+  font-size: 28rpx;
+  font-weight: bold;
   margin-bottom: 10rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
 }
 
 .product-price {
-  font-size: 32rpx;
-  color: #ff5500;
+  color: #e4393c;
+  font-size: 24rpx;
   margin-bottom: 10rpx;
-  font-weight: bold;
 }
 
 .product-sales {
-  font-size: 24rpx;
   color: #999;
+  font-size: 20rpx;
 }
 
 /* 促销活动样式 */
@@ -365,5 +389,38 @@ export default {
   font-size: 28rpx;
   font-weight: bold;
   text-shadow: 1rpx 1rpx 2rpx rgba(0, 0, 0, 0.5);
+}
+
+/* 快捷入口样式 */
+.quick-links {
+  display: flex;
+  justify-content: space-around;
+  padding: 30rpx 0;
+  background-color: #fff;
+  border-radius: 15rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  margin: 20rpx;
+}
+
+.quick-link-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  width: 33.33%; /* 三个项目并排 */
+}
+
+.quick-link-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  margin-bottom: 15rpx;
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.quick-link-text {
+  font-size: 26rpx;
+  color: #333;
 }
 </style>

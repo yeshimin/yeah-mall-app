@@ -380,6 +380,8 @@
 			// 获取搜索关键词并填充到搜索框
 			if (options.searchKeyword) {
 				this.searchKeyword = options.searchKeyword;
+			} else if (options.query) { // 处理从首页搜索框传递的query参数
+				this.searchKeyword = options.query;
 			}
 			
 			// 调用接口获取商品列表
