@@ -345,7 +345,19 @@
 								...item,
 								price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : (Math.random() * 1000).toFixed(2),
 								sales: item.sales !== undefined ? item.sales : Math.floor(Math.random() * 1000),
-								image: 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+								// 根据不同环境构造图片URL
+                image: item.mainImage ? (() => {
+                  // 使用uni-app的环境变量判断
+                  if (process.env.NODE_ENV === 'development') {
+                    // 开发环境从环境变量中获取目标地址
+                    const proxyTarget = 'http://localhost:8080'; // 在实际项目中可以从环境变量获取
+                    return `${proxyTarget}/public/storage/preview?fileKey=${item.mainImage}`;
+                  } else {
+                    // 其他环境(生产、测试等)使用配置的基础API路径
+                    const baseApi = 'http://localhost:8080'; // 在实际项目中可以从配置获取
+                    return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
+                  }
+                })() : 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
 							}));
 							
 							// 如果是加载更多，追加到现有商品列表；否则替换商品列表

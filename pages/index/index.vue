@@ -38,7 +38,7 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <image class="product-image" :src="product.image" />
+            <image class="product-image" :src="product.image" v-if="product.image" />
             <text class="product-name">{{ product.name }}</text>
             <text class="product-price">￥{{ product.price }}</text>
             <text class="product-sales">销量: {{ product.sales }}</text>
@@ -51,7 +51,7 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <image class="product-image" :src="product.image" />
+            <image class="product-image" :src="product.image" v-if="product.image" />
             <text class="product-name">{{ product.name }}</text>
             <text class="product-price">￥{{ product.price }}</text>
             <text class="product-sales">销量: {{ product.sales }}</text>
@@ -82,22 +82,15 @@ export default {
   data() {
     return {
       searchQuery: '',
-      // 模拟热门商品数据
-      hotProducts: [
-        { id: 1, name: '无线蓝牙耳机', price: '299.00', sales: '1000+', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 2, name: '智能手表', price: '199.00', sales: '800+', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 3, name: '便携式充电宝', price: '399.00', sales: '1200+', image: 'https://images.unsplash.com/photo-1609592806839-5f4a0c1d0f2b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 4, name: '高清网络摄像头', price: '499.00', sales: '600+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 5, name: '机械键盘', price: '599.00', sales: '1500+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 6, name: '无线鼠标', price: '699.00', sales: '400+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 7, name: '平板电脑', price: '1299.00', sales: '2000+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 8, name: '游戏手柄', price: '399.00', sales: '900+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 9, name: '蓝牙音箱', price: '599.00', sales: '1100+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' },
-        { id: 10, name: '智能台灯', price: '199.00', sales: '700+', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fHw%3D&auto=format&fit=crop&w=500&q=80' }
-      ],
+      // 热门商品数据
+      hotProducts: [],
       // 瀑布流左右两列的商品数据
       leftColumnProducts: [],
-      rightColumnProducts: []
+      rightColumnProducts: [],
+      // 滚动分页token
+      scrollToken: null,
+      // 是否还有更多数据
+      hasMore: true
     }
   },
   methods: {
@@ -145,11 +138,75 @@ export default {
           this.rightColumnProducts.push(product);
         }
       });
+    },
+    // 获取热门商品列表
+    fetchHotProducts() {
+      // 如果没有更多数据，直接返回
+      if (!this.hasMore) return;
+      
+      // 构建API请求URL
+      let url = 'http://localhost:8080/app/product/queryHot';
+      
+      // 添加参数
+      let params = [];
+      params.push('pageSize=10'); // 设置每页大小为10
+      
+      // 添加滚动分页token（如果存在）
+      if (this.scrollToken) {
+        params.push('scrollToken=' + encodeURIComponent(this.scrollToken));
+      }
+      
+      // 拼接完整URL
+      url += '?' + params.join('&');
+      
+      uni.request({
+        url: url,
+        method: 'GET',
+        header: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxIiwiaWF0IjoxNzU0ODMxOTI0LCJzdWIiOiJhcHAiLCJ0ZXJtIjoiYXBwIiwiaWF0TXMiOjE3NTQ4MzE5MjQ5NjksImV4cE1zIjoxNzU0ODM1NTI0OTY5fQ.T5UGHYy6ThASbwIae6aM1tJue15rJaAFnyXI945UhSk',
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          if (res.statusCode === 200 && res.data.code === 0) {
+            // 处理返回的商品数据
+            const responseData = res.data.data;
+            
+            // 更新滚动分页相关变量
+            this.scrollToken = responseData.scrollToken || null;
+            this.hasMore = responseData.hasMore || false;
+            
+            // 处理商品数据
+            const productsWithDetails = responseData.data.map(item => ({
+              ...item,
+              id: item.id,
+              name: item.name,
+              price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : '0.00',
+              sales: item.sales !== undefined ? item.sales : 0,
+              // 根据不同环境构造图片URL
+              image: item.mainImage ? (() => {
+                const baseApi = 'http://localhost:8080';
+                return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
+              })() : ''
+            }));
+            
+            // 追加到现有商品列表
+            this.hotProducts = [...this.hotProducts, ...productsWithDetails];
+            
+            // 重新初始化瀑布流布局
+            this.initWaterfall();
+          } else {
+            console.error('获取热门商品列表失败:', res.data.message);
+          }
+        },
+        fail: (err) => {
+          console.error('请求热门商品列表失败:', err);
+        }
+      });
     }
   },
-  // 在页面加载时初始化瀑布流布局
+  // 在页面加载时获取热门商品列表
   mounted() {
-    this.initWaterfall();
+    this.fetchHotProducts();
   }
 }
 </script>
