@@ -41,6 +41,9 @@
 				<view class="detail-content">
 					<rich-text :nodes="product.detailDesc"></rich-text>
 				</view>
+				<view class="end-of-content">
+					<text class="end-text">-- 已经到底了 --</text>
+				</view>
 			</view>
 		</scroll-view>
 		
@@ -335,6 +338,18 @@
 		line-height: 40rpx;
 		margin-bottom: 20rpx;
 		padding: 0 20rpx;
+	}
+	
+	.end-of-content {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 20rpx 0;
+	}
+	
+	.end-text {
+		font-size: 24rpx;
+		color: #888;
 	}
 	
 	.bottom-bar {
