@@ -10,30 +10,24 @@
 		<scroll-view class="detail-scroll" scroll-y :show-scrollbar="false">
 			<!-- 商品图片轮播 -->
 			<swiper class="product-swiper" indicator-dots autoplay>
-				<swiper-item>
-					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-				</swiper-item>
-				<swiper-item>
-					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-				</swiper-item>
-				<swiper-item>
-					<image class="swiper-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+				<swiper-item v-for="(banner, index) in banners" :key="index">
+					<image class="swiper-image" :src="banner"></image>
 				</swiper-item>
 			</swiper>
 			
 			<!-- 价格区域 -->
 			<view class="price-section">
-				<text class="current-price">￥199.00</text>
-				<text class="original-price">￥299.00</text>
+				<text class="current-price">￥{{ product.minPrice }}</text>
+				<text class="original-price">￥{{ product.maxPrice }}</text>
 				<view class="sales-info">
-					<text class="sales-count">销量: 1234</text>
+					<text class="sales-count">销量: {{ product.sales }}</text>
 					<text class="collect-count">收藏: 567</text>
 				</view>
 			</view>
 			
 			<!-- 商品名称区域 -->
 			<view class="name-section">
-				<text class="product-name">商品名称商品名称商品名称商品名称商品名称</text>
+				<text class="product-name">{{ product.name }}</text>
 				<view class="product-tags">
 					<text class="tag">品牌直营</text>
 					<text class="tag">正品保证</text>
@@ -114,14 +108,43 @@
 <script>
 	export default {
 		data() {
-			return {
-				showSpec: false
-			}
-		},
-		methods: {
-			goBack() {
-				uni.navigateBack();
+				return {
+					showSpec: false,
+					product: {},
+					banners: []
+				}
 			},
+		methods: {
+				goBack() {
+					uni.navigateBack();
+				},
+				fetchProductDetail(productId) {
+					const baseApi = 'http://localhost:8080';
+					uni.request({
+						url: `${baseApi}/app/product/detail?id=${productId}`,
+						method: 'GET',
+						success: (res) => {
+							if (res.statusCode === 200 && res.data.code === 0) {
+								console.log('获取商品详情成功:', res.data.data);
+								const data = res.data.data;
+								this.product = data.product;
+								
+								// 处理banner图片URL
+								this.banners = data.banners.map(item => {
+									const baseApi = 'http://localhost:8080';
+									return item ? (() => {
+										return `${baseApi}/public/storage/preview?fileKey=${item}`;
+									})() : '';
+								});
+							} else {
+								console.error('获取商品详情失败:', res.data.message);
+							}
+						},
+						fail: (err) => {
+							console.error('请求商品详情失败:', err);
+						}
+					});
+				},
 			goToStore() {
 				// 跳转到店铺页面
 				uni.showToast({
@@ -130,13 +153,13 @@
 				});
 			},
 			contactService() {
-				// 联系客服逻辑
-				uni.showToast({
-					title: '联系客服',
-					icon: 'none'
-				});
-			},
-			showSpecPopup() {
+					// 联系客服逻辑
+					uni.showToast({
+						title: '联系客服',
+						icon: 'none'
+					});
+				},
+				showSpecPopup() {
 				this.showSpec = true;
 			},
 			closeSpecPopup() {
@@ -157,30 +180,36 @@
 				});
 			},
 			addToFavorites() {
-				// 添加到收藏逻辑
-				uni.showToast({
-					title: '已收藏',
-					icon: 'success'
-				});
+					// 添加到收藏逻辑
+					uni.showToast({
+						title: '已收藏',
+						icon: 'success'
+					});
+				},
+				decreaseQuantity() {
+					// 减少数量逻辑
+					console.log('减少数量');
+				},
+				increaseQuantity() {
+					// 增加数量逻辑
+					console.log('增加数量');
+				},
+				confirmSpec() {
+					// 确认规格选择
+					this.closeSpecPopup();
+					uni.showToast({
+						title: '已选择规格',
+						icon: 'success'
+					});
+				}
 			},
-			decreaseQuantity() {
-				// 减少数量逻辑
-				console.log('减少数量');
-			},
-			increaseQuantity() {
-				// 增加数量逻辑
-				console.log('增加数量');
-			},
-			confirmSpec() {
-				// 确认规格选择
-				this.closeSpecPopup();
-				uni.showToast({
-					title: '已选择规格',
-					icon: 'success'
-				});
+			// 在页面加载时获取商品详情
+			mounted() {
+				// 从路由参数中获取商品ID
+				const productId = this.$route.query.productId || 1;
+				this.fetchProductDetail(productId);
 			}
 		}
-	}
 </script>
 
 <style scoped>
