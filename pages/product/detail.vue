@@ -39,13 +39,7 @@
 			<view class="detail-section">
 				<text class="section-title">商品详情</text>
 				<view class="detail-content">
-					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
-					<view class="detail-text">
-						<text>这是商品的详细描述信息，包括商品的特点、材质、使用方法等。这里可以添加更多关于商品的详细信息，帮助用户更好地了解商品。</text>
-					</view>
-					<image class="detail-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+					<rich-text :nodes="product.detailDesc"></rich-text>
 				</view>
 			</view>
 		</scroll-view>
