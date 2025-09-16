@@ -319,6 +319,9 @@ export default {
 							})
 						}
 						// 如果success为false，表示已收藏或收藏失败，不提示
+					} else if (res.data.code === 401) {
+						// 认证失败，跳转到登录页面
+						handleAuthFailure()
 					} else {
 						uni.showToast({
 							title: res.data.message || '收藏失败',
@@ -362,6 +365,9 @@ export default {
 							})
 						}
 						// 如果success为false，表示未收藏或取消失败，不提示
+					} else if (res.data.code === 401) {
+						// 认证失败，跳转到登录页面
+						handleAuthFailure()
 					} else {
 						uni.showToast({
 							title: res.data.message || '取消收藏失败',

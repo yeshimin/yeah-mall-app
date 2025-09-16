@@ -116,7 +116,7 @@ export function authRequest(options, successCallback, errorCallback) {
 		...options,
 		success: (res) => {
 			// 检查认证失败
-			if (res.statusCode === 401) {
+			if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
 				handleAuthFailure()
 				if (typeof errorCallback === 'function') {
 					errorCallback(res)
