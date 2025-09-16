@@ -169,12 +169,12 @@ export default {
 				},
 				fetchProductDetail(productId) {
 					const baseApi = 'http://localhost:8080';
+					console.log('detail.productId: ' + productId)
 					uni.request({
 						url: `${baseApi}/app/product/detail?id=${productId}`,
 						method: 'GET',
 						success: (res) => {
 							if (res.statusCode === 200 && res.data.code === 0) {
-								console.log('获取商品详情成功:', res.data.data);
 								const data = res.data.data;
 								this.product = data.product;
 								
@@ -456,9 +456,10 @@ export default {
 				}
 			},
 			// 在页面加载时获取商品详情
-			mounted() {
+			onLoad(options) {
+				console.log(options);
 				// 从路由参数中获取商品ID
-				const productId = this.$route.query.id || 1;
+				const productId = options.productId;
 				this.fetchProductDetail(productId);
 
 				// 获取商品详情后检查收藏状态
