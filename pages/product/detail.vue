@@ -164,6 +164,7 @@ export default {
 					banners: [],
 					specs: [], // 商品规格数据
 					skuOptIds: [], // SKU配置的选项ID
+					skus: [], // SKU数据，包含库存和价格信息
 					selectedSpecs: {}, // 选中的规格
 					isCollected: false, // 收藏状态
 					selectedQuantity: 1,
@@ -197,6 +198,8 @@ export default {
 								this.specs = data.specs || [];
 								// 保存skuOptIds用于灰化处理
 								this.skuOptIds = data.skuOptIds || [];
+								// 保存skus数据用于获取库存和价格
+								this.skus = data.skus || [];
 								// 初始化选中规格
 								this.initSelectedSpecs();
 								
@@ -438,40 +441,44 @@ export default {
 			},
 			// 获取当前选中规格组合的SKU信息
 			getCurrentSkuInfo() {
-				// 获取当前选中的所有选项ID
-				const selectedOptIds = Object.values(this.selectedSpecs);
+				// 获取所有选中的选项ID
+				const selectedOptIds = Object.values(this.selectedSpecs).filter(id => id);
 				
-				// 如果没有选中任何选项，返回默认信息
-				if (selectedOptIds.length === 0) {
+				// 检查skus数组是否存在且为数组
+				if (!Array.isArray(this.skus)) {
 					return {
-						price: this.product.minPrice,
-						stock: this.stock
+						price: null,
+						stock: 0
 					};
 				}
 				
-				// 检查当前选中的选项组合是否在skuOptIds中
-				const isSelectedCombinationValid = this.skuOptIds.length === 0 || 
-					this.skuOptIds.some(skuOptIdSet => {
-						// 检查当前选中的选项是否完全匹配某个SKU配置
-						if (Array.isArray(skuOptIdSet)) {
-							return selectedOptIds.length === skuOptIdSet.length && 
-								selectedOptIds.every(id => skuOptIdSet.includes(id));
-						}
-						// 如果skuOptIds是扁平数组（单规格商品）
-						return selectedOptIds.length === 1 && selectedOptIds[0] === skuOptIdSet;
-					});
+				// 将选中的选项ID转换为字符串数组并排序，用于与specCode比较
+				const selectedOptIdsSorted = selectedOptIds.map(id => id.toString()).sort();
 				
-				// 如果选中的组合有效，返回实际的库存和价格信息
-				if (isSelectedCombinationValid) {
-					// 这里应该根据实际的SKU数据来获取价格和库存
-					// 目前我们返回默认值，实际项目中应该从SKU数据中获取
+				// 在skus数组中查找匹配的SKU
+				const matchedSku = this.skus.find(sku => {
+					// 检查sku是否有specCode属性
+					if (!sku.specCode) {
+						return false;
+					}
+					// 将sku的specCode用'-'拆分并排序
+					const skuOptIdsSorted = sku.specCode.split('-').sort();
+					// 检查选中的选项是否完全匹配sku的specCode（顺序无关）
+					return selectedOptIdsSorted.length === skuOptIdsSorted.length && 
+						   selectedOptIdsSorted.every(id => skuOptIdsSorted.includes(id));
+				});
+				
+				// 如果找到了匹配的SKU，返回其库存和价格信息
+				if (matchedSku) {
+					console.log('matchedSku: ', matchedSku);
 					return {
-						price: this.product.minPrice,
-						stock: this.stock
+						price: matchedSku.price,
+						stock: matchedSku.stock
 					};
 				}
+				console.log('没有找到匹配的SKU');
 				
-				// 如果选中的组合无效，返回空的库存和价格信息
+				// 如果没有找到匹配的SKU，返回空信息
 				return {
 					price: null,
 					stock: 0
@@ -815,6 +822,7 @@ export default {
 	.spec-item.disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+		background-color: #e0e0e0; /* 加深的灰色背景 */
 	}
 	
 	.quantity-selector {
