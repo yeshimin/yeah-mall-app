@@ -74,29 +74,73 @@
 			<view class="popup-content" @click.stop>
 				<text class="close-btn" @click="closeSpecPopup">×</text>
 				<view class="popup-header">
-					<image class="popup-image" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"></image>
+					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
 					<view class="popup-info">
-						<text class="popup-price">￥199.00</text>
-						<text class="popup-spec">已选: 规格1</text>
+						<text class="popup-price">￥{{ product.minPrice }}</text>
+						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
 					</view>
 				</view>
-				<view class="spec-options">
-					<text class="spec-title">规格</text>
+				<view class="spec-options" v-for="spec in specs" :key="spec.specId">
+					<text class="spec-title">{{ spec.specName }}</text>
 					<view class="spec-list">
-						<view class="spec-item active">规格1</view>
-						<view class="spec-item">规格2</view>
-						<view class="spec-item">规格3</view>
+						<view 
+							class="spec-item" 
+							:class="{ active: selectedSpecs[spec.specId] === opt.optId }"
+							v-for="opt in spec.opts" 
+							:key="opt.optId"
+							@click="selectSpecOption(spec.specId, opt.optId)"
+						>
+							{{ opt.optName }}
+						</view>
 					</view>
 				</view>
 				<view class="quantity-selector">
 					<text class="quantity-title">数量</text>
 					<view class="quantity-controls">
 						<text class="control-btn" @click="decreaseQuantity">-</text>
-						<text class="quantity">1</text>
+						<text class="quantity">{{ selectedQuantity }}</text>
 						<text class="control-btn" @click="increaseQuantity">+</text>
 					</view>
 				</view>
 				<view class="confirm-btn" @click="confirmSpec">确定</view>
+			</view>
+		</view>
+		
+		<!-- 购物车弹窗 -->
+		<view class="cart-popup" v-if="showCartPopup" @click="closeCartPopup">
+			<view class="popup-content" @click.stop>
+				<text class="close-btn" @click="closeCartPopup">×</text>
+				<view class="popup-header">
+					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
+					<view class="popup-info">
+						<text class="popup-price">￥{{ product.minPrice }}</text>
+						<text class="popup-stock" v-if="stock > 0">库存: {{ stock }}件</text>
+						<text class="popup-stock out-of-stock" v-else>无货</text>
+					</view>
+				</view>
+				<view class="spec-options" v-for="spec in specs" :key="spec.specId">
+					<text class="spec-title">{{ spec.specName }}</text>
+					<view class="spec-list">
+						<view 
+							class="spec-item" 
+							:class="{ active: selectedSpecs[spec.specId] === opt.optId }"
+							v-for="opt in spec.opts" 
+							:key="opt.optId"
+							@click="selectSpecOption(spec.specId, opt.optId)"
+						>
+							{{ opt.optName }}
+						</view>
+					</view>
+				</view>
+				<view class="quantity-selector">
+					<text class="quantity-title">数量</text>
+					<view class="quantity-controls">
+						<text class="control-btn" @click="decreaseQuantity">-</text>
+						<text class="quantity">{{ selectedQuantity }}</text>
+						<text class="control-btn" @click="increaseQuantity">+</text>
+					</view>
+				</view>
+				<view class="confirm-btn" @click="confirmAddToCart">加入购物车</view>
 			</view>
 		</view>
 	</view>
@@ -109,9 +153,14 @@ export default {
 		data() {
 				return {
 					showSpec: false,
+					showCartPopup: false,
 					product: {},
 					banners: [],
-					isCollected: false // 收藏状态
+					specs: [], // 商品规格数据
+					selectedSpecs: {}, // 选中的规格
+					isCollected: false, // 收藏状态
+					selectedQuantity: 1,
+					stock: 100 // 示例库存
 				}
 			},
 		methods: {
@@ -136,6 +185,11 @@ export default {
 										return `${baseApi}/public/storage/preview?fileKey=${item}`;
 									})() : '';
 								});
+								
+								// 处理规格数据
+								this.specs = data.specs || [];
+								// 初始化选中规格
+								this.initSelectedSpecs();
 								
 								// 获取商品详情后检查收藏状态
 								this.$nextTick(() => {
@@ -170,12 +224,34 @@ export default {
 			closeSpecPopup() {
 				this.showSpec = false;
 			},
+			closeCartPopup() {
+				this.showCartPopup = false;
+			},
 			addToCart() {
+				// 显示购物车弹窗
+				this.showCartPopup = true;
+			},
+			confirmAddToCart() {
+				// 检查是否所有规格都已选择
+				const allSpecsSelected = this.specs.every(spec => {
+					return this.selectedSpecs[spec.specId] !== undefined;
+				});
+				
+				if (!allSpecsSelected) {
+					uni.showToast({
+						title: '请选择完整的规格',
+						icon: 'none'
+					});
+					return;
+				}
+				
 				// 添加到购物车逻辑
 				uni.showToast({
 					title: '已添加到购物车',
 					icon: 'success'
 				});
+				// 关闭弹窗
+				this.closeCartPopup();
 			},
 			buyNow() {
 				// 立即购买逻辑
@@ -290,30 +366,85 @@ export default {
 			},
 			// 检查是否已收藏
 			checkCollectStatus() {
-				const userId = getUserId()
-				if (!userId || !this.product.id) return
+				const userId = getUserId();
+				if (!userId) return;
 				
-				// 调用检查收藏状态的API
 				authRequest({
-					url: `http://localhost:8080/app/productFavorites/status?spuId=${this.product.id}`,
-					method: 'GET'
-				}, (res) => {
-					if (res.data.code === 0) {
-						this.isCollected = res.data.data.result
+					url: '/app/collect/isCollect',
+					method: 'POST',
+					data: {
+						spuId: this.product.id
+					},
+					success: (res) => {
+						if (res.statusCode === 200 && res.data.code === 0) {
+							this.isCollected = res.data.data.isCollect;
+						} else if (res.statusCode === 401) {
+							handleAuthFailure();
+						} else {
+							console.error('检查收藏状态失败:', res.data.message);
+						}
+					},
+					fail: (err) => {
+						console.error('检查收藏状态请求失败:', err);
 					}
-				}, (err) => {
-					console.error('检查收藏状态失败', err)
-				})
+				});
+			},
+			// 初始化选中规格
+			initSelectedSpecs() {
+				const selectedSpecs = {};
+				this.specs.forEach(spec => {
+					if (spec.opts && spec.opts.length > 0) {
+						// 默认选中第一个选项
+						selectedSpecs[spec.specId] = spec.opts[0].optId;
+					}
+				});
+				this.selectedSpecs = selectedSpecs;
+			},
+			// 选择规格选项
+			selectSpecOption(specId, optId) {
+				// 使用 Vue.set 或 this.$set 确保响应式更新
+				this.$set(this.selectedSpecs, specId, optId);
+			},
+			// 获取当前选中的规格描述
+			getSelectedSpecDesc() {
+				const selectedSpecs = [];
+				this.specs.forEach(spec => {
+					const selectedOptId = this.selectedSpecs[spec.specId];
+					if (selectedOptId) {
+						const selectedOpt = spec.opts.find(opt => opt.optId === selectedOptId);
+						if (selectedOpt) {
+							selectedSpecs.push(`${spec.specName}:${selectedOpt.optName}`);
+						}
+					}
+				});
+				return selectedSpecs.join(' ');
 			},
 				decreaseQuantity() {
 					// 减少数量逻辑
-					console.log('减少数量');
+					if (this.selectedQuantity > 1) {
+						this.selectedQuantity--;
+					}
 				},
 				increaseQuantity() {
 					// 增加数量逻辑
-					console.log('增加数量');
+					if (this.selectedQuantity < this.stock) {
+						this.selectedQuantity++;
+					}
 				},
 				confirmSpec() {
+					// 检查是否所有规格都已选择
+					const allSpecsSelected = this.specs.every(spec => {
+						return this.selectedSpecs[spec.specId] !== undefined;
+					});
+					
+					if (!allSpecsSelected) {
+						uni.showToast({
+							title: '请选择完整的规格',
+							icon: 'none'
+						});
+						return;
+					}
+					
 					// 确认规格选择
 					this.closeSpecPopup();
 					uni.showToast({
@@ -527,7 +658,7 @@ export default {
 		color: #fff;
 	}
 	
-	.spec-popup {
+	.spec-popup, .cart-popup {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -582,6 +713,15 @@ export default {
 	.popup-spec {
 		font-size: 24rpx;
 		color: #888;
+	}
+	
+	.popup-stock {
+		font-size: 24rpx;
+		color: #333;
+	}
+	
+	.popup-stock.out-of-stock {
+		color: #ff0000;
 	}
 	
 	.spec-options {
