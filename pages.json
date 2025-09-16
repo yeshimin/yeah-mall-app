@@ -7,40 +7,52 @@
 			}
 		},
 		{
-			"path" : "pages/category/category",
-			"style" : {
-				"navigationBarTitleText" : "分类"
+			"path": "pages/category/category",
+			"style": {
+				"navigationBarTitleText": "分类"
 			}
 		},
 		{
-			"path" : "pages/product/list",
-			"style" : {
-				"navigationBarTitleText" : "商品列表"
+			"path": "pages/product/detail",
+			"style": {
+				"navigationBarTitleText": "商品详情"
 			}
 		},
 		{
-			"path" : "pages/product/detail",
-			"style" : {
-				"navigationBarTitleText" : "商品详情"
+			"path": "pages/product/list",
+			"style": {
+				"navigationBarTitleText": "商品列表"
 			}
 		},
 		{
-			"path" : "pages/cart/cart",
-			"style" : {
-				"navigationBarTitleText" : "购物车"
+			"path": "pages/cart/cart",
+			"style": {
+				"navigationBarTitleText": "购物车"
 			}
 		},
 		{
-			"path" : "pages/profile/profile",
-			"style" : {
-				"navigationBarTitleText" : "我的"
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "我的"
 			}
 		},
 		{
-			"path" : "pages/shop/shop",
-			"style" : 
+			"path": "pages/shop/shop",
+			"style": 
 			{
-				"navigationBarTitleText" : "店铺"
+				"navigationBarTitleText": "店铺"
+			}
+		},
+		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationBarTitleText": "用户登录"
+			}
+		},
+		{
+			"path": "pages/register/index",
+			"style": {
+				"navigationBarTitleText": "用户注册"
 			}
 		}
 	],

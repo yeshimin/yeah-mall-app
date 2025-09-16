@@ -57,10 +57,10 @@
 				<text class="icon">💬</text>
 				<text>客服</text>
 			</view>
-			<view class="bar-item" @click="addToFavorites">
-				<text class="icon">❤️</text>
-				<text>收藏</text>
-			</view>
+			<view class="bottom-bar-item" @click="addToFavorites">
+						<text class="icon">{{ isCollected ? '❤️' : '🤍' }}</text>
+						<text class="bottom-bar-text">{{ isCollected ? '已收藏' : '收藏' }}</text>
+					</view>
 			<view class="bar-item cart-item" @click="addToCart">
 				<text class="cart-text">加入购物车</text>
 			</view>
@@ -103,12 +103,15 @@
 </template>
 
 <script>
-	export default {
+	import { getUserId, handleAuthFailure, authRequest } from '@/utils/auth.js'
+
+export default {
 		data() {
 				return {
 					showSpec: false,
 					product: {},
-					banners: []
+					banners: [],
+					isCollected: false // 收藏状态
 				}
 			},
 		methods: {
@@ -132,6 +135,11 @@
 									return item ? (() => {
 										return `${baseApi}/public/storage/preview?fileKey=${item}`;
 									})() : '';
+								});
+								
+								// 获取商品详情后检查收藏状态
+								this.$nextTick(() => {
+									this.checkCollectStatus();
 								});
 							} else {
 								console.error('获取商品详情失败:', res.data.message);
@@ -177,12 +185,120 @@
 				});
 			},
 			addToFavorites() {
-					// 添加到收藏逻辑
+				// 检查用户是否已登录
+				const userId = getUserId()
+				if (!userId) {
+					// 未登录，跳转到登录页面
+					handleAuthFailure()
+					return
+				}
+				
+				// 切换收藏状态
+				if (this.isCollected) {
+					// 取消收藏
+					this.cancelCollect()
+				} else {
+					// 添加收藏
+					this.addCollect()
+				}
+			},
+			// 添加收藏
+			addCollect() {
+				const userId = getUserId()
+				if (!userId) {
+					handleAuthFailure()
+					return
+				}
+				
+				// 调用添加收藏的API
+				authRequest({
+					url: 'http://localhost:8080/app/collect/add', // 假设的API地址
+					method: 'POST',
+					header: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						userId: userId,
+						productId: this.product.id
+					}
+				}, (res) => {
+					if (res.data.code === 0) {
+						this.isCollected = true
+						uni.showToast({
+							title: '收藏成功',
+							icon: 'success'
+						})
+					} else {
+						uni.showToast({
+							title: res.data.message || '收藏失败',
+							icon: 'none'
+						})
+					}
+				}, (err) => {
+					console.error('收藏失败', err)
 					uni.showToast({
-						title: '已收藏',
-						icon: 'success'
-					});
-				},
+						title: '收藏失败',
+						icon: 'none'
+					})
+				})
+			},
+			// 取消收藏
+			cancelCollect() {
+				const userId = getUserId()
+				if (!userId) {
+					handleAuthFailure()
+					return
+				}
+				
+				// 调用取消收藏的API
+				authRequest({
+					url: 'http://localhost:8080/app/collect/cancel', // 假设的API地址
+					method: 'POST',
+					header: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						userId: userId,
+						productId: this.product.id
+					}
+				}, (res) => {
+					if (res.data.code === 0) {
+						this.isCollected = false
+						uni.showToast({
+							title: '已取消收藏',
+							icon: 'success'
+						})
+					} else {
+						uni.showToast({
+							title: res.data.message || '取消收藏失败',
+							icon: 'none'
+						})
+					}
+				}, (err) => {
+					console.error('取消收藏失败', err)
+					uni.showToast({
+						title: '取消收藏失败',
+						icon: 'none'
+					})
+				})
+			},
+			// 检查是否已收藏
+			checkCollectStatus() {
+				const userId = getUserId()
+				if (!userId || !this.product.id) return
+				
+				// 调用检查收藏状态的API
+				authRequest({
+					url: `http://localhost:8080/app/collect/status?userId=${userId}&productId=${this.product.id}`, // 假设的API地址
+					method: 'GET'
+				}, (res) => {
+					if (res.data.code === 0) {
+						this.isCollected = res.data.data.isCollected
+					}
+				}, (err) => {
+					console.error('检查收藏状态失败', err)
+				})
+			},
 				decreaseQuantity() {
 					// 减少数量逻辑
 					console.log('减少数量');
@@ -205,6 +321,13 @@
 				// 从路由参数中获取商品ID
 				const productId = this.$route.query.productId || 1;
 				this.fetchProductDetail(productId);
+
+				// 获取商品详情后检查收藏状态
+				this.$nextTick(() => {
+					if (this.product.id) {
+						this.checkCollectStatus();
+					}
+				});
 			}
 		}
 </script>
