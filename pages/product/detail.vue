@@ -76,7 +76,7 @@
 				<view class="popup-header">
 					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
 					<view class="popup-info">
-						<text class="popup-price">￥{{ product.minPrice }}</text>
+						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
 					</view>
 				</view>
@@ -85,7 +85,10 @@
 					<view class="spec-list">
 						<view 
 							class="spec-item" 
-							:class="{ active: selectedSpecs[spec.specId] === opt.optId }"
+							:class="{ 
+								active: selectedSpecs[spec.specId] === opt.optId,
+								disabled: isOptionDisabled(opt.optId)
+							}"
 							v-for="opt in spec.opts" 
 							:key="opt.optId"
 							@click="selectSpecOption(spec.specId, opt.optId)"
@@ -113,8 +116,8 @@
 				<view class="popup-header">
 					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
 					<view class="popup-info">
-						<text class="popup-price">￥{{ product.minPrice }}</text>
-						<text class="popup-stock" v-if="stock > 0">库存: {{ stock }}件</text>
+						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
+						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
 					</view>
 				</view>
@@ -123,7 +126,10 @@
 					<view class="spec-list">
 						<view 
 							class="spec-item" 
-							:class="{ active: selectedSpecs[spec.specId] === opt.optId }"
+							:class="{ 
+								active: selectedSpecs[spec.specId] === opt.optId,
+								disabled: isOptionDisabled(opt.optId)
+							}"
 							v-for="opt in spec.opts" 
 							:key="opt.optId"
 							@click="selectSpecOption(spec.specId, opt.optId)"
@@ -157,6 +163,7 @@ export default {
 					product: {},
 					banners: [],
 					specs: [], // 商品规格数据
+					skuOptIds: [], // SKU配置的选项ID
 					selectedSpecs: {}, // 选中的规格
 					isCollected: false, // 收藏状态
 					selectedQuantity: 1,
@@ -188,6 +195,8 @@ export default {
 								
 								// 处理规格数据
 								this.specs = data.specs || [];
+								// 保存skuOptIds用于灰化处理
+								this.skuOptIds = data.skuOptIds || [];
 								// 初始化选中规格
 								this.initSelectedSpecs();
 								
@@ -399,6 +408,7 @@ export default {
 			},
 			// 选择规格选项
 			selectSpecOption(specId, optId) {
+				// 允许选择任何选项，包括灰化选项
 				// 如果点击已选中的选项，则取消选择
 				if (this.selectedSpecs[specId] === optId) {
 					delete this.selectedSpecs[specId];
@@ -421,6 +431,52 @@ export default {
 				});
 				return selectedSpecs.join(' ');
 			},
+			// 判断规格选项是否应该灰化
+			isOptionDisabled(optId) {
+				// 如果skuOptIds为空，或者该选项在skuOptIds中，则不禁用
+				return this.skuOptIds.length > 0 && !this.skuOptIds.includes(optId);
+			},
+			// 获取当前选中规格组合的SKU信息
+			getCurrentSkuInfo() {
+				// 获取当前选中的所有选项ID
+				const selectedOptIds = Object.values(this.selectedSpecs);
+				
+				// 如果没有选中任何选项，返回默认信息
+				if (selectedOptIds.length === 0) {
+					return {
+						price: this.product.minPrice,
+						stock: this.stock
+					};
+				}
+				
+				// 检查当前选中的选项组合是否在skuOptIds中
+				const isSelectedCombinationValid = this.skuOptIds.length === 0 || 
+					this.skuOptIds.some(skuOptIdSet => {
+						// 检查当前选中的选项是否完全匹配某个SKU配置
+						if (Array.isArray(skuOptIdSet)) {
+							return selectedOptIds.length === skuOptIdSet.length && 
+								selectedOptIds.every(id => skuOptIdSet.includes(id));
+						}
+						// 如果skuOptIds是扁平数组（单规格商品）
+						return selectedOptIds.length === 1 && selectedOptIds[0] === skuOptIdSet;
+					});
+				
+				// 如果选中的组合有效，返回实际的库存和价格信息
+				if (isSelectedCombinationValid) {
+					// 这里应该根据实际的SKU数据来获取价格和库存
+					// 目前我们返回默认值，实际项目中应该从SKU数据中获取
+					return {
+						price: this.product.minPrice,
+						stock: this.stock
+					};
+				}
+				
+				// 如果选中的组合无效，返回空的库存和价格信息
+				return {
+					price: null,
+					stock: 0
+				};
+			},
 				decreaseQuantity() {
 					// 减少数量逻辑
 					if (this.selectedQuantity > 1) {
@@ -428,8 +484,9 @@ export default {
 					}
 				},
 				increaseQuantity() {
-					// 增加数量逻辑
-					if (this.selectedQuantity < this.stock) {
+					// 增加数量逻辑，受限于当前SKU的库存
+					const currentStock = this.getCurrentSkuInfo().stock;
+					if (this.selectedQuantity < currentStock) {
 						this.selectedQuantity++;
 					}
 				},
@@ -753,6 +810,11 @@ export default {
 	.spec-item.active {
 		border-color: #ff0000;
 		color: #ff0000;
+	}
+	
+	.spec-item.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 	
 	.quantity-selector {
