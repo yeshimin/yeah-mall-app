@@ -212,22 +212,25 @@ export default {
 				
 				// 调用添加收藏的API
 				authRequest({
-					url: 'http://localhost:8080/app/collect/add', // 假设的API地址
+					url: 'http://localhost:8080/app/productFavorites/add',
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'
 					},
 					data: {
-						userId: userId,
-						productId: this.product.id
+						id: this.product.id
 					}
 				}, (res) => {
 					if (res.data.code === 0) {
-						this.isCollected = true
-						uni.showToast({
-							title: '收藏成功',
-							icon: 'success'
-						})
+						// 根据响应中的success字段判断操作是否成功
+						if (res.data.data.success) {
+							this.isCollected = true
+							uni.showToast({
+								title: '收藏成功',
+								icon: 'success'
+							})
+						}
+						// 如果success为false，表示已收藏或收藏失败，不提示
 					} else {
 						uni.showToast({
 							title: res.data.message || '收藏失败',
@@ -252,22 +255,25 @@ export default {
 				
 				// 调用取消收藏的API
 				authRequest({
-					url: 'http://localhost:8080/app/collect/cancel', // 假设的API地址
+					url: 'http://localhost:8080/app/productFavorites/remove',
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'
 					},
 					data: {
-						userId: userId,
-						productId: this.product.id
+						id: this.product.id
 					}
 				}, (res) => {
 					if (res.data.code === 0) {
-						this.isCollected = false
-						uni.showToast({
-							title: '已取消收藏',
-							icon: 'success'
-						})
+						// 根据响应中的success字段判断操作是否成功
+						if (res.data.data.success) {
+							this.isCollected = false
+							uni.showToast({
+								title: '已取消收藏',
+								icon: 'success'
+							})
+						}
+						// 如果success为false，表示未收藏或取消失败，不提示
 					} else {
 						uni.showToast({
 							title: res.data.message || '取消收藏失败',
@@ -289,11 +295,11 @@ export default {
 				
 				// 调用检查收藏状态的API
 				authRequest({
-					url: `http://localhost:8080/app/collect/status?userId=${userId}&productId=${this.product.id}`, // 假设的API地址
+					url: `http://localhost:8080/app/productFavorites/status?spuId=${this.product.id}`,
 					method: 'GET'
 				}, (res) => {
 					if (res.data.code === 0) {
-						this.isCollected = res.data.data.isCollected
+						this.isCollected = res.data.data.result
 					}
 				}, (err) => {
 					console.error('检查收藏状态失败', err)
@@ -319,7 +325,7 @@ export default {
 			// 在页面加载时获取商品详情
 			mounted() {
 				// 从路由参数中获取商品ID
-				const productId = this.$route.query.productId || 1;
+				const productId = this.$route.query.id || 1;
 				this.fetchProductDetail(productId);
 
 				// 获取商品详情后检查收藏状态
