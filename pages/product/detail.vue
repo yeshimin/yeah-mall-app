@@ -337,7 +337,7 @@ export default {
 						'Content-Type': 'application/json'
 					},
 					data: {
-						id: this.product.id
+						"id": this.product.id
 					}
 				}, (res) => {
 					if (res.data.code === 0) {
@@ -368,26 +368,23 @@ export default {
 			checkCollectStatus() {
 				const userId = getUserId();
 				if (!userId) return;
-				
+
 				authRequest({
-					url: '/app/collect/isCollect',
-					method: 'POST',
-					data: {
-						spuId: this.product.id
-					},
-					success: (res) => {
-						if (res.statusCode === 200 && res.data.code === 0) {
-							this.isCollected = res.data.data.isCollect;
-						} else if (res.statusCode === 401) {
-							handleAuthFailure();
-						} else {
-							console.error('检查收藏状态失败:', res.data.message);
-						}
-					},
-					fail: (err) => {
+					url: 'http://localhost:8080/app/productFavorites/status?spuId=' + this.product.id,
+					method: 'GET'
+				}, (res) => {
+					if (res.statusCode === 200 && res.data.code === 0) {
+						this.isCollected = res.data.data.result;
+					} else if (res.statusCode === 401) {
+						handleAuthFailure();
+					} else {
+						console.error('检查收藏状态失败:', res.data.message);
+					}
+				},
+					(err) => {
 						console.error('检查收藏状态请求失败:', err);
 					}
-				});
+				);
 			},
 			// 初始化选中规格
 			initSelectedSpecs() {
