@@ -402,8 +402,13 @@ export default {
 			},
 			// 选择规格选项
 			selectSpecOption(specId, optId) {
-				// 使用 Vue.set 或 this.$set 确保响应式更新
-				this.$set(this.selectedSpecs, specId, optId);
+				// 如果点击已选中的选项，则取消选择
+				if (this.selectedSpecs[specId] === optId) {
+					delete this.selectedSpecs[specId];
+				} else {
+					// 使用 Vue.set 或 this.$set 确保响应式更新
+					this.$set(this.selectedSpecs, specId, optId);
+				}
 			},
 			// 获取当前选中的规格描述
 			getSelectedSpecDesc() {
