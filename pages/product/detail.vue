@@ -84,17 +84,17 @@
 					<text class="spec-title">{{ spec.specName }}</text>
 					<view class="spec-list">
 						<view 
-							class="spec-item" 
-							:class="{ 
-								active: selectedSpecs[spec.specId] === opt.optId,
-								disabled: isOptionDisabled(opt.optId)
-							}"
-							v-for="opt in spec.opts" 
-							:key="opt.optId"
-							@click="selectSpecOption(spec.specId, opt.optId)"
-						>
-							{{ opt.optName }}
-						</view>
+								class="spec-item" 
+								:class="{ 
+									active: selectedSpecs[spec.specId] === opt.optId,
+									disabled: isOptionDisabled(spec.specId, opt.optId)
+								}"
+								v-for="opt in spec.opts" 
+								:key="opt.optId"
+								@click="selectSpecOption(spec.specId, opt.optId)"
+							>
+								{{ opt.optName }}
+							</view>
 					</view>
 				</view>
 				<view class="quantity-selector">
@@ -128,7 +128,7 @@
 							class="spec-item" 
 							:class="{ 
 								active: selectedSpecs[spec.specId] === opt.optId,
-								disabled: isOptionDisabled(opt.optId)
+								disabled: isOptionDisabled(spec.specId, opt.optId)
 							}"
 							v-for="opt in spec.opts" 
 							:key="opt.optId"
@@ -470,19 +470,50 @@ export default {
 				
 				// 如果找到了匹配的SKU，返回其库存和价格信息
 				if (matchedSku) {
-					console.log('matchedSku: ', matchedSku);
 					return {
 						price: matchedSku.price,
 						stock: matchedSku.stock
 					};
 				}
-				console.log('没有找到匹配的SKU');
 				
 				// 如果没有找到匹配的SKU，返回空信息
 				return {
 					price: null,
 					stock: 0
 				};
+			},
+			
+			// 检查指定规格选项是否应该被禁用（级联置灰）
+			isOptionDisabled(specId, optId) {
+				// 创建一个临时的选中状态，包含当前选中项和要检查的选项
+				const tempSelectedSpecs = { ...this.selectedSpecs };
+				tempSelectedSpecs[specId] = optId;
+				
+				// 获取当前临时选中的所有选项ID
+				const selectedOptIds = Object.values(tempSelectedSpecs).filter(id => id);
+				
+				// 检查skus数组是否存在且为数组
+				if (!Array.isArray(this.skus)) {
+					return true; // 如果没有skus数据，则禁用所有选项
+				}
+				
+				// 将选中的选项ID转换为字符串数组并排序
+				const selectedOptIdsSorted = selectedOptIds.map(id => id.toString()).sort();
+				
+				// 检查是否存在任何SKU包含当前选中的所有选项
+				const hasMatchingSku = this.skus.some(sku => {
+					// 检查sku是否有specCode属性
+					if (!sku.specCode) {
+						return false;
+					}
+					// 将sku的specCode用'-'拆分并排序
+					const skuOptIdsSorted = sku.specCode.split('-').sort();
+					// 检查选中的选项是否都被包含在sku的specCode中
+					return selectedOptIdsSorted.every(id => skuOptIdsSorted.includes(id));
+				});
+				
+				// 如果没有匹配的SKU，则禁用该选项
+				return !hasMatchingSku;
 			},
 				decreaseQuantity() {
 					// 减少数量逻辑
