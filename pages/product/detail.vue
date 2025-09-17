@@ -146,7 +146,7 @@
 						<text class="control-btn" @click="increaseQuantity">+</text>
 					</view>
 				</view>
-				<view class="confirm-btn" @click="confirmAddToCart">加入购物车</view>
+				<view class="confirm-btn" @click="confirmAddToCart">{{ purchaseMode === 'buy' ? '立即购买' : '加入购物车' }}</view>
 			</view>
 		</view>
 	</view>
@@ -160,6 +160,7 @@ export default {
 				return {
 					showSpec: false,
 					showCartPopup: false,
+					purchaseMode: 'cart', // 'cart' 表示加入购物车，'buy' 表示立即购买
 					product: {},
 					banners: [],
 					specs: [], // 商品规格数据
@@ -240,7 +241,8 @@ export default {
 				this.showCartPopup = false;
 			},
 			addToCart() {
-				// 显示购物车弹窗
+				// 设置为购物车模式并显示购物车弹窗
+				this.purchaseMode = 'cart';
 				this.showCartPopup = true;
 			},
 			confirmAddToCart() {
@@ -278,51 +280,97 @@ export default {
 					return;
 				}
 				
-				// 调用加入购物车接口
-				const requestData = {
-					url: 'http://localhost:8080/app/cartItem/create',
-					method: 'POST',
-					header: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						skuId: currentSkuInfo.id,
-						quantity: this.selectedQuantity
-					}
-				};
-				
-				authRequest(
-					requestData,
-					(res) => {
-						if (res.data.code === 0) {
+				// 根据purchaseMode决定调用哪个接口
+				if (this.purchaseMode === 'buy') {
+					// 调用立即购买接口
+					const requestData = {
+						url: 'http://localhost:8080/app/order/submit',
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json'
+						},
+						data: {
+							items: [{
+								skuId: currentSkuInfo.id,
+								quantity: this.selectedQuantity
+							}]
+						}
+					};
+					
+					authRequest(
+						requestData,
+						(res) => {
+							if (res.data.code === 0) {
+								uni.showToast({
+									title: '订单提交成功',
+									icon: 'success'
+								});
+								// 关闭购物车弹窗
+								this.closeCartPopup();
+								// 可以跳转到订单确认页面
+								// uni.navigateTo({
+								//   url: '/pages/order/confirm'
+								// });
+							} else {
+								uni.showToast({
+									title: res.data.message || '订单提交失败',
+									icon: 'none'
+								});
+							}
+						},
+						(err) => {
 							uni.showToast({
-								title: '已添加到购物车',
-								icon: 'success'
-							});
-							// 关闭购物车弹窗
-							this.closeCartPopup();
-						} else {
-							uni.showToast({
-								title: res.data.message || '添加购物车失败',
+								title: '请求失败，请稍后重试',
 								icon: 'none'
 							});
+							console.error('立即购买请求失败:', err);
 						}
-					},
-					(err) => {
-						uni.showToast({
-							title: '请求失败，请稍后重试',
-							icon: 'none'
-						});
-						console.error('加入购物车请求失败:', err);
-					}
-				);
+					);
+				} else {
+					// 调用加入购物车接口
+					const requestData = {
+						url: 'http://localhost:8080/app/cartItem/create',
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json'
+						},
+						data: {
+							skuId: currentSkuInfo.id,
+							quantity: this.selectedQuantity
+						}
+					};
+					
+					authRequest(
+						requestData,
+						(res) => {
+							if (res.data.code === 0) {
+								uni.showToast({
+									title: '已添加到购物车',
+									icon: 'success'
+								});
+								// 关闭购物车弹窗
+								this.closeCartPopup();
+							} else {
+								uni.showToast({
+									title: res.data.message || '添加购物车失败',
+									icon: 'none'
+								});
+							}
+						},
+						(err) => {
+							uni.showToast({
+								title: '请求失败，请稍后重试',
+								icon: 'none'
+							});
+							console.error('加入购物车请求失败:', err);
+						}
+					);
+				}
 			},
 			buyNow() {
-				// 立即购买逻辑
-				uni.showToast({
-					title: '立即购买',
-					icon: 'none'
-				});
+				// 设置为购买模式并显示购物车弹窗
+				this.purchaseMode = 'buy';
+				this.showCartPopup = true;
 			},
 			addToFavorites() {
 				// 检查用户是否已登录
