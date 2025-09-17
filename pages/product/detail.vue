@@ -156,7 +156,7 @@
 </template>
 
 <script>
-	import { getUserId, handleAuthFailure, authRequest } from '@/utils/auth.js'
+	import { getUserId, handleAuthFailure, authRequest, getToken } from '@/utils/auth.js'
 
 export default {
 		data() {
@@ -179,12 +179,21 @@ export default {
 				goBack() {
 					uni.navigateBack();
 				},
+				getToken() {
+					return getToken();
+				},
 				fetchProductDetail(productId) {
 					const baseApi = 'http://localhost:8080';
 					console.log('detail.productId: ' + productId)
+					// 获取token
+					const token = this.getToken();
 					uni.request({
 						url: `${baseApi}/app/product/detail?id=${productId}`,
 						method: 'GET',
+						header: {
+							'Authorization': token ? `Bearer ${token}` : '',
+							'Content-Type': 'application/json'
+						},
 						success: (res) => {
 							if (res.statusCode === 200 && res.data.code === 0) {
 								const data = res.data.data;

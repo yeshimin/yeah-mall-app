@@ -299,7 +299,7 @@ export default {
 <style scoped>
 /* 购物车容器 */
 .page-container {
-  background-color: #ff6b35;
+  background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
 
