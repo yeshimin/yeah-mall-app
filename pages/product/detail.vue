@@ -77,6 +77,8 @@
 					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
 					<view class="popup-info">
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
+						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
+						<text class="popup-stock out-of-stock" v-else>无货</text>
 						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
 					</view>
 				</view>
@@ -119,6 +121,7 @@
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
+						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
 					</view>
 				</view>
 				<view class="spec-options" v-for="spec in specs" :key="spec.specId">
@@ -368,9 +371,9 @@ export default {
 				}
 			},
 			buyNow() {
-				// 设置为购买模式并显示购物车弹窗
+				// 设置为购买模式并显示规格选择弹窗
 				this.purchaseMode = 'buy';
-				this.showCartPopup = true;
+				this.showSpec = true;
 			},
 			addToFavorites() {
 				// 检查用户是否已登录
@@ -651,12 +654,42 @@ export default {
 						return;
 					}
 					
+					// 获取当前选中的SKU信息
+					const currentSkuInfo = this.getCurrentSkuInfo();
+					
+					// 检查是否有有效的SKU ID
+					if (!currentSkuInfo.id) {
+						uni.showToast({
+							title: '未找到有效的商品规格',
+							icon: 'none'
+						});
+						return;
+					}
+					
+					// 检查库存
+					if (this.selectedQuantity > currentSkuInfo.stock) {
+						uni.showToast({
+							title: '购买数量超过库存',
+							icon: 'none'
+						});
+						return;
+					}
+					
 					// 确认规格选择
 					this.closeSpecPopup();
-					uni.showToast({
-						title: '已选择规格',
-						icon: 'success'
-					});
+					
+					// 如果是购买模式，则跳转到下单页面
+					if (this.purchaseMode === 'buy') {
+						// 跳转到订单确认页面，并传递商品信息
+						uni.navigateTo({
+							url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${this.selectedQuantity}`
+						});
+					} else {
+						uni.showToast({
+							title: '已选择规格',
+							icon: 'success'
+						});
+					}
 				}
 			},
 			// 在页面加载时获取商品详情

@@ -101,6 +101,15 @@
 				coupon: 0.00
 			}
 		},
+		onLoad(options) {
+			// 接收从商品详情页传递过来的参数
+			if (options.skuId && options.quantity) {
+				console.log('接收到的SKU ID:', options.skuId);
+				console.log('接收到的数量:', options.quantity);
+				// 这里可以调用接口获取商品详细信息
+				// this.fetchProductInfo(options.skuId, options.quantity);
+			}
+		},
 		computed: {
 			totalAmount() {
 				return (this.goodsTotal + this.shippingFee - this.coupon).toFixed(2);
