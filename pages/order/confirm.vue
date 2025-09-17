@@ -168,7 +168,7 @@
 	}
 
 	.address-section {
-		margin-top: 88rpx;
+		margin-top: 20rpx;
 		padding: 20rpx;
 		background-color: #fff;
 	}

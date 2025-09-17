@@ -742,7 +742,7 @@ export default {
 	
 	.detail-scroll {
 		height: calc(100vh - 200rpx);
-		margin-top: 100rpx;
+		margin-top: 20rpx;
 		margin-bottom: 100rpx;
 	}
 	
