@@ -257,13 +257,65 @@ export default {
 					return;
 				}
 				
-				// 添加到购物车逻辑
-				uni.showToast({
-					title: '已添加到购物车',
-					icon: 'success'
-				});
-				// 关闭弹窗
-				this.closeCartPopup();
+				// 获取当前选中的SKU信息
+				const currentSkuInfo = this.getCurrentSkuInfo();
+				
+				// 检查是否有有效的SKU ID
+				if (!currentSkuInfo.id) {
+					uni.showToast({
+						title: '未找到有效的商品规格',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 检查库存
+				if (this.selectedQuantity > currentSkuInfo.stock) {
+					uni.showToast({
+						title: '购买数量超过库存',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 调用加入购物车接口
+				const requestData = {
+					url: 'http://localhost:8080/app/cartItem/create',
+					method: 'POST',
+					header: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						skuId: currentSkuInfo.id,
+						quantity: this.selectedQuantity
+					}
+				};
+				
+				authRequest(
+					requestData,
+					(res) => {
+						if (res.data.code === 0) {
+							uni.showToast({
+								title: '已添加到购物车',
+								icon: 'success'
+							});
+							// 关闭购物车弹窗
+							this.closeCartPopup();
+						} else {
+							uni.showToast({
+								title: res.data.message || '添加购物车失败',
+								icon: 'none'
+							});
+						}
+					},
+					(err) => {
+						uni.showToast({
+							title: '请求失败，请稍后重试',
+							icon: 'none'
+						});
+						console.error('加入购物车请求失败:', err);
+					}
+				);
 			},
 			buyNow() {
 				// 立即购买逻辑
@@ -453,6 +505,7 @@ export default {
 				// 检查skus数组是否存在且为数组
 				if (!Array.isArray(this.skus)) {
 					return {
+						id: null,
 						price: null,
 						stock: 0
 					};
@@ -474,9 +527,10 @@ export default {
 						   selectedOptIdsSorted.every(id => skuOptIdsSorted.includes(id));
 				});
 				
-				// 如果找到了匹配的SKU，返回其库存和价格信息
+				// 如果找到了匹配的SKU，返回其库存、价格和ID信息
 				if (matchedSku) {
 					return {
+						id: matchedSku.id,
 						price: matchedSku.price,
 						stock: matchedSku.stock
 					};
@@ -484,6 +538,7 @@ export default {
 				
 				// 如果没有找到匹配的SKU，返回空信息
 				return {
+					id: null,
 					price: null,
 					stock: 0
 				};
