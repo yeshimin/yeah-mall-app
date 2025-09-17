@@ -723,7 +723,6 @@ export default {
 		height: 100rpx;
 		padding: 0 20rpx;
 		background-color: #fff;
-		border-bottom: 1rpx solid #eee;
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -742,7 +741,7 @@ export default {
 	
 	.detail-scroll {
 		height: calc(100vh - 200rpx);
-		margin-top: 20rpx;
+		margin-top: 0rpx;
 		margin-bottom: 100rpx;
 	}
 	
@@ -758,7 +757,6 @@ export default {
 	.price-section {
 		padding: 20rpx;
 		background-color: #fff;
-		border-bottom: 1rpx solid #f5f5f5;
 	}
 	
 	.current-price {
@@ -788,7 +786,6 @@ export default {
 	.name-section {
 		padding: 20rpx;
 		background-color: #fff;
-		border-bottom: 1rpx solid #f5f5f5;
 	}
 	
 	.product-name {

@@ -150,7 +150,6 @@
 		height: 100rpx;
 		padding: 0 20rpx;
 		background-color: #fff;
-		border-bottom: 1rpx solid #eee;
 		position: fixed;
 		top: 0;
 		left: 0;
