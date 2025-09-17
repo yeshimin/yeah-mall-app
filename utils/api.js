@@ -23,3 +23,27 @@ export const fetchProductCategoryTree = () => {
     });
   });
 };
+
+// Function to fetch cart items
+export const fetchCartItems = () => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: 'http://localhost:8080/app/cartItem/query',
+      method: 'GET',
+      header: {
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxIiwiaWF0IjoxNzU4MDk5MTI0LCJzdWIiOiJhcHAiLCJ0ZXJtIjoiYXBpIiwiaWF0TXMiOjE3NTgwOTkxMjQ4NzAsImV4cE1zIjoxNzU4MTAyNzI0ODcwfQ.aZ2GmiNaXKFanQ79E6DNqh2cKUVlhJ8CWObfJwwJHeo',
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to fetch cart data'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};

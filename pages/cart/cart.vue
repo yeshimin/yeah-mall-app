@@ -32,7 +32,7 @@
           </view>
           <view class="item-info">
             <text class="item-name">{{ item.name }}</text>
-            <text class="item-spec">{{ item.spec }}</text>
+            <text class="item-spec">{{ item.spec.map(spec => `${spec.specName}:${spec.optName}`).join(';') }}</text>
             <view class="item-price-controls">
               <text class="item-price">¥{{ item.price }}</text>
               <view class="quantity-controls" v-if="!isEditing">
@@ -78,115 +78,18 @@
 </template>
 
 <script>
+import { fetchCartItems } from '../../utils/api.js';
+
 export default {
-  name: 'Cart',
   data() {
     return {
       isEditing: false,
       // 按店铺分组的购物车商品数据
-      groupedCartItems: [
-        {
-          shopId: 1,
-          shopName: '时尚女装专营店',
-          selected: true,
-          items: [
-            {
-              id: 1,
-              name: '夏季新款连衣裙',
-              spec: '颜色:红色;尺码:M',
-              price: 199.99,
-              quantity: 2,
-              image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: true
-            },
-            {
-              id: 2,
-              name: '休闲牛仔裤',
-              spec: '颜色:蓝色;尺码:L',
-              price: 159.00,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: false
-            },
-            {
-              id: 3,
-              name: '纯棉T恤',
-              spec: '颜色:白色;尺码:S',
-              price: 79.90,
-              quantity: 3,
-              image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: true
-            }
-          ]
-        },
-        {
-          shopId: 2,
-          shopName: '数码电器旗舰店',
-          selected: false,
-          items: [
-            {
-              id: 4,
-              name: '无线蓝牙耳机',
-              spec: '颜色:黑色',
-              price: 299.00,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: true
-            },
-            {
-              id: 5,
-              name: '智能手环',
-              spec: '颜色:银色',
-              price: 199.00,
-              quantity: 2,
-              image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: false
-            }
-          ]
-        },
-        {
-          shopId: 3,
-          shopName: '家居生活馆',
-          selected: true,
-          items: [
-            {
-              id: 6,
-              name: '记忆棉枕头',
-              spec: '尺寸:标准款',
-              price: 89.90,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: true
-            },
-            {
-              id: 7,
-              name: '不锈钢保温杯',
-              spec: '容量:500ml;颜色:银色',
-              price: 59.90,
-              quantity: 2,
-              image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: true
-            }
-          ]
-        },
-        {
-          shopId: 4,
-          shopName: '运动户外专卖店',
-          selected: false,
-          items: [
-            {
-              id: 8,
-              name: '跑步鞋',
-              spec: '颜色:白色;尺码:39',
-              price: 399.00,
-              quantity: 1,
-              image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80',
-              selected: false
-            }
-          ]
-        }
-      ]
+      groupedCartItems: []
     }
+  },
+  onLoad() {
+    this.fetchCartData();
   },
   computed: {
     // 计算选中商品的总价格
@@ -344,6 +247,35 @@ export default {
           shop.selected = true
         })
       }
+    },
+    // 获取购物车数据
+    fetchCartData() {
+      fetchCartItems()
+        .then(data => {
+          // 转换数据格式以匹配现有结构
+          this.groupedCartItems = data.map(shop => ({
+            shopId: shop.shopId,
+            shopName: shop.shopName,
+            selected: false, // 默认不选中
+            items: shop.items.map(item => ({
+              id: item.skuId,
+              name: item.spuName,
+              spec: item.specs, // 保持原始规格数组，方便页面渲染
+              price: item.price,
+              quantity: item.quantity,
+              // 构造图片URL，参考商品列表和商品详情页的实现方式
+              image: item.spuMainImage ? `http://localhost:8080/public/storage/preview?fileKey=${item.spuMainImage}` : 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+              selected: false // 默认不选中
+            }))
+          }));
+        })
+        .catch(error => {
+          console.error('获取购物车数据失败:', error);
+          uni.showToast({
+            title: '获取购物车数据失败',
+            icon: 'none'
+          });
+        });
     },
     // 结算
     checkout() {
