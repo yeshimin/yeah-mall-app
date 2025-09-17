@@ -346,7 +346,7 @@
 								price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : (Math.random() * 1000).toFixed(2),
 								sales: item.sales !== undefined ? item.sales : Math.floor(Math.random() * 1000),
 								// 根据不同环境构造图片URL
-                image: item.mainImage ? (() => {
+                image: item.mainImage && item.mainImage.trim() !== '' ? (() => {
                   // 使用uni-app的环境变量判断
                   if (process.env.NODE_ENV === 'development') {
                     // 开发环境从环境变量中获取目标地址

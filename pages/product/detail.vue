@@ -193,7 +193,7 @@ export default {
 								// 处理banner图片URL
 								this.banners = data.banners.map(item => {
 									const baseApi = 'http://localhost:8080';
-									return item ? (() => {
+									return item && item.trim() !== '' ? (() => {
 										return `${baseApi}/public/storage/preview?fileKey=${item}`;
 									})() : '';
 								});

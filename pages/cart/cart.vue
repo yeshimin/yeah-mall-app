@@ -27,7 +27,7 @@
               <text class="checkmark" v-if="item.selected">✓</text>
             </view>
           </view>
-          <view class="item-image">
+          <view class="item-image" v-if="item.image">
             <image :src="item.image" mode="aspectFill"></image>
           </view>
           <view class="item-info">
@@ -264,7 +264,7 @@ export default {
               price: item.price,
               quantity: item.quantity,
               // 构造图片URL，参考商品列表和商品详情页的实现方式
-              image: item.spuMainImage ? `http://localhost:8080/public/storage/preview?fileKey=${item.spuMainImage}` : 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+              image: item.spuMainImage && item.spuMainImage.trim() !== '' ? `http://localhost:8080/public/storage/preview?fileKey=${item.spuMainImage}` : '',
               selected: false // 默认不选中
             }))
           }));
