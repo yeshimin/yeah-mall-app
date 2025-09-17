@@ -2,7 +2,9 @@
 	<view class="order-confirm">
 		<!-- 顶部导航栏 -->
 		<view class="navbar">
+			<text class="nav-back" @click="goBack">&lt;</text>
 			<text class="nav-title">确认订单</text>
+			<text class="nav-back"></text>
 		</view>
 		
 		<!-- 收货地址 -->
@@ -116,6 +118,10 @@
 			}
 		},
 		methods: {
+			goBack() {
+				// 返回上一页
+				uni.navigateBack();
+			},
 			selectAddress() {
 				// 选择地址逻辑
 				console.log("选择地址");
@@ -138,21 +144,26 @@
 	}
 
 	.navbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 100rpx;
+		padding: 0 20rpx;
+		background-color: #fff;
+		border-bottom: 1rpx solid #eee;
 		position: fixed;
 		top: 0;
 		left: 0;
-		right: 0;
-		height: 88rpx;
-		background-color: #fff;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-bottom: 1rpx solid #eee;
-		z-index: 999;
+		width: 100%;
+		z-index: 100;
+	}
+
+	.nav-back {
+		font-size: 32rpx;
 	}
 
 	.nav-title {
-		font-size: 36rpx;
+		font-size: 32rpx;
 		font-weight: bold;
 	}
 
