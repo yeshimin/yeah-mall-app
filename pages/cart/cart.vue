@@ -69,7 +69,6 @@
         <view class="total-info">
           <text class="total-text">合计:</text>
           <text class="total-price">¥{{ totalPrice }}</text>
-          <text class="delivery-fee" v-if="parseFloat(totalPrice) < 99">(满99免运费)</text>
         </view>
         <view class="checkout-btn" @click="checkout">结算({{ selectedCount }})</view>
       </view>
@@ -527,12 +526,6 @@ export default {
   font-size: 36rpx;
   font-weight: bold;
   color: #ff6b35;
-}
-
-.delivery-fee {
-  font-size: 24rpx;
-  color: #ff6b35;
-  margin-top: 5rpx;
 }
 
 .checkout-btn {
