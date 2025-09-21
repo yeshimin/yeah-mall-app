@@ -2,15 +2,19 @@
 	<view class="order-confirm">
 		<!-- 顶部导航栏 -->
 		<view class="navbar">
-			<text class="nav-back" @click="goBack"><</text>
+			<view class="nav-back" @click="goBack">
+				<text class="iconfont">&#xe60e;</text>
+			</view>
 			<text class="nav-title">确认订单</text>
-			<text class="nav-refresh" @click="refreshOrderData">↻</text>
+			<view class="nav-refresh" @click="refreshOrderData">
+				<text class="iconfont">&#xe62a;</text>
+			</view>
 		</view>
 		
 		<!-- 收货地址 -->
 		<view class="address-section">
 			<view class="address-header">
-				<text class="location-icon">📍</text>
+				<text class="iconfont location-icon">&#xe611;</text>
 				<text class="address-text">收货地址</text>
 			</view>
 			<view class="address-content" @click="selectAddress">
@@ -26,14 +30,14 @@
 				<view class="no-address" v-else>
 					<text>请选择收货地址</text>
 				</view>
-				<text class="arrow">></text>
+				<text class="iconfont arrow">&#xe65f;</text>
 			</view>
 		</view>
 		
 		<!-- 商品列表（按店铺分组） -->
 		<view class="goods-section" v-for="(shop, shopIndex) in groupedOrderGoods" :key="shopIndex">
 			<view class="shop-header">
-				<text class="shop-icon">🏪</text>
+				<text class="iconfont shop-icon">&#xe60c;</text>
 				<text class="shop-name">{{ shop.shopName }}</text>
 			</view>
 			
@@ -64,6 +68,7 @@
 		
 		<!-- 空状态提示 -->
 		<view class="empty-state" v-if="!loading && groupedOrderGoods.length === 0">
+			<text class="iconfont empty-icon">&#xe64d;</text>
 			<text class="empty-text">暂无商品信息</text>
 		</view>
 		
@@ -79,18 +84,20 @@
 			</view>
 			<view class="amount-item">
 				<text>优惠券</text>
-				<text>-¥{{ coupon }}</text>
+				<text class="discount-price">-¥{{ coupon }}</text>
 			</view>
 			<view class="total-amount">
 				<text>合计:</text>
 				<text class="total-price">¥{{ totalAmount }}</text>
+			</view>
+			<view class="blank">
 			</view>
 		</view>
 		
 		<!-- 底部操作栏 -->
 		<view class="bottom-bar">
 			<view class="total-info">
-				<text>合计:</text>
+				<text class="total-label">合计:</text>
 				<text class="total-price">¥{{ totalAmount }}</text>
 			</view>
 			<button class="submit-btn" @click="submitOrder">提交订单</button>
@@ -262,23 +269,42 @@
 </script>
 
 <style scoped>
+	/* 图标字体 */
+	@font-face {
+		font-family: "iconfont";
+		src: url('data:font/woff2;charset=utf-8;base64,d09GMgABAAAAAAVMAAsAAAAACkQAAAT+AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHFQGYACDMgqHVIYnATYCJAMUCwwABCAFhGcHSRvSCFGUTk6Q7CtsynAvFKKiUBQVK6okqrb39mhve0MwPPH9fvzOvXOfmUkyCZJookmkkyYxkUQoJEKlE6Lh/2ua/QFbYauha6OmdRXRVZTVRKpkZa7Di6ScvDk5OW8+Jy/xEqF4Eo1EIiRCIiRC8TQaiRBCJEQjEbKZZO7p3wHEADYDGwxsa6C2FjGIZlsTBGDhf66ZXpIWTdvs5uTmXuGKqvCrAqsAq8IqcEX1c3wNqMrfNy9fZCpgo6Dw1r6z5mzk7QvvU3oK/xOkADfnB7jjQAFtgAGxUOhdBgdl2zAMXcapYQwk2xEo9sX4+5T3Ke9T3qe+T/3/E0yAJILjv3hAodAQG4SoQVQBCu8zZfApJYYvIFPhC0ZU+EISDb4QRIsvJCnhCwkKQJYCQDvAeYBYA0jfIbehCBSxsYsJm1AwmJycpNFIJHK5RKlUqHQ6rVar0WrVcrlMJpOKRCIez+dZLHqnU+/z6QIBfTCo93iMJpPBYNB7vSa73RwO2+Nxe0+PY3DQNTLiHhvzjI97Jia8U1O+2Vnf/Lx/YSGwtBRcWQmtrUU2NqJbW7Hd3fj+fvzoKHF8nDw9TZ2dpS8u0tls5vIye3WVu77O5/P5m5vC7W3x7q50f1+G4+m0Nh5XRyKKUEgWCEj9fqnXK3G7JS6X2OkUOxxCm01gsQjMZoHJxDcY+Dod4HYDHg/g9QL9/cDAADAyAoyPA1NTwOws8PAAnJ8DuRyQzwO3t8DjI/D0BLy8AK+vwNsb8P4OfHwAn5/A1xfw/Q38/AJ/f8Df3+9/wPcP8P0LfP0BX7/A5w/w8Q28vwGvr8DLC/D8DDw9Ao8PwP0dcHcL3FwD+Wtgbw/Y3QV2doDtbWBrC9jcBDY2gLU1YHUVWFkBlpeBxUVgfh6YmwNmZ4GZGWBqCpicBMbHgdFRYHgYGBwEBgaA/n6grw/o7QV6eoDubqCrC+jsBI6OgMNDIJMB0mkglQISCSAeB2IxIBoFIhEgHAZCISAYBAIBwO8HfD7A6wU8HsDtBlwuwOkEHA7AbgdsNsBqBSwWwGwGTCbAaAQMBkCvB3Q6QKsFNBpArQZUKkCpBBQKQC4HZDJAKgXEYkAkAoRCQCAA+HyA1wt4PIDLBTgcgM0GWCyAyQQYDIBOB2g0gEoFyOWARCIQCPl8Hk/I5Qq4XD6Hw+dweBwOl81ms1gsJovFYLEYbDaDw2Fw/2MwGEwmk8VisVgsNpvN4XC4XC6Px+Pz+QKBQCgUisRiiUQilUplMplcLlcoFEqlUqVSqdVqjUaj1Wp1Op1er8cxHA9gWADHAyQJUBRA0wDDABwHCAKgKIBhAJYFOA7gecDnA4GALxKJJBKJTCZTKBQqlUqj0eh0OoPBYDKZLBaLzWZzOBwul8vj8QQCgVAoFIvFUqlUJpMplUqNRqPVanU6ncFgMJlMFovFZrM5HA6Xy+XxeHw+XyAQiEQiiUQik8mUSqVKpdJoNFqtVqfTGQwGk8lksVhsNpvD4XC5XB6Px+fzBQKBSCQSi8VSqVQmkymVSo1Go9VqdTqdwWAwmUwWi8Vms//8+QcmQZKo') format('woff2');
+	}
+
+	.iconfont {
+		font-family: "iconfont" !important;
+		font-size: 32rpx;
+		font-style: normal;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
 	.order-confirm {
-		padding-bottom: 100rpx;
-		padding-top: 100rpx; /* 为顶部导航栏留出空间 */
+		padding-bottom: 160rpx;
+		margin-bottom: 60rpx;
+		/* padding-top: 80rpx; */
+		background-color: #f7f8fa;
+		min-height: 100vh;
+		box-sizing: border-box;
 	}
 
 	.navbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 100rpx;
+		height: 80rpx; /* 减小导航栏高度 */
 		padding: 0 20rpx;
-		background-color: #fff;
+		background-color: #ffffff;
 		position: fixed;
 		top: 0;
 		left: 0;
 		width: 100%;
 		z-index: 100;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 	}
 	
 	/* 加载状态样式 */
@@ -286,7 +312,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 40rpx 0;
+		padding: 30rpx 0;
 	}
 	
 	.loading-text {
@@ -300,10 +326,16 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		padding: 100rpx 0;
+		padding: 60rpx 0;
 		background-color: #fff;
 		margin-top: 20rpx;
-		border-radius: 10rpx;
+		border-radius: 12rpx;
+	}
+	
+	.empty-icon {
+		font-size: 80rpx;
+		color: #ddd;
+		margin-bottom: 20rpx;
 	}
 	
 	.empty-text {
@@ -312,12 +344,16 @@
 	}
 
 	.nav-back, .nav-refresh {
-		font-size: 32rpx;
 		width: 60rpx;
 		height: 60rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		border-radius: 50%;
+	}
+	
+	.nav-back:active, .nav-refresh:active {
+		background-color: #f5f5f5;
 	}
 	
 	.nav-refresh {
@@ -327,12 +363,15 @@
 	.nav-title {
 		font-size: 32rpx;
 		font-weight: bold;
+		color: #333;
 	}
 
 	.address-section {
-		margin-top: 20rpx;
+		margin-top: 10rpx; /* 减少顶部间距 */
 		padding: 20rpx;
 		background-color: #fff;
+		border-radius: 12rpx;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 	}
 
 	.address-header {
@@ -344,6 +383,13 @@
 	.location-icon {
 		font-size: 36rpx;
 		margin-right: 10rpx;
+		color: #ff4757;
+	}
+
+	.address-text {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333;
 	}
 
 	.address-content {
@@ -352,12 +398,22 @@
 		justify-content: space-between;
 		padding: 20rpx;
 		background-color: #f8f8f8;
-		border-radius: 10rpx;
+		border-radius: 12rpx;
+	}
+
+	.address-info {
+		flex: 1;
+	}
+
+	.address-detail {
+		display: flex;
+		align-items: center;
 	}
 
 	.address-info .name {
 		font-weight: bold;
 		margin-right: 20rpx;
+		color: #333;
 	}
 
 	.address-info .phone {
@@ -374,7 +430,7 @@
 	}
 
 	.arrow {
-		font-size: 36rpx;
+		font-size: 28rpx;
 		color: #ccc;
 	}
 
@@ -383,7 +439,8 @@
 		margin-top: 20rpx;
 		padding: 20rpx;
 		background-color: #fff;
-		border-radius: 10rpx;
+		border-radius: 12rpx;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 	}
 
 	.shop-header {
@@ -397,6 +454,7 @@
 	.shop-icon {
 		font-size: 32rpx;
 		margin-right: 10rpx;
+		color: #ff4757;
 	}
 
 	.shop-name {
@@ -423,24 +481,35 @@
 	.goods-item {
 		display: flex;
 		padding: 20rpx 0;
-		border-bottom: 1rpx solid #eee;
+		border-bottom: 1rpx solid #f5f5f5;
 	}
 
 	.goods-image {
 		width: 160rpx;
 		height: 160rpx;
-		border-radius: 10rpx;
+		border-radius: 12rpx;
 		margin-right: 20rpx;
+		background-color: #f9f9f9;
 	}
 
 	.goods-info {
 		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
 	}
 
 	.goods-name {
 		font-size: 28rpx;
+		font-weight: 500;
+		color: #333;
 		display: block;
 		margin-bottom: 10rpx;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
 	}
 
 	.goods-spec {
@@ -457,26 +526,35 @@
 	}
 
 	.goods-price {
-		color: #ff4757;
+		font-size: 30rpx;
 		font-weight: bold;
+		color: #ff4757;
 	}
 
 	.goods-quantity {
 		color: #666;
+		font-size: 26rpx;
 	}
 
 	.order-amount {
 		margin-top: 20rpx;
 		padding: 20rpx;
 		background-color: #fff;
-		border-radius: 10rpx;
+		border-radius: 12rpx;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 	}
 
 	.amount-item {
 		display: flex;
 		justify-content: space-between;
 		padding: 15rpx 0;
-		border-bottom: 1rpx solid #eee;
+		border-bottom: 1rpx solid #f5f5f5;
+		font-size: 28rpx;
+		color: #666;
+	}
+
+	.discount-price {
+		color: #4CAF50;
 	}
 
 	.total-amount {
@@ -497,29 +575,52 @@
 		left: 0;
 		right: 0;
 		height: 100rpx;
+		padding: 0 30rpx;
+		box-sizing: border-box;
 		background-color: #fff;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 20rpx;
-		border-top: 1rpx solid #eee;
+		padding: 0 30rpx;
+		border-top: 1rpx solid #f5f5f5;
 		box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
 	}
 
+	.total-info {
+		display: flex;
+		align-items: baseline;
+	}
+
+	.total-label {
+		font-size: 28rpx;
+		color: #333;
+	}
+
 	.total-info .total-price {
-		font-size: 36rpx;
+		font-size: 40rpx;
 		font-weight: bold;
 		color: #ff4757;
 		margin-left: 10rpx;
 	}
 
 	.submit-btn {
-		width: 200rpx;
-		height: 70rpx;
-		line-height: 70rpx;
-		background-color: #ff4757;
+		width: 220rpx;
+		height: 80rpx;
+		line-height: 80rpx;
+		background: linear-gradient(to right, #ff6b6b, #ff4757);
 		color: #fff;
-		border-radius: 35rpx;
-		font-size: 28rpx;
+		border-radius: 40rpx;
+		font-size: 30rpx;
+		font-weight: bold;
+		box-shadow: 0 4rpx 10rpx rgba(255, 71, 87, 0.3);
+		border: none;
+	}
+
+	.submit-btn:active {
+		transform: scale(0.98);
+		background: linear-gradient(to right, #ff5a5a, #ff3747);
+	}
+	.blank {
+		height: 100rpx;
 	}
 </style>
