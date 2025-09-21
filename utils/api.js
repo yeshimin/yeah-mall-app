@@ -48,3 +48,30 @@ export const fetchCartItems = () => {
     });
   });
 };
+
+// Function to fetch order preview data
+export const fetchOrderPreview = (items) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: 'http://localhost:8080/app/order/preview',
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        items: items
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to fetch order preview data'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};

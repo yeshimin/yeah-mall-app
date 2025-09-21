@@ -286,10 +286,24 @@ export default {
         return
       }
 
-      // 这里可以跳转到结算页面
-      uni.showToast({
-        title: `结算 ${this.selectedCount} 件商品，总计 ¥${this.totalPrice}`,
-        icon: 'none'
+      // 获取选中的商品的skuId和quantity
+      const selectedItems = this.groupedCartItems
+        .flatMap(shop => shop.items)
+        .filter(item => item.selected)
+        .map(item => ({
+          skuId: item.id,
+          quantity: item.quantity
+        }));
+      
+      // 将选中的商品数据（仅包含skuId和quantity）传递到订单确认页面
+      uni.navigateTo({
+        url: '/pages/order/confirm',
+        success: (res) => {
+          // 通过eventChannel向被打开页面传送数据
+          res.eventChannel.emit('acceptDataFromCartPage', {
+            selectedItems: selectedItems
+          })
+        }
       })
     }
   }
