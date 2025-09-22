@@ -77,7 +77,7 @@
 </template>
 
 <script>
-import { fetchCartItems } from '../../utils/api.js';
+import { fetchCartItems, updateCartItemQuantity } from '../../utils/api.js';
 
 export default {
   data() {
@@ -148,13 +148,47 @@ export default {
     },
     // 增加商品数量
     increaseQuantity(shopIndex, itemIndex) {
-      this.groupedCartItems[shopIndex].items[itemIndex].quantity++
+      const item = this.groupedCartItems[shopIndex].items[itemIndex];
+      const oldQuantity = item.quantity;
+      item.quantity++;
+      
+      // 调用后端接口更新数量
+      updateCartItemQuantity(item.id, item.quantity)
+        .then(response => {
+          console.log('商品数量更新成功:', response);
+        })
+        .catch(error => {
+          console.error('商品数量更新失败:', error);
+          // 如果更新失败，恢复原来的数量
+          item.quantity = oldQuantity;
+          uni.showToast({
+            title: '数量更新失败',
+            icon: 'none'
+          });
+        });
     },
     // 减少商品数量
     decreaseQuantity(shopIndex, itemIndex) {
       const item = this.groupedCartItems[shopIndex].items[itemIndex]
+      const oldQuantity = item.quantity;
+      
       if (item.quantity > 1) {
         item.quantity--
+        
+        // 调用后端接口更新数量
+        updateCartItemQuantity(item.id, item.quantity)
+          .then(response => {
+            console.log('商品数量更新成功:', response);
+          })
+          .catch(error => {
+            console.error('商品数量更新失败:', error);
+            // 如果更新失败，恢复原来的数量
+            item.quantity = oldQuantity;
+            uni.showToast({
+              title: '数量更新失败',
+              icon: 'none'
+            });
+          });
       } else {
         // 如果数量为1，提示是否删除商品
         uni.showModal({
@@ -162,15 +196,27 @@ export default {
           content: '是否删除该商品？',
           success: (res) => {
             if (res.confirm) {
-              this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
+              // 调用后端接口更新数量为0以删除商品
+              updateCartItemQuantity(item.id, 0)
+                .then(response => {
+                  console.log('商品删除成功:', response);
+                  this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
 
-              // 如果店铺内没有商品了，删除店铺
-              if (this.groupedCartItems[shopIndex].items.length === 0) {
-                this.groupedCartItems.splice(shopIndex, 1)
-              }
+                  // 如果店铺内没有商品了，删除店铺
+                  if (this.groupedCartItems[shopIndex].items.length === 0) {
+                    this.groupedCartItems.splice(shopIndex, 1)
+                  }
 
-              // 重新检查全选状态
-              this.checkAllSelected()
+                  // 重新检查全选状态
+                  this.checkAllSelected()
+                })
+                .catch(error => {
+                  console.error('商品删除失败:', error);
+                  uni.showToast({
+                    title: '删除失败',
+                    icon: 'none'
+                  });
+                });
             }
           }
         })
@@ -257,7 +303,8 @@ export default {
             shopName: shop.shopName,
             selected: false, // 默认不选中
             items: shop.items.map(item => ({
-              id: item.skuId,
+              id: item.id, // 使用购物车项的id，而不是skuId
+              skuId: item.skuId, // 保留skuId，用于其他用途
               name: item.spuName,
               spec: item.specs, // 保持原始规格数组，方便页面渲染
               price: item.price,
@@ -291,7 +338,7 @@ export default {
         .flatMap(shop => shop.items)
         .filter(item => item.selected)
         .map(item => ({
-          skuId: item.id,
+          skuId: item.skuId, // 使用skuId字段，而不是购物车项的id
           quantity: item.quantity
         }));
       

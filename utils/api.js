@@ -100,3 +100,31 @@ export const submitOrder = (data) => {
     });
   });
 };
+
+// Function to update cart item quantity
+export const updateCartItemQuantity = (id, quantity) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: 'http://localhost:8080/app/cartItem/update',
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        id: id,
+        quantity: quantity
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to update cart item quantity'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
