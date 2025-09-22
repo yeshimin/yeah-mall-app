@@ -90,6 +90,10 @@ export default {
   onLoad() {
     this.fetchCartData();
   },
+  onShow() {
+    // 当页面显示时，重新获取购物车数据
+    this.fetchCartData();
+  },
   computed: {
     // 计算选中商品的总价格
     totalPrice() {
