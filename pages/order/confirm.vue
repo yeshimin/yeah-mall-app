@@ -106,30 +106,35 @@
 </template>
 
 <script>
-	import { fetchOrderPreview } from '../../utils/api.js';
+	import { fetchOrderPreview, submitOrder } from '../../utils/api.js';
 	
 	export default {
 		data() {
-			return {
-				selectedAddress: {
-					name: "张三",
-					phone: "13800138000",
-					address: "北京市朝阳区某某街道某某小区1号楼101室"
-				},
-				groupedOrderGoods: [], // 按店铺分组的商品
-				goodsTotal: 0.00,
-				shippingFee: 0.00,
-				coupon: 0.00,
-				loading: false,
-				// 用于存储原始的请求参数，以便需要时可以重新获取数据
-				requestItems: []
-			}
-		},
+		return {
+			selectedAddress: {
+				name: "张三",
+				phone: "13800138000",
+				address: "北京市朝阳区某某街道某某小区1号楼101室"
+			},
+			groupedOrderGoods: [], // 按店铺分组的商品
+			goodsTotal: 0.00,
+			shippingFee: 0.00,
+			coupon: 0.00,
+			loading: false,
+			// 用于存储原始的请求参数，以便需要时可以重新获取数据
+			requestItems: [],
+			// 订单来源：1-商品详情页，2-购物车页面
+			orderSource: 1
+		}
+	},
 		onLoad(options) {
 			// 接收从商品详情页传递过来的参数
 			if (options.skuId && options.quantity) {
 				console.log('接收到的SKU ID:', options.skuId);
 				console.log('接收到的数量:', options.quantity);
+				
+				// 设置订单来源为商品详情页
+				this.orderSource = 1;
 				
 				// 保存请求参数
 				const requestItems = [{
@@ -146,6 +151,9 @@
 				eventChannel.on('acceptDataFromCartPage', (data) => {
 					console.log('从购物车页面接收到的数据:', data);
 					if (data && data.selectedItems && data.selectedItems.length > 0) {
+						// 设置订单来源为购物车页面
+						this.orderSource = 2;
+						
 						// 保存请求参数
 						this.requestItems = data.selectedItems;
 						
@@ -259,10 +267,66 @@
 			submitOrder() {
 				// 提交订单逻辑
 				console.log("提交订单");
-				uni.showToast({
-					title: "订单提交成功",
-					icon: "success"
+				
+				// 检查是否有商品
+				if (!this.groupedOrderGoods || this.groupedOrderGoods.length === 0) {
+					uni.showToast({
+						title: "没有可提交的商品",
+						icon: "none"
+					});
+					return;
+				}
+				
+				// 显示加载提示
+				uni.showLoading({
+					title: '提交订单中...'
 				});
+				
+				// 按店铺维度分批提交订单
+				const submitPromises = this.groupedOrderGoods.map(shop => {
+					// 构造该店铺的订单项
+					const items = shop.items.map(item => ({
+						skuId: item.id,
+						quantity: item.quantity
+					}));
+
+					// 构造请求数据
+					const data = {
+						items: items
+					};
+					
+					// 如果是从购物车下单，则添加scene参数
+					if (this.orderSource === 2) {
+						data.scene = 2; // 订单场景，2表示从购物车下单
+					}
+					
+					// 调用提交订单接口
+					return submitOrder(data);
+				});
+				
+				// 等待所有订单提交完成
+				Promise.all(submitPromises)
+					.then(results => {
+						console.log("所有订单提交成功:", results);
+						uni.hideLoading();
+						uni.showToast({
+							title: "订单提交成功",
+							icon: "success"
+						});
+						
+						// 可以在这里添加跳转到订单列表页面的逻辑
+						// uni.navigateTo({
+						//   url: '/pages/order/list'
+						// });
+					})
+					.catch(error => {
+						console.error("订单提交失败:", error);
+						uni.hideLoading();
+						uni.showToast({
+							title: error.message || "订单提交失败",
+							icon: "none"
+						});
+					});
 			}
 		}
 	}

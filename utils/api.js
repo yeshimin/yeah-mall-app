@@ -75,3 +75,28 @@ export const fetchOrderPreview = (items) => {
     });
   });
 };
+
+// Function to submit order
+export const submitOrder = (data) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: 'http://localhost:8080/app/order/submit',
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: data,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to submit order'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
