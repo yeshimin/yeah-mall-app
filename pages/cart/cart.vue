@@ -77,7 +77,7 @@
 </template>
 
 <script>
-import { fetchCartItems, updateCartItemQuantity } from '../../utils/api.js';
+import { fetchCartItems, updateCartItemQuantity, deleteCartItems } from '../../utils/api.js';
 
 export default {
   data() {
@@ -196,8 +196,8 @@ export default {
           content: '是否删除该商品？',
           success: (res) => {
             if (res.confirm) {
-              // 调用后端接口更新数量为0以删除商品
-              updateCartItemQuantity(item.id, 0)
+              // 调用后端接口删除商品
+              deleteCartItems([item.id])
                 .then(response => {
                   console.log('商品删除成功:', response);
                   this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
@@ -222,64 +222,93 @@ export default {
         })
       }
     },
-    // 删除商品
+    // 删除单个商品
     deleteItem(shopIndex, itemIndex) {
-      uni.showModal({
-        title: '提示',
-        content: '是否删除该商品？',
-        success: (res) => {
-          if (res.confirm) {
-            this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
+      const item = this.groupedCartItems[shopIndex].items[itemIndex];
+      
+      // 调用后端接口删除商品
+      deleteCartItems([item.id])
+        .then(response => {
+          console.log('商品删除成功:', response);
+          this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
 
-            // 如果店铺内没有商品了，删除店铺
-            if (this.groupedCartItems[shopIndex].items.length === 0) {
-              this.groupedCartItems.splice(shopIndex, 1)
-            }
-
-            // 重新检查全选状态
-            this.checkAllSelected()
+          // 如果店铺内没有商品了，删除店铺
+          if (this.groupedCartItems[shopIndex].items.length === 0) {
+            this.groupedCartItems.splice(shopIndex, 1)
           }
-        }
-      })
+
+          // 重新检查全选状态
+          this.checkAllSelected()
+        })
+        .catch(error => {
+          console.error('商品删除失败:', error);
+          uni.showToast({
+            title: '删除失败',
+            icon: 'none'
+          });
+        });
     },
+    
     // 删除选中的商品
     deleteSelectedItems() {
-      if (this.selectedCount === 0) {
-        return
+      // 获取所有选中的商品
+      const selectedItems = this.groupedCartItems
+        .flatMap(shop => shop.items)
+        .filter(item => item.selected);
+      
+      if (selectedItems.length === 0) {
+        uni.showToast({
+          title: '请选择要删除的商品',
+          icon: 'none'
+        });
+        return;
       }
-
+      
+      // 提取商品ID
+      const itemIds = selectedItems.map(item => item.id);
+      
       uni.showModal({
         title: '提示',
-        content: `是否删除选中的${this.selectedCount}件商品？`,
+        content: `确定要删除选中的${selectedItems.length}件商品吗？`,
         success: (res) => {
           if (res.confirm) {
-            // 遍历所有店铺，删除选中的商品
-            for (let shopIndex = this.groupedCartItems.length - 1; shopIndex >= 0; shopIndex--) {
-              const shop = this.groupedCartItems[shopIndex]
-
-              // 删除选中的商品
-              for (let itemIndex = shop.items.length - 1; itemIndex >= 0; itemIndex--) {
-                if (shop.items[itemIndex].selected) {
-                  shop.items.splice(itemIndex, 1)
+            // 调用后端接口批量删除商品
+            deleteCartItems(itemIds)
+              .then(response => {
+                console.log('商品批量删除成功:', response);
+                
+                // 从前端数据中移除已删除的商品
+                for (let i = this.groupedCartItems.length - 1; i >= 0; i--) {
+                  const shop = this.groupedCartItems[i];
+                  for (let j = shop.items.length - 1; j >= 0; j--) {
+                    if (itemIds.includes(shop.items[j].id)) {
+                      shop.items.splice(j, 1);
+                    }
+                  }
+                  // 如果店铺内没有商品了，删除店铺
+                  if (shop.items.length === 0) {
+                    this.groupedCartItems.splice(i, 1);
+                  }
                 }
-              }
-
-              // 如果店铺内没有商品了，删除店铺
-              if (shop.items.length === 0) {
-                this.groupedCartItems.splice(shopIndex, 1)
-              }
-            }
-
-            // 重新检查全选状态
-            this.checkAllSelected()
-
-            uni.showToast({
-              title: '删除成功',
-              icon: 'success'
-            })
+                
+                // 重新检查全选状态
+                this.checkAllSelected();
+                
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                });
+              })
+              .catch(error => {
+                console.error('商品批量删除失败:', error);
+                uni.showToast({
+                  title: '删除失败',
+                  icon: 'none'
+                });
+              });
           }
         }
-      })
+      });
     },
     // 检查全选状态
     checkAllSelected() {
