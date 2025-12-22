@@ -47,6 +47,7 @@
 
 <script>
 import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js'
+import { fetchOrderCounts } from '../../utils/api.js'
 
 export default {
   name: 'Profile',
@@ -58,10 +59,11 @@ export default {
         id: '123456789'
       },
       orderStats: [
-        { name: '待付款', count: 0 },
-        { name: '待发货', count: 0 },
-        { name: '待收货', count: 0 },
-        { name: '待评价', count: 0 }
+        { name: '待付款', key: 'waitPayCount', count: 0 },
+        { name: '待发货', key: 'waitShipCount', count: 0 },
+        { name: '待收货', key: 'waitReceiveCount', count: 0 },
+        { name: '待评价', key: 'waitCommentCount', count: 0 },
+        { name: '退款/售后', key: 'refundAndAfterSaleCount', count: 0 }
       ],
       functions: [
         { name: '优惠券', icon: '优惠券' },
@@ -80,7 +82,10 @@ export default {
     // 进入页面时校验登录状态
     if (!isAuthenticated()) {
       handleAuthFailure()
+      return
     }
+    // 已登录则拉取订单数量
+    this.loadOrderCounts()
   },
   methods: {
     // 查看全部订单
@@ -93,6 +98,28 @@ export default {
     viewOrdersByStatus(index) {
       console.log('查看订单状态:', this.orderStats[index].name)
       // 这里可以根据不同状态跳转到相应的订单列表页面
+    },
+    // 加载个人订单数量
+    loadOrderCounts() {
+      fetchOrderCounts()
+        .then(data => {
+          // data: OrderCountVo
+          this.orderStats = this.orderStats.map(stat => ({
+            ...stat,
+            count: data && data[stat.key] != null ? data[stat.key] : 0
+          }))
+        })
+        .catch(err => {
+          // 认证失败已在全局处理，这里不再重复提示
+          if (err && err.message === 'AUTH_401') {
+            return
+          }
+          console.error('获取订单数量失败', err)
+          uni.showToast({
+            title: '获取订单数量失败',
+            icon: 'none'
+          })
+        })
     },
     
     // 点击功能入口

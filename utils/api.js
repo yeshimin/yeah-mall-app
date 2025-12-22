@@ -1,5 +1,5 @@
 // utils/api.js
-import { getToken } from './auth.js';
+import { getToken, handleAuthFailure } from './auth.js';
 import { BASE_API } from './config.js';
 
 // Function to fetch product category tree
@@ -37,10 +37,11 @@ export const fetchCartItems = () => {
         'Content-Type': 'application/json'
       },
       success: (res) => {
-        // 统一处理认证失败
+        // 全局认证失败处理
         if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
-          reject(new Error('AUTH_401'))
-          return
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
         }
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data.data);
@@ -69,6 +70,12 @@ export const fetchOrderPreview = (items) => {
         items: items
       },
       success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data.data);
         } else {
@@ -94,6 +101,12 @@ export const submitOrder = (data) => {
       },
       data: data,
       success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data);
         } else {
@@ -122,6 +135,12 @@ export const updateCartItemQuantity = (id, quantity) => {
         quantity: quantity
       },
       success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data);
         } else {
@@ -147,10 +166,46 @@ export const deleteCartItems = (ids) => {
       },
       data: ids,
       success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data);
         } else {
           reject(new Error(res.data.message || 'Failed to delete cart items'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
+// Function to fetch personal order counts
+export const fetchOrderCounts = () => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/count`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to fetch order counts'));
         }
       },
       fail: (err) => {
