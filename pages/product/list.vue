@@ -125,6 +125,7 @@
 </template>
 
 <script>
+	import { BASE_API } from '@/utils/config.js'
 	export default {
 		data() {
 				return {
@@ -288,7 +289,7 @@
 					// 获取商品列表
 					fetchProducts() {
 				// 构建API请求URL
-				let url = 'http://localhost:8080/app/product/query';
+				let url = `${BASE_API}/app/product/query`;
 				
 				// 构建查询参数
 				let params = [];
@@ -350,11 +351,11 @@
                   // 使用uni-app的环境变量判断
                   if (process.env.NODE_ENV === 'development') {
                     // 开发环境从环境变量中获取目标地址
-                    const proxyTarget = 'http://localhost:8080'; // 在实际项目中可以从环境变量获取
+                    const proxyTarget = BASE_API; // 使用全局配置的基础API路径
                     return `${proxyTarget}/public/storage/preview?fileKey=${item.mainImage}`;
                   } else {
                     // 其他环境(生产、测试等)使用配置的基础API路径
-                    const baseApi = 'http://localhost:8080'; // 在实际项目中可以从配置获取
+                    const baseApi = BASE_API; // 使用全局配置的基础API路径
                     return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
                   }
                 })() : 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'

@@ -43,6 +43,7 @@
 
 <script>
 	import CryptoJS from 'crypto-js'
+	import { BASE_API } from '@/utils/config.js'
 	
 	export default {
 		data() {
@@ -72,7 +73,7 @@
 				
 				// 调用注册API
 				uni.request({
-					url: 'http://localhost:8080/app/auth/register',
+					url: `${BASE_API}/app/auth/register`,
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'

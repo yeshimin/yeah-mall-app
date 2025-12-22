@@ -78,6 +78,7 @@
 </template>
 
 <script>
+import { BASE_API } from '@/utils/config.js'
 export default {
   data() {
     return {
@@ -145,7 +146,7 @@ export default {
       if (!this.hasMore) return;
       
       // 构建API请求URL
-      let url = 'http://localhost:8080/app/product/queryHot';
+      let url = `${BASE_API}/app/product/queryHot`;
       
       // 添加参数
       let params = [];
@@ -184,7 +185,7 @@ export default {
               sales: item.sales !== undefined ? item.sales : 0,
               // 根据不同环境构造图片URL
               image: item.mainImage ? (() => {
-                const baseApi = 'http://localhost:8080';
+                const baseApi = BASE_API;
                 return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
               })() : ''
             }));

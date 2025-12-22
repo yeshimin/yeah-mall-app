@@ -60,6 +60,8 @@
 </template>
 
 <script>
+	import { fetchProductCategoryTree } from '../../utils/api.js'
+	
 	export default {
 		data() {
 			return {
@@ -122,17 +124,17 @@
 		},
 		mounted() {
 			// 从API获取分类数据
-			import('/utils/api.js').then((api) => {
-				api.fetchProductCategoryTree().then((data) => {
+			fetchProductCategoryTree()
+				.then((data) => {
 					this.primaryCategories = data;
 					// 初始化二级分类数据
 					if (this.primaryCategories.length > 0) {
 						this.secondaryCategories = this.primaryCategories[0].children || [];
 					}
-				}).catch((error) => {
+				})
+				.catch((error) => {
 					console.error('Failed to fetch category data:', error);
 				});
-			});
 		}
 	}
 </script>

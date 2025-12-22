@@ -157,6 +157,7 @@
 
 <script>
 	import { getUserId, handleAuthFailure, authRequest, getToken } from '@/utils/auth.js'
+	import { BASE_API } from '@/utils/config.js'
 
 export default {
 		data() {
@@ -183,7 +184,7 @@ export default {
 					return getToken();
 				},
 				fetchProductDetail(productId) {
-					const baseApi = 'http://localhost:8080';
+					const baseApi = BASE_API;
 					console.log('detail.productId: ' + productId)
 					// 获取token
 					const token = this.getToken();
@@ -201,7 +202,7 @@ export default {
 								
 								// 处理banner图片URL
 								this.banners = data.banners.map(item => {
-									const baseApi = 'http://localhost:8080';
+									const baseApi = BASE_API;
 									return item && item.trim() !== '' ? (() => {
 										return `${baseApi}/public/storage/preview?fileKey=${item}`;
 									})() : '';
@@ -296,7 +297,7 @@ export default {
 				if (this.purchaseMode === 'buy') {
 					// 调用立即购买接口
 					const requestData = {
-						url: 'http://localhost:8080/app/order/submit',
+						url: `${BASE_API}/app/order/submit`,
 						method: 'POST',
 						header: {
 							'Content-Type': 'application/json'
@@ -341,7 +342,7 @@ export default {
 				} else {
 					// 调用加入购物车接口
 					const requestData = {
-						url: 'http://localhost:8080/app/cartItem/create',
+						url: `${BASE_API}/app/cartItem/create`,
 						method: 'POST',
 						header: {
 							'Content-Type': 'application/json'
@@ -412,7 +413,7 @@ export default {
 				
 				// 调用添加收藏的API
 				authRequest({
-					url: 'http://localhost:8080/app/productFavorites/add',
+					url: `${BASE_API}/app/productFavorites/add`,
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'
@@ -458,7 +459,7 @@ export default {
 				
 				// 调用取消收藏的API
 				authRequest({
-					url: 'http://localhost:8080/app/productFavorites/remove',
+					url: `${BASE_API}/app/productFavorites/remove`,
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'
@@ -500,7 +501,7 @@ export default {
 				if (!userId) return;
 
 				authRequest({
-					url: 'http://localhost:8080/app/productFavorites/status?spuId=' + this.product.id,
+					url: `${BASE_API}/app/productFavorites/status?spuId=${this.product.id}`,
 					method: 'GET'
 				}, (res) => {
 					if (res.statusCode === 200 && res.data.code === 0) {

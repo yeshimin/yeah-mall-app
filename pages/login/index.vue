@@ -1,26 +1,38 @@
 <template>
 	<view class="login-container">
 		<view class="login-header">
-			<text class="login-title">用户登录</text>
+			<text class="login-title">手机验证码登录</text>
 		</view>
 		
 		<view class="login-form">
+			<!-- 手机号输入 -->
 			<view class="input-item">
 				<input 
 					class="input" 
-					type="text" 
+					type="number" 
 					placeholder="请输入手机号" 
+					maxlength="11"
 					v-model="mobile"
 				/>
 			</view>
 			
-			<view class="input-item">
+			<!-- 验证码输入 + 发送按钮 -->
+			<view class="input-item code-row">
 				<input 
-					class="input" 
-					type="password" 
-					placeholder="请输入密码" 
-					v-model="password"
+					class="input code-input" 
+					type="number" 
+					placeholder="请输入短信验证码" 
+					maxlength="6"
+					v-model="smsCode"
 				/>
+				<button 
+					class="code-btn" 
+					:disabled="sendingCode || countdown > 0"
+					@click="sendCode"
+				>
+					<text v-if="countdown === 0">获取验证码</text>
+					<text v-else>{{ countdown }}s 后重试</text>
+				</button>
 			</view>
 			
 			<button class="login-btn" @click="handleLogin">登录</button>
@@ -31,44 +43,128 @@
 		</view>
 	</view>
 </template>
-
+	
 <script>
-	import CryptoJS from 'crypto-js'
+	import { BASE_API } from '@/utils/config.js'
 	
 	export default {
 		data() {
 			return {
 				mobile: '',
-				password: ''
+				smsCode: '',
+				sendingCode: false,
+				countdown: 0,
+				_timer: null
+			}
+		},
+		beforeDestroy() {
+			// 清理倒计时定时器
+			if (this._timer) {
+				clearInterval(this._timer)
+				this._timer = null
 			}
 		},
 		methods: {
-			handleLogin() {
-				if (!this.mobile || !this.password) {
+			// 校验手机号格式
+			validateMobile() {
+				if (!this.mobile) {
 					uni.showToast({
-						title: '请输入手机号和密码',
+						title: '请输入手机号',
+						icon: 'none'
+					})
+					return false
+				}
+				// 简单的国内手机号校验，可根据需要调整
+				const reg = /^1[3-9]\d{9}$/
+				if (!reg.test(this.mobile)) {
+					uni.showToast({
+						title: '手机号格式不正确',
+						icon: 'none'
+					})
+					return false
+				}
+				return true
+			},
+			// 发送短信验证码
+			sendCode() {
+				if (!this.validateMobile()) return
+				if (this.sendingCode || this.countdown > 0) return
+				
+				this.sendingCode = true
+				uni.request({
+					// 根据你的后端实际接口修改路径
+					url: `${BASE_API}/app/auth/sendSmsCode`,
+					method: 'POST',
+					header: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						mobile: this.mobile
+					},
+					success: (res) => {
+						if (res.data && res.data.code === 0) {
+							uni.showToast({
+								title: '验证码已发送',
+								icon: 'success'
+							})
+							// 开始倒计时
+							this.countdown = 60
+							this._timer = setInterval(() => {
+								if (this.countdown > 0) {
+									this.countdown--
+								} else {
+									clearInterval(this._timer)
+									this._timer = null
+								}
+							}, 1000)
+						} else {
+							uni.showToast({
+								title: (res.data && res.data.message) || '发送失败',
+								icon: 'none'
+							})
+						}
+					},
+					fail: (err) => {
+						console.error('发送验证码失败', err)
+						uni.showToast({
+							title: '发送失败，请稍后重试',
+							icon: 'none'
+						})
+					},
+					complete: () => {
+						this.sendingCode = false
+					}
+				})
+			},
+			// 短信验证码登录
+			handleLogin() {
+				if (!this.validateMobile()) return
+				if (!this.smsCode) {
+					uni.showToast({
+						title: '请输入验证码',
 						icon: 'none'
 					})
 					return
 				}
 				
-				// 调用登录API
 				uni.request({
-					url: 'http://localhost:8080/app/auth/login',
+					// 根据你的后端实际接口修改路径
+					url: `${BASE_API}/app/auth/login`,
 					method: 'POST',
 					header: {
 						'Content-Type': 'application/json'
 					},
 					data: {
 						mobile: this.mobile,
-						password: CryptoJS.SHA256(this.password).toString()
+						smsCode: this.smsCode,
+						terminal: 'app'
 					},
 					success: (res) => {
-						if (res.data.code === 0) {
+						if (res.data && res.data.code === 0) {
 							// 登录成功，保存token到本地存储
 							uni.setStorageSync('token', res.data.data.token)
 							
-							// 解析token获取userId并保存
+							// 解析token获取userId并保存（沿用原有逻辑）
 							try {
 								const base64Url = res.data.data.token.split('.')[1]
 								const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
@@ -89,13 +185,13 @@
 								icon: 'success'
 							})
 							
-							// 返回到上一页（商品详情页面）
+							// 返回到上一页
 							setTimeout(() => {
 								uni.navigateBack()
 							}, 1000)
 						} else {
 							uni.showToast({
-								title: res.data.message || '登录失败',
+								title: (res.data && res.data.message) || '登录失败',
 								icon: 'none'
 							})
 						}
@@ -143,12 +239,39 @@
 		margin-bottom: 30rpx;
 		border-bottom: 1rpx solid #eee;
 		padding-bottom: 20rpx;
+		display: flex;
+		align-items: center;
 	}
 	
 	.input {
-		width: 100%;
+		flex: 1;
 		font-size: 32rpx;
 		padding: 20rpx 0;
+	}
+
+	.code-row {
+		justify-content: space-between;
+	}
+
+	.code-input {
+		margin-right: 20rpx;
+	}
+
+	.code-btn {
+		width: 220rpx;
+		height: 60rpx;
+		line-height: 60rpx;
+		font-size: 26rpx;
+		border-radius: 30rpx;
+		background-color: #007AFF;
+		color: #fff;
+		text-align: center;
+		padding: 0;
+	}
+
+	.code-btn[disabled] {
+		background-color: #cccccc;
+		color: #666666;
 	}
 	
 	.login-btn {

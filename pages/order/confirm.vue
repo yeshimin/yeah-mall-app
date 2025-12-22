@@ -107,6 +107,7 @@
 
 <script>
 	import { fetchOrderPreview, submitOrder } from '../../utils/api.js';
+	import { BASE_API } from '@/utils/config.js';
 	
 	export default {
 		data() {
@@ -219,7 +220,7 @@
 								price: item.price,
 								quantity: item.quantity, // 优先使用服务器返回的数量
 								// 构造图片URL
-								image: item.spuMainImage ? `http://localhost:8080/public/storage/preview?fileKey=${item.spuMainImage}` : ''
+								image: item.spuMainImage ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}` : ''
 							}))
 						}));
 						

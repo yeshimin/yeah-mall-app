@@ -78,6 +78,8 @@
 
 <script>
 import { fetchCartItems, updateCartItemQuantity, deleteCartItems } from '../../utils/api.js';
+import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js';
+import { BASE_API } from '@/utils/config.js';
 
 export default {
   data() {
@@ -88,11 +90,16 @@ export default {
     }
   },
   onLoad() {
-    this.fetchCartData();
+    // 进入页面时先做登录校验
+    if (this.ensureLogin()) {
+      this.fetchCartData();
+    }
   },
   onShow() {
     // 当页面显示时，重新获取购物车数据
-    this.fetchCartData();
+    if (this.ensureLogin()) {
+      this.fetchCartData();
+    }
   },
   computed: {
     // 计算选中商品的总价格
@@ -117,6 +124,14 @@ export default {
     }
   },
   methods: {
+    // 登录校验封装，未登录时跳转登录页
+    ensureLogin() {
+      if (!isAuthenticated()) {
+        handleAuthFailure();
+        return false;
+      }
+      return true;
+    },
     // 切换编辑状态
     toggleEdit() {
       this.isEditing = !this.isEditing
@@ -328,6 +343,10 @@ export default {
     },
     // 获取购物车数据
     fetchCartData() {
+      // 再次校验，防止直接调用
+      if (!this.ensureLogin()) {
+        return;
+      }
       fetchCartItems()
         .then(data => {
           // 转换数据格式以匹配现有结构
@@ -343,17 +362,22 @@ export default {
               price: item.price,
               quantity: item.quantity,
               // 构造图片URL，参考商品列表和商品详情页的实现方式
-              image: item.spuMainImage && item.spuMainImage.trim() !== '' ? `http://localhost:8080/public/storage/preview?fileKey=${item.spuMainImage}` : '',
+              image: item.spuMainImage && item.spuMainImage.trim() !== '' ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}` : '',
               selected: false // 默认不选中
             }))
           }));
         })
         .catch(error => {
-          console.error('获取购物车数据失败:', error);
-          uni.showToast({
-            title: '获取购物车数据失败',
-            icon: 'none'
-          });
+          // 认证失败统一跳转
+          if (error && error.message === 'AUTH_401') {
+            handleAuthFailure();
+          } else {
+            console.error('获取购物车数据失败:', error);
+            uni.showToast({
+              title: '获取购物车数据失败',
+              icon: 'none'
+            });
+          }
         });
     },
     // 结算

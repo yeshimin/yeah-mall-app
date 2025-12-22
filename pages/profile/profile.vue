@@ -46,6 +46,8 @@
 </template>
 
 <script>
+import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js'
+
 export default {
   name: 'Profile',
   data() {
@@ -72,6 +74,12 @@ export default {
         { name: '客服中心' },
         { name: '设置' }
       ]
+    }
+  },
+  onShow() {
+    // 进入页面时校验登录状态
+    if (!isAuthenticated()) {
+      handleAuthFailure()
     }
   },
   methods: {
