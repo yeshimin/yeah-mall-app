@@ -214,3 +214,47 @@ export const fetchOrderCounts = () => {
     });
   });
 };
+
+// Function to fetch order list
+export const fetchOrderList = (aggreStatus, page = 1, size = 10) => {
+  return new Promise((resolve, reject) => {
+    const params = {
+      'conditions_': 'createTime:sort:desc'
+    };
+    
+    // 如果指定了聚合状态，则添加到参数中
+    if (aggreStatus && aggreStatus !== 0) {
+      params.aggreStatus = aggreStatus;
+    }
+    
+    // 添加分页参数
+    params.current = page;
+    params.size = size;
+    
+    uni.request({
+      url: `${BASE_API}/app/order/query`,
+      method: 'GET',
+      data: params,
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || 'Failed to fetch order list'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};

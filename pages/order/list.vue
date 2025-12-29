@@ -1,36 +1,30 @@
 <template>
 	<view class="order-list">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<view class="nav-back" @click="goBack">
-				<text class="iconfont">&#xe60e;</text>
-			</view>
-			<text class="nav-title">我的订单</text>
-		</view>
-		
 		<!-- 订单状态筛选Tab -->
-		<view class="status-tabs">
-			<view 
-				v-for="tab in statusTabs" 
-				:key="tab.value"
-				class="tab-item"
-				:class="{ active: activeTab === tab.value }"
-				@click="switchTab(tab.value)"
-			>
-				<text>{{ tab.label }}</text>
+		<scroll-view class="status-tabs-container" scroll-x="true" :scroll-left="scrollLeft" scroll-with-animation="true">
+			<view class="status-tabs">
+				<view 
+					v-for="tab in statusTabs" 
+					:key="tab.value"
+					class="tab-item"
+					:class="{ active: activeTab === tab.value }"
+					@click="switchTab(tab.value)"
+				>
+					<text>{{ tab.label }}</text>
+				</view>
 			</view>
-		</view>
+		</scroll-view>
 		
 		<!-- 订单列表 -->
-		<view class="order-content">
-			<view v-if="loading" class="loading-container">
+		<scroll-view class="order-content" scroll-y="true" @scrolltolower="loadMore" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
+			<view v-if="loading && orders.length === 0" class="loading-container">
 				<text class="loading-text">加载中...</text>
 			</view>
 			
 			<template v-else>
 				<!-- 订单为空状态 -->
-				<view class="empty-state" v-if="orders.length === 0">
-					<text class="iconfont empty-icon">&#xe64d;</text>
+				<view class="empty-state" v-if="orders.length === 0 && !loading">
+					<text class="empty-icon">📦</text>
 					<text class="empty-text">暂无订单</text>
 					<button class="go-shop-btn" @click="goToShop">去逛逛</button>
 				</view>
@@ -40,7 +34,7 @@
 					<!-- 订单头部：店铺信息 -->
 					<view class="order-header">
 						<view class="shop-info">
-							<text class="iconfont shop-icon">&#xe60c;</text>
+							<text class="shop-icon">🏪</text>
 							<text class="shop-name">{{ order.shopName }}</text>
 						</view>
 						<text class="order-status">{{ order.statusText }}</text>
@@ -69,7 +63,7 @@
 					<!-- 订单操作按钮 -->
 					<view class="order-actions">
 						<button 
-							v-for="action in getOrderActions(order.status)" 
+							v-for="action in getOrderActions(order.orderStatus)" 
 							:key="action.value"
 							class="action-btn"
 							:class="action.type"
@@ -79,14 +73,29 @@
 						</button>
 					</view>
 				</view>
+				
+				<!-- 加载更多状态 -->
+				<view v-if="orders.length > 0" class="load-more-container">
+					<view v-if="loading" class="loading-more">
+						<text class="loading-text">加载中...</text>
+					</view>
+					<view v-else-if="pageInfo.current >= pageInfo.pages" class="no-more">
+						<text class="no-more-text">没有更多了</text>
+					</view>
+					<view v-else class="load-more">
+						<text class="load-more-text">上拉加载更多</text>
+					</view>
+				</view>
 			</template>
-		</view>
+		</scroll-view>
 	</view>
 </template>
 
 <script>
-	import { fetchOrderCounts } from '../../utils/api.js';
-		export default {
+	import { fetchOrderList, fetchOrderCounts } from '../../utils/api.js';
+	import { BASE_API } from '../../utils/config.js';
+	
+	export default {
 		data() {
 			return {
 				// 订单状态筛选Tab
@@ -100,20 +109,46 @@
 				],
 				// 当前激活的Tab
 				activeTab: 0,
+				// 滚动位置
+				scrollLeft: 0,
 				// 订单数据
 				orders: [],
 				// 加载状态
 				loading: false,
-				// 订单状态与文本映射
+				// 下拉刷新状态
+				refreshing: false,
+				// 分页信息
+				pageInfo: {
+					current: 1,
+					size: 10,
+					total: 0,
+					pages: 0
+				},
+				// 订单状态与文本映射 - 根据新的OrderStatusEnum
 				statusMap: {
-					1: '待付款',
-					2: '待发货',
-					3: '待收货',
-					4: '待评价',
-					5: '已完成',
-					6: '已取消',
-					7: '退款中',
-					8: '已退款'
+					'1': '待付款',    // WAIT_PAY
+					'2': '待发货',    // WAIT_SHIP
+					'3': '待收货',    // WAIT_RECEIVE
+					'4': '交易成功',  // COMPLETED
+					'5': '交易关闭',  // CLOSED
+					'6': '退款',      // REFUND
+					'7': '售后'       // AFTER_SALE
+				},
+				// 退款状态映射
+				refundStatusMap: {
+					'0': '无',
+					'1': '申请中',
+					'2': '处理中',
+					'3': '退款成功',
+					'4': '已拒绝'
+				},
+				// 售后状态映射
+				afterSaleStatusMap: {
+					'0': '无',
+					'1': '申请中',
+					'2': '处理中',
+					'3': '售后完成',
+					'4': '已驳回'
 				}
 			};
 		},
@@ -124,13 +159,14 @@
 			}
 			// 获取订单数据
 			this.fetchOrders();
+			// 延迟执行滚动，确保DOM已经渲染完成
+			this.$nextTick(() => {
+				setTimeout(() => {
+					this.scrollToActiveTab();
+				}, 100);
+			});
 		},
 		methods: {
-			// 返回上一页
-			goBack() {
-				uni.navigateBack();
-			},
-			
 			// 跳转到店铺首页
 			goToShop() {
 				uni.switchTab({
@@ -151,57 +187,195 @@
 			// 切换订单状态Tab
 			switchTab(value) {
 				this.activeTab = value;
-				// 重新获取对应状态的订单数据
-				this.fetchOrders();
+				// 重置分页信息并重新获取数据
+				this.fetchOrders(true);
+				// 计算滚动位置，让当前选中的Tab居中显示
+				this.$nextTick(() => {
+					this.scrollToActiveTab();
+				});
+			},
+			
+			// 滚动到当前选中的Tab
+			scrollToActiveTab() {
+				const query = uni.createSelectorQuery().in(this);
+				query.select('.status-tabs').boundingClientRect((containerRect) => {
+					query.selectAll('.tab-item').boundingClientRect((tabRects) => {
+						if (containerRect && tabRects && tabRects[this.activeTab]) {
+							const activeTabRect = tabRects[this.activeTab];
+							const containerWidth = containerRect.width;
+							const activeTabWidth = activeTabRect.width;
+							const activeTabLeft = activeTabRect.left - containerRect.left;
+							
+							// 计算目标滚动位置，让当前Tab居中
+							const targetScrollLeft = activeTabLeft - (containerWidth - activeTabWidth) / 2;
+							
+							this.scrollLeft = Math.max(0, targetScrollLeft);
+						}
+					}).exec();
+				}).exec();
 			},
 			
 			// 获取订单数据
-			fetchOrders() {
-				this.loading = true;
-				// 模拟API请求，实际项目中应该调用真实接口
-				setTimeout(() => {
-					this.loading = false;
-					// 模拟不同状态的订单数据
-					this.orders = this.generateMockOrders();
-				}, 1000);
+			async fetchOrders(isRefresh = false) {
+				if (isRefresh) {
+					this.pageInfo.current = 1;
+					this.orders = [];
+				}
 				
-				// 实际项目中应该调用真实接口
-				// fetchOrders(this.activeTab)
-				// 	.then(data => {
-					// 		this.orders = data;
-					// 		this.loading = false;
-					// 	})
-				// 	.catch(error => {
-					// 		console.error('获取订单列表失败:', error);
-					// 		this.loading = false;
-					// 		uni.showToast({
-						// 			title: '获取订单失败',
-						// 			icon: 'none'
-						// 		});
-					// 	});
+				this.loading = true;
+				try {
+					// 调用真实接口获取订单数据
+					const response = await fetchOrderList(this.activeTab, this.pageInfo.current, this.pageInfo.size);
+					
+					// 更新分页信息
+					this.pageInfo = {
+						current: response.current,
+						size: response.size,
+						total: response.total,
+						pages: response.pages
+					};
+					
+					// 处理订单数据，添加模拟的商品信息和店铺信息
+					const processedOrders = this.processOrderData(response.records);
+					
+					// 如果是第一页，直接替换数据；否则追加数据
+					if (this.pageInfo.current === 1) {
+						this.orders = processedOrders;
+					} else {
+						this.orders = [...this.orders, ...processedOrders];
+					}
+					
+				} catch (error) {
+					console.error('获取订单列表失败:', error);
+					
+					// 如果接口调用失败，使用模拟数据
+					if (error.message === 'AUTH_401') {
+						// 认证失败，不需要显示错误提示，会自动跳转登录
+						return;
+					}
+					
+					// 其他错误，显示错误提示并使用模拟数据
+					uni.showToast({
+						title: '获取订单失败，使用模拟数据',
+						icon: 'none'
+					});
+					
+					// 使用模拟数据
+					this.orders = this.generateMockOrders();
+					this.pageInfo = {
+						current: 1,
+						size: 10,
+						total: this.orders.length,
+						pages: 1
+					};
+				} finally {
+					this.loading = false;
+					if (isRefresh) {
+						this.refreshing = false;
+					}
+				}
 			},
 			
-			// 生成模拟订单数据
+			// 下拉刷新
+			onRefresh() {
+				this.refreshing = true;
+				this.fetchOrders(true);
+			},
+			
+			// 加载更多
+			loadMore() {
+				if (this.loading || this.pageInfo.current >= this.pageInfo.pages) {
+					return;
+				}
+				this.pageInfo.current++;
+				this.fetchOrders();
+			},
+			
+			// 处理订单数据，根据新的数据结构处理商品信息
+			processOrderData(orderRecords) {
+				return orderRecords.map(order => {
+					// 根据订单状态和退款、售后状态确定显示文本
+					let statusText = this.statusMap[order.orderStatus] || '未知状态';
+					
+					// 处理退款/售后状态的显示
+					if (order.refundStatus && order.refundStatus !== '0') {
+						statusText = this.refundStatusMap[order.refundStatus] || '退款中';
+					} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
+						statusText = this.afterSaleStatusMap[order.afterSaleStatus] || '售后中';
+					} else if (order.orderStatus === '4' && !order.reviewed) {
+						statusText = '待评价';
+					} else if (order.orderStatus === '4' && order.reviewed) {
+						statusText = '已完成';
+					}
+					
+					// 处理商品信息，根据新的数据结构
+					const processedGoods = order.items ? order.items.map(item => ({
+						id: item.spuId,
+						spuId: item.spuId,
+						skuId: item.skuId,
+						name: item.spuName,
+						spec: item.specs && item.specs.length > 0 
+							? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';')
+							: item.skuName || '',
+						price: parseFloat(item.price),
+						quantity: parseInt(item.quantity),
+						image: item.spuMainImage && item.spuMainImage.trim() !== '' 
+							? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}`
+							: 'https://via.placeholder.com/100'
+					})) : [];
+					
+					// 计算总数量
+					const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0);
+					
+					// 从items数组中重新计算商品总价
+					const calculatedTotalPrice = processedGoods.reduce((total, item) => total + (item.price * item.quantity), 0);
+					
+					return {
+						id: order.id,
+						orderNo: order.orderNo,
+						shopId: order.shopId,
+						shopName: order.shopName || `店铺${order.shopId}`,
+						orderStatus: parseInt(order.orderStatus),
+						statusText: statusText,
+						totalPrice: calculatedTotalPrice, // 使用计算得出的价格
+						totalQuantity: totalQuantity,
+						shippingFee: parseFloat(order.shippingFee || 0),
+						createTime: order.createTime,
+						refundStatus: order.refundStatus,
+						afterSaleStatus: order.afterSaleStatus,
+						reviewed: order.reviewed,
+						goods: processedGoods
+					};
+				});
+			},
+			
+			// 生成模拟订单数据，使用新的数据结构
 			generateMockOrders() {
 				const mockOrders = [
+					// 待付款订单
 					{
 						id: 1,
 						shopId: 1,
 						shopName: '时尚精品店',
-						status: 1,
+						orderStatus: 1,
 						statusText: '待付款',
-						totalPrice: 199.00,
-						totalQuantity: 2,
+						refundStatus: '0',
+						afterSaleStatus: '0',
 						shippingFee: 10.00,
 						createTime: '2025-12-22 14:30:00',
-						goods: [
+						items: [
 							{
-								id: 101,
-								name: '时尚连衣裙',
-								spec: '颜色:红色;尺码:M',
+								spuId: 101,
+								spuName: '时尚连衣裙',
+								spuMainImage: 'dress001',
+								skuId: 1001,
+								skuName: '红色-M',
+								specs: [
+									{ specName: '颜色', optName: '红色' },
+									{ specName: '尺码', optName: 'M' }
+								],
 								price: 99.50,
-								quantity: 2,
-								image: 'https://via.placeholder.com/100'
+								quantity: 2
 							}
 						]
 					},
@@ -209,164 +383,203 @@
 						id: 2,
 						shopId: 2,
 						shopName: '数码商城',
-						status: 2,
-						statusText: '待发货',
-						totalPrice: 2999.00,
-						totalQuantity: 1,
+						orderStatus: 1,
+						statusText: '待付款',
+						refundStatus: '0',
+						afterSaleStatus: '0',
 						shippingFee: 0.00,
-						createTime: '2025-12-21 10:15:00',
-						goods: [
+						createTime: '2025-12-22 10:15:00',
+						items: [
 							{
-								id: 201,
-								name: '智能手表',
-								spec: '颜色:黑色;版本:42mm',
+								spuId: 201,
+								spuName: '智能手机',
+								spuMainImage: 'phone001',
+								skuId: 2001,
+								skuName: '黑色-256GB',
+								specs: [
+									{ specName: '颜色', optName: '黑色' },
+									{ specName: '内存', optName: '256GB' }
+								],
 								price: 2999.00,
-								quantity: 1,
-								image: 'https://via.placeholder.com/100'
+								quantity: 2
 							}
 						]
 					},
+					// 待发货订单
 					{
 						id: 3,
 						shopId: 3,
 						shopName: '家居生活馆',
-						status: 3,
-						statusText: '待收货',
-						totalPrice: 399.00,
-						totalQuantity: 3,
-						shippingFee: 15.00,
-						createTime: '2025-12-20 16:45:00',
-						goods: [
+						orderStatus: 2,
+						statusText: '待发货',
+						refundStatus: '0',
+						afterSaleStatus: '0',
+						shippingFee: 0.00,
+						createTime: '2025-12-21 16:45:00',
+						items: [
 							{
-								id: 301,
-								name: '纯棉毛巾',
-								spec: '颜色:蓝色;规格:3条装',
-								price: 39.00,
-								quantity: 1,
-								image: 'https://via.placeholder.com/100'
-							},
-							{
-								id: 302,
-								name: '舒适枕头',
-								spec: '材质:记忆棉;规格:单个装',
-								price: 180.00,
-								quantity: 2,
-								image: 'https://via.placeholder.com/100'
+								spuId: 301,
+								spuName: '舒适枕头',
+								spuMainImage: 'pillow001',
+								skuId: 3001,
+								skuName: '记忆棉-单个装',
+								specs: [
+									{ specName: '材质', optName: '记忆棉' },
+									{ specName: '规格', optName: '单个装' }
+								],
+								price: 299.00,
+								quantity: 2
 							}
 						]
 					},
+					// 待收货订单
 					{
 						id: 4,
-						shopId: 1,
-						shopName: '时尚精品店',
-						status: 4,
-						statusText: '待评价',
-						totalPrice: 159.00,
-						totalQuantity: 1,
-						shippingFee: 0.00,
-						createTime: '2025-12-19 09:30:00',
-						goods: [
+						shopId: 4,
+						shopName: '运动户外店',
+						orderStatus: 3,
+						statusText: '待收货',
+						refundStatus: '0',
+						afterSaleStatus: '0',
+						shippingFee: 15.00,
+						createTime: '2025-12-20 09:30:00',
+						items: [
 							{
-								id: 102,
-								name: '潮流运动鞋',
-								spec: '颜色:白色;尺码:42',
-								price: 159.00,
-								quantity: 1,
-								image: 'https://via.placeholder.com/100'
+								spuId: 401,
+								spuName: '运动鞋',
+								spuMainImage: 'shoes001',
+								skuId: 4001,
+								skuName: '白色-42码',
+								specs: [
+									{ specName: '颜色', optName: '白色' },
+									{ specName: '尺码', optName: '42码' }
+								],
+								price: 399.00,
+								quantity: 1
+							},
+							{
+								spuId: 402,
+								spuName: '运动袜',
+								spuMainImage: 'socks001',
+								skuId: 4002,
+								skuName: '黑色-均码',
+								specs: [
+									{ specName: '颜色', optName: '黑色' },
+									{ specName: '尺码', optName: '均码' }
+								],
+								price: 29.00,
+								quantity: 2
 							}
 						]
 					},
+					// 待评价订单
 					{
 						id: 5,
-						shopId: 4,
-						shopName: '美食特产店',
-						status: 7,
-						statusText: '退款中',
-						totalPrice: 89.00,
-						totalQuantity: 2,
-						shippingFee: 8.00,
-						createTime: '2025-12-18 14:20:00',
-						goods: [
+						shopId: 5,
+						shopName: '美妆护肤店',
+						orderStatus: 4,
+						statusText: '待评价',
+						refundStatus: '0',
+						afterSaleStatus: '0',
+						shippingFee: 0.00,
+						createTime: '2025-12-19 14:20:00',
+						reviewed: false,
+						items: [
 							{
-								id: 401,
-								name: '特色小吃',
-								spec: '口味:原味;规格:200g',
-								price: 44.50,
-								quantity: 2,
-								image: 'https://via.placeholder.com/100'
+								spuId: 501,
+								spuName: '护肤套装',
+								spuMainImage: 'skincare001',
+								skuId: 5001,
+								skuName: '补水-套装',
+								specs: [
+									{ specName: '功效', optName: '补水' },
+									{ specName: '规格', optName: '套装' }
+								],
+								price: 258.00,
+								quantity: 1
 							}
 						]
 					}
 				];
 				
-				// 根据当前激活的Tab筛选订单
-				if (this.activeTab === 0) {
-					// 全部订单
-					return mockOrders;
-				} else if (this.activeTab === 1) {
-					// 待付款
-					return mockOrders.filter(order => order.status === 1);
+				// 根据当前选中的Tab过滤订单
+				let filteredOrders = mockOrders;
+				if (this.activeTab === 1) {
+					filteredOrders = mockOrders.filter(order => order.orderStatus === 1);
 				} else if (this.activeTab === 2) {
-					// 待发货
-					return mockOrders.filter(order => order.status === 2);
+					filteredOrders = mockOrders.filter(order => order.orderStatus === 2);
 				} else if (this.activeTab === 3) {
-					// 待收货
-					return mockOrders.filter(order => order.status === 3);
-				} else if (this.activeTab === 4) {
-					// 退款/售后
-					return mockOrders.filter(order => [6, 7, 8].includes(order.status));
+					filteredOrders = mockOrders.filter(order => order.orderStatus === 3);
 				} else if (this.activeTab === 5) {
-					// 待评价
-					return mockOrders.filter(order => order.status === 4);
+					filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && !order.reviewed);
 				}
 				
-				return mockOrders;
+				return this.processOrderData(filteredOrders);
 			},
 			
-			// 根据订单状态获取操作按钮
+			// 获取订单操作按钮
 			getOrderActions(status) {
-				const actionMap = {
-					1: [ // 待付款
-						{ label: '取消订单', value: 'cancel', type: 'default' },
-						{ label: '立即付款', value: 'pay', type: 'primary' }
-					],
-					2: [ // 待发货
-						{ label: '提醒发货', value: 'remind', type: 'default' },
-						{ label: '查看详情', value: 'detail', type: 'primary' }
-					],
-					3: [ // 待收货
-						{ label: '查看物流', value: 'logistics', type: 'default' },
-						{ label: '确认收货', value: 'confirm', type: 'primary' }
-					],
-					4: [ // 待评价
-						{ label: '删除订单', value: 'delete', type: 'default' },
-						{ label: '去评价', value: 'comment', type: 'primary' }
-					],
-					5: [ // 已完成
-						{ label: '删除订单', value: 'delete', type: 'default' },
-						{ label: '再次购买', value: 'rebuy', type: 'primary' }
-					],
-					6: [ // 已取消
-						{ label: '删除订单', value: 'delete', type: 'default' },
-						{ label: '再次购买', value: 'rebuy', type: 'primary' }
-					],
-					7: [ // 退款中
-						{ label: '查看退款', value: 'refundDetail', type: 'primary' }
-					],
-					8: [ // 已退款
-						{ label: '删除订单', value: 'delete', type: 'default' },
-						{ label: '再次购买', value: 'rebuy', type: 'primary' }
-					]
-				};
+				const actions = [];
 				
-				return actionMap[status] || [];
+				switch (status) {
+					case 1: // 待付款 (WAIT_PAY)
+						actions.push(
+							{ label: '取消订单', value: 'cancel', type: 'default' },
+							{ label: '付款', value: 'pay', type: 'primary' }
+						);
+						break;
+					case 2: // 待发货 (WAIT_SHIP)
+						actions.push(
+							{ label: '提醒发货', value: 'remind', type: 'default' },
+							{ label: '查看详情', value: 'detail', type: 'default' }
+						);
+						break;
+					case 3: // 待收货 (WAIT_RECEIVE)
+						actions.push(
+							{ label: '查看物流', value: 'logistics', type: 'default' },
+							{ label: '确认收货', value: 'confirm', type: 'primary' }
+						);
+						break;
+					case 4: // 交易成功 (COMPLETED)
+						actions.push(
+							{ label: '删除订单', value: 'delete', type: 'default' },
+							{ label: '去评价', value: 'comment', type: 'primary' },
+							{ label: '再次购买', value: 'rebuy', type: 'default' }
+						);
+						break;
+					case 5: // 交易关闭 (CLOSED)
+						actions.push(
+							{ label: '删除订单', value: 'delete', type: 'default' },
+							{ label: '再次购买', value: 'rebuy', type: 'default' }
+						);
+						break;
+					case 6: // 退款 (REFUND)
+						actions.push(
+							{ label: '查看详情', value: 'detail', type: 'default' },
+							{ label: '退款详情', value: 'refundDetail', type: 'primary' }
+						);
+						break;
+					case 7: // 售后 (AFTER_SALE)
+						actions.push(
+							{ label: '查看详情', value: 'detail', type: 'default' },
+							{ label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
+						);
+						break;
+				}
+				
+				return actions;
 			},
 			
 			// 处理订单操作
 			handleOrderAction(action, order) {
-				console.log('订单操作:', action, order);
-				
 				switch (action) {
+					case 'pay':
+						// 去付款
+						uni.showToast({
+							title: '付款功能待实现',
+							icon: 'none'
+						});
+						break;
 					case 'cancel':
 						// 取消订单
 						uni.showModal({
@@ -387,17 +600,10 @@
 							}
 						});
 						break;
-					case 'pay':
-						// 立即付款
-						uni.showToast({
-							title: '付款功能待实现',
-							icon: 'none'
-						});
-						break;
 					case 'remind':
 						// 提醒发货
 						uni.showToast({
-							title: '已提醒商家发货',
+							title: '已提醒卖家发货',
 							icon: 'success'
 						});
 						break;
@@ -492,57 +698,29 @@
 		min-height: 100vh;
 	}
 
-	/* 顶部导航栏 */
-	.navbar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+	/* 订单状态筛选Tab容器 */
+	.status-tabs-container {
 		height: 80rpx;
-		padding: 0 20rpx;
 		background-color: #fff;
+		margin-top: 0;
 		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-		position: fixed;
+		position: sticky;
 		top: 0;
-		left: 0;
-		width: 100%;
-		z-index: 100;
-	}
-
-	.nav-back, .nav-refresh {
-		width: 60rpx;
-		height: 60rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-	}
-
-	.nav-back:active, .nav-refresh:active {
-		background-color: #f5f5f5;
-	}
-
-	.nav-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
+		z-index: 90;
+		white-space: nowrap;
 	}
 
 	/* 订单状态筛选Tab */
 	.status-tabs {
 		display: flex;
 		align-items: center;
-		justify-content: space-around;
-		height: 80rpx;
-		background-color: #fff;
-		margin-top: 80rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-		position: sticky;
-		top: 80rpx;
-		z-index: 90;
+		height: 100%;
+		min-width: 100%;
 	}
 
 	.tab-item {
-		flex: 1;
+		flex: none;
+		min-width: 120rpx;
 		height: 100%;
 		display: flex;
 		align-items: center;
@@ -550,6 +728,8 @@
 		font-size: 28rpx;
 		color: #666;
 		position: relative;
+		padding: 0 20rpx;
+		box-sizing: border-box;
 	}
 
 	.tab-item.active {
@@ -618,6 +798,32 @@
 		border-radius: 30rpx;
 		font-size: 28rpx;
 		border: none;
+	}
+
+	/* 加载更多状态 */
+	.load-more-container {
+		padding: 20rpx 0;
+		text-align: center;
+	}
+
+	.loading-more,
+	.no-more,
+	.load-more {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 20rpx 0;
+	}
+
+	.loading-text,
+	.no-more-text,
+	.load-more-text {
+		font-size: 26rpx;
+		color: #999;
+	}
+
+	.loading-text {
+		color: #3cc51f;
 	}
 
 	/* 订单项 */
@@ -772,14 +978,5 @@
 		background-color: #fff;
 		color: #666;
 		border: 1rpx solid #ddd;
-	}
-
-	/* 图标字体 */
-	.iconfont {
-		font-family: 'iconfont' !important;
-		font-size: 32rpx;
-		font-style: normal;
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
 	}
 </style>

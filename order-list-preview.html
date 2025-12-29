@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单列表 - 预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .mobile-container {
+            max-width: 414px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* 订单状态筛选Tab */
+        .status-tabs-container {
+            background-color: #fff;
+            border-bottom: 1rpx solid #eee;
+            white-space: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .status-tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .status-tabs {
+            display: flex;
+            padding: 0 20rpx;
+        }
+        
+        .tab-item {
+            flex: 0 0 auto;
+            padding: 30rpx 40rpx;
+            font-size: 28rpx;
+            color: #666;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        
+        .tab-item.active {
+            color: #3cc51f;
+            font-weight: 500;
+        }
+        
+        .tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60rpx;
+            height: 4rpx;
+            background-color: #3cc51f;
+            border-radius: 2rpx;
+        }
+        
+        /* 订单列表 */
+        .order-content {
+            padding: 20rpx;
+            height: calc(100vh - 100rpx);
+            overflow-y: auto;
+        }
+        
+        /* 订单项 */
+        .order-item {
+            background-color: #fff;
+            border-radius: 12rpx;
+            margin-bottom: 20rpx;
+            overflow: hidden;
+            box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+        }
+        
+        /* 订单头部 */
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20rpx;
+            border-bottom: 1rpx solid #f5f5f5;
+        }
+        
+        .shop-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .shop-icon {
+            font-size: 32rpx;
+            margin-right: 10rpx;
+            color: #3cc51f;
+        }
+        
+        .shop-name {
+            font-size: 28rpx;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .order-status {
+            font-size: 28rpx;
+            color: #ff4757;
+            font-weight: 500;
+        }
+        
+        /* 订单商品 */
+        .order-goods {
+            display: flex;
+            padding: 20rpx;
+            border-bottom: 1rpx solid #f5f5f5;
+            cursor: pointer;
+        }
+        
+        .goods-image {
+            width: 160rpx;
+            height: 160rpx;
+            border-radius: 12rpx;
+            margin-right: 20rpx;
+            background-color: #f9f9f9;
+            object-fit: cover;
+        }
+        
+        .goods-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .goods-name {
+            font-size: 28rpx;
+            color: #333;
+            margin-bottom: 10rpx;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .goods-spec {
+            font-size: 24rpx;
+            color: #999;
+            margin-bottom: 20rpx;
+        }
+        
+        .goods-price-quantity {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .goods-price {
+            font-size: 30rpx;
+            font-weight: bold;
+            color: #ff4757;
+        }
+        
+        .goods-quantity {
+            color: #666;
+            font-size: 26rpx;
+        }
+        
+        /* 订单金额 */
+        .order-amount {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20rpx;
+            border-bottom: 1rpx solid #f5f5f5;
+            font-size: 28rpx;
+            color: #666;
+        }
+        
+        .total-price {
+            font-size: 32rpx;
+            font-weight: bold;
+            color: #ff4757;
+            margin: 0 10rpx;
+        }
+        
+        .shipping-fee {
+            font-size: 24rpx;
+            color: #999;
+        }
+        
+        /* 订单操作按钮 */
+        .order-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 20rpx;
+            flex-wrap: wrap;
+            gap: 20rpx;
+        }
+        
+        .action-btn {
+            width: 140rpx;
+            height: 60rpx;
+            line-height: 60rpx;
+            border-radius: 30rpx;
+            font-size: 26rpx;
+            border: 1rpx solid #ddd;
+            background-color: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .action-btn.primary {
+            background-color: #3cc51f;
+            color: #fff;
+            border: 1rpx solid #3cc51f;
+        }
+        
+        .action-btn.default {
+            background-color: #fff;
+            color: #666;
+            border: 1rpx solid #ddd;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 100rpx 0;
+            background-color: #fff;
+            border-radius: 12rpx;
+        }
+        
+        .empty-icon {
+            font-size: 120rpx;
+            color: #ddd;
+            margin-bottom: 30rpx;
+        }
+        
+        .empty-text {
+            color: #999;
+            font-size: 28rpx;
+            margin-bottom: 40rpx;
+        }
+        
+        .go-shop-btn {
+            width: 200rpx;
+            height: 60rpx;
+            line-height: 60rpx;
+            background-color: #3cc51f;
+            color: #fff;
+            border-radius: 30rpx;
+            font-size: 28rpx;
+            border: none;
+            cursor: pointer;
+        }
+        
+        /* 加载更多状态 */
+        .load-more-container {
+            padding: 20rpx 0;
+            text-align: center;
+        }
+        
+        .loading-more,
+        .no-more,
+        .load-more {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20rpx 0;
+        }
+        
+        .loading-text,
+        .no-more-text,
+        .load-more-text {
+            font-size: 26rpx;
+            color: #999;
+        }
+        
+        .loading-text {
+            color: #3cc51f;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <!-- 订单状态筛选Tab -->
+        <div class="status-tabs-container">
+            <div class="status-tabs">
+                <div class="tab-item active" onclick="switchTab(0, this)">全部</div>
+                <div class="tab-item" onclick="switchTab(1, this)">待付款</div>
+                <div class="tab-item" onclick="switchTab(2, this)">待发货</div>
+                <div class="tab-item" onclick="switchTab(3, this)">待收货</div>
+                <div class="tab-item" onclick="switchTab(4, this)">退款/售后</div>
+                <div class="tab-item" onclick="switchTab(5, this)">评价</div>
+            </div>
+        </div>
+        
+        <!-- 订单列表 -->
+        <div class="order-content" id="orderContent">
+            <!-- 订单数据将通过JavaScript动态渲染 -->
+        </div>
+    </div>
+
+    <script>
+        // 订单状态与文本映射 - 根据新的OrderStatusEnum
+        const statusMap = {
+            1: '待付款',   // WAIT_PAY
+            2: '待发货',   // WAIT_SHIP
+            3: '待收货',   // WAIT_RECEIVE
+            4: '交易成功', // COMPLETED
+            5: '交易关闭', // CLOSED
+            6: '退款',     // REFUND
+            7: '售后'      // AFTER_SALE
+        };
+        
+        // 模拟订单数据 - 使用新的数据结构
+        const mockOrders = {
+            0: [ // 全部订单
+                {
+                    id: 1,
+                    shopId: 1,
+                    shopName: '时尚精品店',
+                    orderStatus: 1,
+                    statusText: '待付款',
+                    totalPrice: 199.00,
+                    totalQuantity: 2,
+                    shippingFee: 10.00,
+                    createTime: '2025-12-22 14:30:00',
+                    goodsItems: [
+                        {
+                            spuId: 101,
+                            spuName: '时尚连衣裙',
+                            spuMainImage: 'dress001',
+                            skuId: 1001,
+                            skuName: '红色-M',
+                            specs: [
+                                { name: '颜色', value: '红色' },
+                                { name: '尺码', value: 'M' }
+                            ],
+                            price: 99.50,
+                            quantity: 2
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    shopId: 2,
+                    shopName: '数码商城',
+                    orderStatus: 2,
+                    statusText: '待发货',
+                    totalPrice: 2999.00,
+                    totalQuantity: 1,
+                    shippingFee: 0.00,
+                    createTime: '2025-12-21 16:45:00',
+                    goodsItems: [
+                        {
+                            spuId: 201,
+                            spuName: '智能手机',
+                            spuMainImage: 'phone001',
+                            skuId: 2001,
+                            skuName: '黑色-256GB',
+                            specs: [
+                                { name: '颜色', value: '黑色' },
+                                { name: '内存', value: '256GB' }
+                            ],
+                            price: 2999.00,
+                            quantity: 1
+                        }
+                    ]
+                },
+                {
+                    id: 3,
+                    shopId: 3,
+                    shopName: '家居生活馆',
+                    orderStatus: 3,
+                    statusText: '待收货',
+                    totalPrice: 357.00,
+                    totalQuantity: 3,
+                    shippingFee: 15.00,
+                    createTime: '2025-12-20 09:30:00',
+                    goodsItems: [
+                        {
+                            spuId: 301,
+                            spuName: '舒适枕头',
+                            spuMainImage: 'pillow001',
+                            skuId: 3001,
+                            skuName: '记忆棉-单个装',
+                            specs: [
+                                { name: '材质', value: '记忆棉' },
+                                { name: '规格', value: '单个装' }
+                            ],
+                            price: 299.00,
+                            quantity: 1
+                        },
+                        {
+                            spuId: 302,
+                            spuName: '运动鞋',
+                            spuMainImage: 'shoes001',
+                            skuId: 4001,
+                            skuName: '白色-42码',
+                            specs: [
+                                { name: '颜色', value: '白色' },
+                                { name: '尺码', value: '42码' }
+                            ],
+                            price: 399.00,
+                            quantity: 1
+                        },
+                        {
+                            spuId: 303,
+                            spuName: '运动袜',
+                            spuMainImage: 'socks001',
+                            skuId: 4002,
+                            skuName: '黑色-均码',
+                            specs: [
+                                { name: '颜色', value: '黑色' },
+                                { name: '尺码', value: '均码' }
+                            ],
+                            price: 29.00,
+                            quantity: 2
+                        }
+                    ]
+                }
+            ],
+            1: [ // 待付款
+                {
+                    id: 1,
+                    shopId: 1,
+                    shopName: '时尚精品店',
+                    orderStatus: 1,
+                    statusText: '待付款',
+                    totalPrice: 199.00,
+                    totalQuantity: 2,
+                    shippingFee: 10.00,
+                    createTime: '2025-12-22 14:30:00',
+                    goodsItems: [
+                        {
+                            spuId: 101,
+                            spuName: '时尚连衣裙',
+                            spuMainImage: 'dress001',
+                            skuId: 1001,
+                            skuName: '红色-M',
+                            specs: [
+                                { name: '颜色', value: '红色' },
+                                { name: '尺码', value: 'M' }
+                            ],
+                            price: 99.50,
+                            quantity: 2
+                        }
+                    ]
+                }
+            ],
+            2: [ // 待发货
+                {
+                    id: 2,
+                    shopId: 2,
+                    shopName: '数码商城',
+                    orderStatus: 2,
+                    statusText: '待发货',
+                    totalPrice: 2999.00,
+                    totalQuantity: 1,
+                    shippingFee: 0.00,
+                    createTime: '2025-12-21 16:45:00',
+                    goodsItems: [
+                        {
+                            spuId: 201,
+                            spuName: '智能手机',
+                            spuMainImage: 'phone001',
+                            skuId: 2001,
+                            skuName: '黑色-256GB',
+                            specs: [
+                                { name: '颜色', value: '黑色' },
+                                { name: '内存', value: '256GB' }
+                            ],
+                            price: 2999.00,
+                            quantity: 1
+                        }
+                    ]
+                }
+            ],
+            3: [ // 待收货
+                {
+                    id: 3,
+                    shopId: 3,
+                    shopName: '家居生活馆',
+                    orderStatus: 3,
+                    statusText: '待收货',
+                    totalPrice: 299.00,
+                    totalQuantity: 1,
+                    shippingFee: 15.00,
+                    createTime: '2025-12-20 09:30:00',
+                    goodsItems: [
+                        {
+                            spuId: 301,
+                            spuName: '舒适枕头',
+                            spuMainImage: 'pillow001',
+                            skuId: 3001,
+                            skuName: '记忆棉-单个装',
+                            specs: [
+                                { name: '材质', value: '记忆棉' },
+                                { name: '规格', value: '单个装' }
+                            ],
+                            price: 299.00,
+                            quantity: 1
+                        }
+                    ]
+                }
+            ],
+            4: [], // 退款/售后
+            5: []  // 评价
+        };
+        
+        let currentTab = 0;
+        
+        // 切换Tab
+        function switchTab(tabValue, element) {
+            currentTab = tabValue;
+            
+            // 更新Tab样式
+            document.querySelectorAll('.tab-item').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // 渲染订单列表
+            renderOrders();
+        }
+        
+        // 渲染订单列表
+        function renderOrders() {
+            const orderContent = document.getElementById('orderContent');
+            const orders = mockOrders[currentTab] || [];
+            
+            if (orders.length === 0) {
+                orderContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div class="empty-text">暂无订单</div>
+                        <button class="go-shop-btn" onclick="goToShop()">去逛逛</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const ordersHtml = orders.map(order => {
+                // 从goodsItems数组中重新计算商品总价
+                const calculatedTotalPrice = order.goodsItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+                
+                return `
+                <div class="order-item">
+                    <!-- 订单头部：店铺信息 -->
+                    <div class="order-header">
+                        <div class="shop-info">
+                            <span class="shop-icon">🏪</span>
+                            <span class="shop-name">${order.shopName}</span>
+                        </div>
+                        <span class="order-status">${order.statusText}</span>
+                    </div>
+                    
+                    <!-- 订单商品列表 -->
+                    ${order.goodsItems.map(goods => `
+                        <div class="order-goods" onclick="goToDetail(${order.id})">
+                            <img class="goods-image" src="${goods.image}" alt="${goods.name}">
+                            <div class="goods-info">
+                                <div class="goods-name">${goods.name}</div>
+                                <div class="goods-spec">${goods.specs.map(spec => `${spec.name}:${spec.value}`).join('; ')}</div>
+                                <div class="goods-price-quantity">
+                                    <span class="goods-price">¥${goods.price}</span>
+                                    <span class="goods-quantity">x${goods.quantity}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                    
+                    <!-- 订单金额 -->
+                    <div class="order-amount">
+                        <span>共${order.totalQuantity}件商品 合计：</span>
+                        <span class="total-price">¥${calculatedTotalPrice.toFixed(2)}</span>
+                        ${order.shippingFee > 0 ? `<span class="shipping-fee"> (含运费¥${order.shippingFee})</span>` : ''}
+                    </div>
+                    
+                    <!-- 订单操作按钮 -->
+                    <div class="order-actions">
+                        ${getOrderActions(order.orderStatus).map(action => `
+                            <button class="action-btn ${action.type}" onclick="handleOrderAction('${action.value}', ${order.id})">
+                                ${action.label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            }).join('');
+            
+            orderContent.innerHTML = ordersHtml + `
+                <div class="load-more-container">
+                    <div class="no-more">
+                        <span class="no-more-text">没有更多了</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 获取订单操作按钮
+        function getOrderActions(orderStatus) {
+            const actions = {
+                1: [ // 待付款 (WAIT_PAY)
+                    { label: '付款', value: 'pay', type: 'primary' },
+                    { label: '取消订单', value: 'cancel', type: 'default' }
+                ],
+                2: [ // 待发货 (WAIT_SHIP)
+                    { label: '提醒发货', value: 'remind', type: 'default' },
+                    { label: '查看详情', value: 'detail', type: 'default' }
+                ],
+                3: [ // 待收货 (WAIT_RECEIVE)
+                    { label: '查看物流', value: 'logistics', type: 'default' },
+                    { label: '确认收货', value: 'confirm', type: 'primary' }
+                ],
+                4: [ // 交易成功 (COMPLETED)
+                    { label: '查看详情', value: 'detail', type: 'default' },
+                    { label: '删除订单', value: 'delete', type: 'default' }
+                ],
+                5: [ // 交易关闭 (CLOSED)
+                    { label: '查看详情', value: 'detail', type: 'default' },
+                    { label: '删除订单', value: 'delete', type: 'default' }
+                ]
+            };
+            
+            return actions[orderStatus] || [{ label: '查看详情', value: 'detail', type: 'default' }];
+        }
+        
+        // 处理订单操作
+        function handleOrderAction(action, orderId) {
+            switch(action) {
+                case 'pay':
+                    showToast('付款功能待实现');
+                    break;
+                case 'cancel':
+                    showToast('取消订单功能待实现');
+                    break;
+                case 'remind':
+                    showToast('提醒发货功能待实现');
+                    break;
+                case 'logistics':
+                    showToast('查看物流功能待实现');
+                    break;
+                case 'confirm':
+                    showToast('确认收货功能待实现');
+                    break;
+                case 'detail':
+                    showToast('查看详情功能待实现');
+                    break;
+                case 'delete':
+                    showToast('删除订单功能待实现');
+                    break;
+                default:
+                    showToast('未知操作');
+            }
+        }
+        
+        // 跳转到订单详情
+        function goToDetail(orderId) {
+            console.log('查看订单详情:', orderId);
+            alert(`查看订单详情 - 订单ID: ${orderId}`);
+        }
+        
+        // 跳转到店铺首页
+        function goToShop() {
+            console.log('去逛逛');
+            alert('跳转到首页');
+        }
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            renderOrders();
+        });
+    </script>
+</body>
+</html>

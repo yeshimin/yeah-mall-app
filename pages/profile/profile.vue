@@ -91,13 +91,25 @@ export default {
     // 查看全部订单
     viewAllOrders() {
       console.log('查看全部订单')
-      // 这里可以跳转到订单页面
+      uni.navigateTo({
+        url: '/pages/order/list'
+      })
     },
     
     // 点击订单状态
     viewOrdersByStatus(index) {
       console.log('查看订单状态:', this.orderStats[index].name)
-      // 这里可以根据不同状态跳转到相应的订单列表页面
+      // 根据不同状态跳转到订单列表页面，并传递状态参数
+      let status = 0 // 默认为全部
+      if (index === 0) status = 1 // 待付款
+      else if (index === 1) status = 2 // 待发货
+      else if (index === 2) status = 3 // 待收货
+      else if (index === 3) status = 5 // 待评价
+      else if (index === 4) status = 4 // 退款/售后
+      
+      uni.navigateTo({
+        url: `/pages/order/list?status=${status}`
+      })
     },
     // 加载个人订单数量
     loadOrderCounts() {

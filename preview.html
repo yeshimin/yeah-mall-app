@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单列表页面预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 414px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        .status-tabs-container {
+            background-color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .status-tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .status-tabs {
+            display: flex;
+            min-width: 100%;
+            padding: 0 20rpx;
+        }
+        
+        .tab-item {
+            flex: none;
+            min-width: 120rpx;
+            padding: 24rpx 20rpx;
+            text-align: center;
+            font-size: 28rpx;
+            color: #666;
+            border-bottom: 4rpx solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .tab-item.active {
+            color: #ff6b35;
+            border-bottom-color: #ff6b35;
+            font-weight: 500;
+        }
+        
+        .order-list {
+            padding: 20rpx;
+        }
+        
+        .order-item {
+            background-color: #fff;
+            border-radius: 16rpx;
+            margin-bottom: 20rpx;
+            padding: 24rpx;
+            box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20rpx;
+            padding-bottom: 16rpx;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .shop-name {
+            font-size: 28rpx;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .order-status {
+            font-size: 26rpx;
+            color: #ff6b35;
+            font-weight: 500;
+        }
+        
+        .goods-list {
+            margin-bottom: 20rpx;
+        }
+        
+        .goods-item {
+            display: flex;
+            margin-bottom: 16rpx;
+        }
+        
+        .goods-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .goods-image {
+            width: 120rpx;
+            height: 120rpx;
+            border-radius: 8rpx;
+            margin-right: 16rpx;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 24rpx;
+        }
+        
+        .goods-info {
+            flex: 1;
+        }
+        
+        .goods-name {
+            font-size: 26rpx;
+            color: #333;
+            margin-bottom: 8rpx;
+            line-height: 1.4;
+        }
+        
+        .goods-spec {
+            font-size: 24rpx;
+            color: #999;
+            margin-bottom: 8rpx;
+        }
+        
+        .goods-price-qty {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .goods-price {
+            font-size: 28rpx;
+            color: #ff6b35;
+            font-weight: 500;
+        }
+        
+        .goods-quantity {
+            font-size: 24rpx;
+            color: #666;
+        }
+        
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16rpx;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .order-total {
+            font-size: 26rpx;
+            color: #666;
+        }
+        
+        .order-total-price {
+            font-size: 32rpx;
+            color: #ff6b35;
+            font-weight: 500;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 16rpx;
+        }
+        
+        .action-btn {
+            padding: 12rpx 24rpx;
+            border: 1px solid #ddd;
+            border-radius: 24rpx;
+            font-size: 24rpx;
+            color: #666;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .action-btn.primary {
+            background-color: #ff6b35;
+            color: #fff;
+            border-color: #ff6b35;
+        }
+        
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 120rpx 40rpx;
+        }
+        
+        .empty-icon {
+            font-size: 120rpx;
+            color: #ddd;
+            margin-bottom: 20rpx;
+        }
+        
+        .empty-text {
+            font-size: 28rpx;
+            color: #999;
+            margin-bottom: 40rpx;
+        }
+        
+        .empty-btn {
+            padding: 20rpx 40rpx;
+            background-color: #ff6b35;
+            color: #fff;
+            border: none;
+            border-radius: 24rpx;
+            font-size: 28rpx;
+            cursor: pointer;
+        }
+        
+        .loading-more {
+            text-align: center;
+            padding: 40rpx;
+            color: #999;
+            font-size: 26rpx;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 状态筛选Tab -->
+        <div class="status-tabs-container">
+            <div class="status-tabs">
+                <div class="tab-item active" onclick="switchTab(0)">全部</div>
+                <div class="tab-item" onclick="switchTab(1)">待付款</div>
+                <div class="tab-item" onclick="switchTab(2)">待发货</div>
+                <div class="tab-item" onclick="switchTab(3)">待收货</div>
+                <div class="tab-item" onclick="switchTab(4)">退款/售后</div>
+                <div class="tab-item" onclick="switchTab(5)">待评价</div>
+            </div>
+        </div>
+
+        <!-- 订单列表 -->
+        <div class="order-list" id="orderList">
+            <!-- 订单项将通过JavaScript动态生成 -->
+        </div>
+
+        <!-- 加载更多 -->
+        <div class="loading-more" id="loadingMore">
+            正在加载更多...
+        </div>
+    </div>
+
+    <script>
+        // 模拟订单数据
+        const mockOrders = [
+            // 待付款订单
+            {
+                id: 1,
+                shopId: 1,
+                shopName: '时尚精品店',
+                status: 1,
+                statusText: '待付款',
+                totalPrice: 199.00,
+                totalQuantity: 2,
+                shippingFee: 10.00,
+                createTime: '2025-12-22 14:30:00',
+                goods: [
+                    {
+                        id: 101,
+                        name: '时尚连衣裙',
+                        spec: '颜色:红色;尺码:M',
+                        price: 99.50,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 2,
+                shopId: 2,
+                shopName: '数码商城',
+                status: 1,
+                statusText: '待付款',
+                totalPrice: 5999.00,
+                totalQuantity: 3,
+                shippingFee: 0.00,
+                createTime: '2025-12-22 10:15:00',
+                goods: [
+                    {
+                        id: 201,
+                        name: '智能手机',
+                        spec: '颜色:黑色;内存:256GB',
+                        price: 2999.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 202,
+                        name: '手机壳',
+                        spec: '颜色:透明;材质:硅胶',
+                        price: 29.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 待发货订单
+            {
+                id: 3,
+                shopId: 3,
+                shopName: '家居生活馆',
+                status: 2,
+                statusText: '待发货',
+                totalPrice: 299.00,
+                totalQuantity: 1,
+                shippingFee: 15.00,
+                createTime: '2025-12-21 16:45:00',
+                goods: [
+                    {
+                        id: 301,
+                        name: '舒适枕头',
+                        spec: '材质:记忆棉;规格:单个装',
+                        price: 299.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 4,
+                shopId: 4,
+                shopName: '美食特产店',
+                status: 2,
+                statusText: '待发货',
+                totalPrice: 188.00,
+                totalQuantity: 4,
+                shippingFee: 8.00,
+                createTime: '2025-12-21 14:20:00',
+                goods: [
+                    {
+                        id: 401,
+                        name: '特色小吃',
+                        spec: '口味:原味;规格:200g',
+                        price: 44.50,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 402,
+                        name: '传统糕点',
+                        spec: '口味:甜味;规格:300g',
+                        price: 49.50,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 待收货订单
+            {
+                id: 5,
+                shopId: 5,
+                shopName: '运动装备店',
+                status: 3,
+                statusText: '待收货',
+                totalPrice: 159.00,
+                totalQuantity: 1,
+                shippingFee: 0.00,
+                createTime: '2025-12-20 09:30:00',
+                goods: [
+                    {
+                        id: 501,
+                        name: '潮流运动鞋',
+                        spec: '颜色:白色;尺码:42',
+                        price: 159.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 6,
+                shopId: 6,
+                shopName: '美妆护肤店',
+                status: 3,
+                statusText: '待收货',
+                totalPrice: 458.00,
+                totalQuantity: 3,
+                shippingFee: 12.00,
+                createTime: '2025-12-20 11:20:00',
+                goods: [
+                    {
+                        id: 601,
+                        name: '保湿面霜',
+                        spec: '规格:50ml;功效:保湿',
+                        price: 128.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 602,
+                        name: '洁面乳',
+                        spec: '规格:100ml;功效:深层清洁',
+                        price: 68.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 603,
+                        name: '爽肤水',
+                        spec: '规格:200ml;功效:补水',
+                        price: 194.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 待评价订单
+            {
+                id: 7,
+                shopId: 7,
+                shopName: '图书文具店',
+                status: 4,
+                statusText: '待评价',
+                totalPrice: 89.00,
+                totalQuantity: 1,
+                shippingFee: 6.00,
+                createTime: '2025-12-19 15:45:00',
+                goods: [
+                    {
+                        id: 701,
+                        name: '畅销小说',
+                        spec: '作者:知名作家;版本:精装版',
+                        price: 89.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 8,
+                shopId: 8,
+                shopName: '宠物用品店',
+                status: 4,
+                statusText: '待评价',
+                totalPrice: 267.00,
+                totalQuantity: 2,
+                shippingFee: 15.00,
+                createTime: '2025-12-19 10:30:00',
+                goods: [
+                    {
+                        id: 801,
+                        name: '猫粮',
+                        spec: '口味:鸡肉;规格:5kg',
+                        price: 126.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 802,
+                        name: '猫砂',
+                        spec: '类型:膨润土;规格:10kg',
+                        price: 126.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 退款中订单
+            {
+                id: 9,
+                shopId: 9,
+                shopName: '母婴用品店',
+                status: 7,
+                statusText: '退款中',
+                totalPrice: 199.00,
+                totalQuantity: 1,
+                shippingFee: 8.00,
+                createTime: '2025-12-18 16:20:00',
+                goods: [
+                    {
+                        id: 901,
+                        name: '婴儿奶粉',
+                        spec: '段位:1段;规格:900g',
+                        price: 199.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 10,
+                shopId: 10,
+                shopName: '户外运动店',
+                status: 7,
+                statusText: '退款中',
+                totalPrice: 456.00,
+                totalQuantity: 3,
+                shippingFee: 20.00,
+                createTime: '2025-12-18 13:45:00',
+                goods: [
+                    {
+                        id: 1001,
+                        name: '登山包',
+                        spec: '容量:40L;颜色:蓝色',
+                        price: 256.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 1002,
+                        name: '登山杖',
+                        spec: '材质:碳纤维;长度:可调节',
+                        price: 90.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 已退款订单
+            {
+                id: 11,
+                shopId: 11,
+                shopName: '乐器店',
+                status: 8,
+                statusText: '已退款',
+                totalPrice: 299.00,
+                totalQuantity: 1,
+                shippingFee: 0.00,
+                createTime: '2025-12-17 14:30:00',
+                goods: [
+                    {
+                        id: 1101,
+                        name: '尤克里里',
+                        spec: '尺寸:23寸;颜色:原木色',
+                        price: 299.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 12,
+                shopId: 12,
+                shopName: '茶叶店',
+                status: 8,
+                statusText: '已退款',
+                totalPrice: 188.00,
+                totalQuantity: 2,
+                shippingFee: 10.00,
+                createTime: '2025-12-17 11:15:00',
+                goods: [
+                    {
+                        id: 1201,
+                        name: '龙井茶',
+                        spec: '等级:特级;规格:250g',
+                        price: 89.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 已完成订单
+            {
+                id: 13,
+                shopId: 13,
+                shopName: '家电城',
+                status: 5,
+                statusText: '已完成',
+                totalPrice: 1299.00,
+                totalQuantity: 1,
+                shippingFee: 0.00,
+                createTime: '2025-12-16 10:20:00',
+                goods: [
+                    {
+                        id: 1301,
+                        name: '电饭煲',
+                        spec: '容量:4L;功率:800W',
+                        price: 1299.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 14,
+                shopId: 14,
+                shopName: '办公用品店',
+                status: 5,
+                statusText: '已完成',
+                totalPrice: 328.00,
+                totalQuantity: 4,
+                shippingFee: 15.00,
+                createTime: '2025-12-16 09:45:00',
+                goods: [
+                    {
+                        id: 1401,
+                        name: '笔记本',
+                        spec: '规格:A4;页数:100页',
+                        price: 15.00,
+                        quantity: 3,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 1402,
+                        name: '签字笔',
+                        spec: '颜色:黑色;规格:0.5mm',
+                        price: 8.00,
+                        quantity: 5,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 1403,
+                        name: '文件夹',
+                        spec: '材质:PP;规格:A4',
+                        price: 12.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            // 已取消订单
+            {
+                id: 15,
+                shopId: 15,
+                shopName: '鲜花店',
+                status: 6,
+                statusText: '已取消',
+                totalPrice: 168.00,
+                totalQuantity: 1,
+                shippingFee: 20.00,
+                createTime: '2025-12-15 18:30:00',
+                goods: [
+                    {
+                        id: 1501,
+                        name: '玫瑰花束',
+                        spec: '颜色:红色;数量:11支',
+                        price: 168.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            },
+            {
+                id: 16,
+                shopId: 16,
+                shopName: '汽车用品店',
+                status: 6,
+                statusText: '已取消',
+                totalPrice: 445.00,
+                totalQuantity: 2,
+                shippingFee: 25.00,
+                createTime: '2025-12-15 14:20:00',
+                goods: [
+                    {
+                        id: 1601,
+                        name: '车载充电器',
+                        spec: '接口:USB;功率:18W',
+                        price: 45.00,
+                        quantity: 1,
+                        image: 'https://via.placeholder.com/100'
+                    },
+                    {
+                        id: 1602,
+                        name: '车载手机支架',
+                        spec: '类型:出风口;材质:ABS',
+                        price: 65.00,
+                        quantity: 2,
+                        image: 'https://via.placeholder.com/100'
+                    }
+                ]
+            }
+        ];
+
+        let currentTab = 0;
+        let filteredOrders = [];
+
+        // 切换Tab
+        function switchTab(index) {
+            currentTab = index;
+            
+            // 更新Tab样式
+            const tabs = document.querySelectorAll('.tab-item');
+            tabs.forEach((tab, i) => {
+                if (i === index) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // 筛选订单
+            filterOrders();
+        }
+
+        // 筛选订单
+        function filterOrders() {
+            if (currentTab === 0) {
+                // 全部订单
+                filteredOrders = mockOrders;
+            } else if (currentTab === 1) {
+                // 待付款
+                filteredOrders = mockOrders.filter(order => order.status === 1);
+            } else if (currentTab === 2) {
+                // 待发货
+                filteredOrders = mockOrders.filter(order => order.status === 2);
+            } else if (currentTab === 3) {
+                // 待收货
+                filteredOrders = mockOrders.filter(order => order.status === 3);
+            } else if (currentTab === 4) {
+                // 退款/售后
+                filteredOrders = mockOrders.filter(order => [6, 7, 8].includes(order.status));
+            } else if (currentTab === 5) {
+                // 待评价
+                filteredOrders = mockOrders.filter(order => order.status === 4);
+            }
+            
+            renderOrders();
+        }
+
+        // 渲染订单列表
+        function renderOrders() {
+            const orderList = document.getElementById('orderList');
+            
+            if (filteredOrders.length === 0) {
+                orderList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div class="empty-text">暂无相关订单</div>
+                        <button class="empty-btn" onclick="goShopping()">去逛逛</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            filteredOrders.forEach(order => {
+                html += `
+                    <div class="order-item">
+                        <div class="order-header">
+                            <div class="shop-name">${order.shopName}</div>
+                            <div class="order-status">${order.statusText}</div>
+                        </div>
+                        <div class="goods-list">
+                            ${order.goods.map(goods => `
+                                <div class="goods-item">
+                                    <div class="goods-image">图片</div>
+                                    <div class="goods-info">
+                                        <div class="goods-name">${goods.name}</div>
+                                        <div class="goods-spec">${goods.spec}</div>
+                                        <div class="goods-price-qty">
+                                            <div class="goods-price">¥${goods.price.toFixed(2)}</div>
+                                            <div class="goods-quantity">x${goods.quantity}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="order-footer">
+                            <div class="order-total">
+                                共${order.totalQuantity}件商品 合计: <span class="order-total-price">¥${order.totalPrice.toFixed(2)}</span>
+                            </div>
+                            <div class="order-actions">
+                                ${getOrderActions(order.status)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            orderList.innerHTML = html;
+        }
+
+        // 获取订单操作按钮
+        function getOrderActions(status) {
+            switch(status) {
+                case 1: // 待付款
+                    return `
+                        <button class="action-btn" onclick="cancelOrder()">取消订单</button>
+                        <button class="action-btn primary" onclick="payOrder()">立即付款</button>
+                    `;
+                case 2: // 待发货
+                    return `
+                        <button class="action-btn" onclick="remindShip()">提醒发货</button>
+                    `;
+                case 3: // 待收货
+                    return `
+                        <button class="action-btn" onclick="viewLogistics()">查看物流</button>
+                        <button class="action-btn primary" onclick="confirmReceive()">确认收货</button>
+                    `;
+                case 4: // 待评价
+                    return `
+                        <button class="action-btn" onclick="deleteOrder()">删除订单</button>
+                        <button class="action-btn primary" onclick="reviewOrder()">评价订单</button>
+                    `;
+                case 5: // 已完成
+                    return `
+                        <button class="action-btn" onclick="deleteOrder()">删除订单</button>
+                        <button class="action-btn" onclick="buyAgain()">再次购买</button>
+                    `;
+                case 6: // 已取消
+                    return `
+                        <button class="action-btn" onclick="deleteOrder()">删除订单</button>
+                        <button class="action-btn" onclick="buyAgain()">再次购买</button>
+                    `;
+                case 7: // 退款中
+                    return `
+                        <button class="action-btn" onclick="viewRefund()">查看详情</button>
+                    `;
+                case 8: // 已退款
+                    return `
+                        <button class="action-btn" onclick="deleteOrder()">删除订单</button>
+                    `;
+                default:
+                    return '';
+            }
+        }
+
+        // 订单操作函数
+        function cancelOrder() {
+            alert('取消订单');
+        }
+
+        function payOrder() {
+            alert('立即付款');
+        }
+
+        function remindShip() {
+            alert('提醒发货');
+        }
+
+        function viewLogistics() {
+            alert('查看物流');
+        }
+
+        function confirmReceive() {
+            alert('确认收货');
+        }
+
+        function reviewOrder() {
+            alert('评价订单');
+        }
+
+        function deleteOrder() {
+            alert('删除订单');
+        }
+
+        function buyAgain() {
+            alert('再次购买');
+        }
+
+        function viewRefund() {
+            alert('查看退款详情');
+        }
+
+        function goShopping() {
+            alert('去逛逛');
+        }
+
+        // 初始化页面
+        function init() {
+            filterOrders();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

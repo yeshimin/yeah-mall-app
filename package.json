@@ -1,0 +1,22 @@
+{
+  "name": "yeah-mall-app",
+  "version": "1.0.0",
+  "description": "A uni-app mall project",
+  "main": "main.js",
+  "scripts": {
+    "dev:h5": "vite",
+    "build:h5": "vite build",
+    "dev:mp-weixin": "uni build --platform mp-weixin --watch",
+    "build:mp-weixin": "uni build --platform mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "2.0.2-4080720251210002",
+    "@dcloudio/uni-h5": "2.0.2-4080720251210002",
+    "@dcloudio/uni-mp-weixin": "2.0.2-4080720251210002",
+    "vue": "^2.6.14"
+  },
+  "devDependencies": {
+    "@dcloudio/vite-plugin-uni": "2.0.2-4080720251210002",
+    "vite": "^4.0.0"
+  }
+}

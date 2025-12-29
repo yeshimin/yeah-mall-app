@@ -1,0 +1,23 @@
+/* 图标字体文件 */
+@font-face {
+  font-family: 'iconfont';
+  src: url('//at.alicdn.com/t/font_2859242_xxxx.woff2?t=1234567890') format('woff2'),
+       url('//at.alicdn.com/t/font_2859242_xxxx.woff?t=1234567890') format('woff'),
+       url('//at.alicdn.com/t/font_2859242_xxxx.ttf?t=1234567890') format('truetype');
+}
+
+/* 使用Unicode字符作为图标替代 */
+.iconfont {
+  font-family: 'iconfont' !important;
+  font-size: 32rpx;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 常用图标Unicode */
+.icon-shop:before { content: "\e60c"; } /* 店铺图标 */
+.icon-empty:before { content: "\e64d"; } /* 空状态图标 */
+.icon-cart:before { content: "\e600"; } /* 购物车图标 */
+.icon-user:before { content: "\e601"; } /* 用户图标 */
+.icon-home:before { content: "\e602"; } /* 首页图标 */
