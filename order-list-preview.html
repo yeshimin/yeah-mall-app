@@ -324,43 +324,27 @@
     </div>
 
     <script>
-        // 订单状态与文本映射 - 根据新的OrderStatusEnum
-        const statusMap = {
-            1: '待付款',   // WAIT_PAY
-            2: '待发货',   // WAIT_SHIP
-            3: '待收货',   // WAIT_RECEIVE
-            4: '交易成功', // COMPLETED
-            5: '交易关闭', // CLOSED
-            6: '退款',     // REFUND
-            7: '售后'      // AFTER_SALE
-        };
-        
-        // 模拟订单数据 - 使用新的数据结构
+        // 模拟订单数据
         const mockOrders = {
             0: [ // 全部订单
                 {
                     id: 1,
                     shopId: 1,
                     shopName: '时尚精品店',
-                    orderStatus: 1,
+                    status: 1,
                     statusText: '待付款',
                     totalPrice: 199.00,
                     totalQuantity: 2,
                     shippingFee: 10.00,
                     createTime: '2025-12-22 14:30:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 101,
-                            spuName: '时尚连衣裙',
-                            spuMainImage: 'dress001',
-                            skuId: 1001,
-                            skuName: '红色-M',
-                            specs: [
-                                { name: '颜色', value: '红色' },
-                                { name: '尺码', value: 'M' }
-                            ],
+                            id: 101,
+                            name: '时尚连衣裙',
+                            spec: '颜色:红色;尺码:M',
                             price: 99.50,
-                            quantity: 2
+                            quantity: 2,
+                            image: 'https://via.placeholder.com/160x160/ff6b6b/ffffff?text=连衣裙'
                         }
                     ]
                 },
@@ -368,25 +352,20 @@
                     id: 2,
                     shopId: 2,
                     shopName: '数码商城',
-                    orderStatus: 2,
+                    status: 2,
                     statusText: '待发货',
                     totalPrice: 2999.00,
                     totalQuantity: 1,
                     shippingFee: 0.00,
                     createTime: '2025-12-21 16:45:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 201,
-                            spuName: '智能手机',
-                            spuMainImage: 'phone001',
-                            skuId: 2001,
-                            skuName: '黑色-256GB',
-                            specs: [
-                                { name: '颜色', value: '黑色' },
-                                { name: '内存', value: '256GB' }
-                            ],
+                            id: 201,
+                            name: '智能手机',
+                            spec: '颜色:黑色;内存:256GB',
                             price: 2999.00,
-                            quantity: 1
+                            quantity: 1,
+                            image: 'https://via.placeholder.com/160x160/4ecdc4/ffffff?text=手机'
                         }
                     ]
                 },
@@ -394,51 +373,20 @@
                     id: 3,
                     shopId: 3,
                     shopName: '家居生活馆',
-                    orderStatus: 3,
+                    status: 3,
                     statusText: '待收货',
-                    totalPrice: 357.00,
-                    totalQuantity: 3,
+                    totalPrice: 299.00,
+                    totalQuantity: 1,
                     shippingFee: 15.00,
                     createTime: '2025-12-20 09:30:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 301,
-                            spuName: '舒适枕头',
-                            spuMainImage: 'pillow001',
-                            skuId: 3001,
-                            skuName: '记忆棉-单个装',
-                            specs: [
-                                { name: '材质', value: '记忆棉' },
-                                { name: '规格', value: '单个装' }
-                            ],
+                            id: 301,
+                            name: '舒适枕头',
+                            spec: '材质:记忆棉;规格:单个装',
                             price: 299.00,
-                            quantity: 1
-                        },
-                        {
-                            spuId: 302,
-                            spuName: '运动鞋',
-                            spuMainImage: 'shoes001',
-                            skuId: 4001,
-                            skuName: '白色-42码',
-                            specs: [
-                                { name: '颜色', value: '白色' },
-                                { name: '尺码', value: '42码' }
-                            ],
-                            price: 399.00,
-                            quantity: 1
-                        },
-                        {
-                            spuId: 303,
-                            spuName: '运动袜',
-                            spuMainImage: 'socks001',
-                            skuId: 4002,
-                            skuName: '黑色-均码',
-                            specs: [
-                                { name: '颜色', value: '黑色' },
-                                { name: '尺码', value: '均码' }
-                            ],
-                            price: 29.00,
-                            quantity: 2
+                            quantity: 1,
+                            image: 'https://via.placeholder.com/160x160/95e1d3/ffffff?text=枕头'
                         }
                     ]
                 }
@@ -448,25 +396,20 @@
                     id: 1,
                     shopId: 1,
                     shopName: '时尚精品店',
-                    orderStatus: 1,
+                    status: 1,
                     statusText: '待付款',
                     totalPrice: 199.00,
                     totalQuantity: 2,
                     shippingFee: 10.00,
                     createTime: '2025-12-22 14:30:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 101,
-                            spuName: '时尚连衣裙',
-                            spuMainImage: 'dress001',
-                            skuId: 1001,
-                            skuName: '红色-M',
-                            specs: [
-                                { name: '颜色', value: '红色' },
-                                { name: '尺码', value: 'M' }
-                            ],
+                            id: 101,
+                            name: '时尚连衣裙',
+                            spec: '颜色:红色;尺码:M',
                             price: 99.50,
-                            quantity: 2
+                            quantity: 2,
+                            image: 'https://via.placeholder.com/160x160/ff6b6b/ffffff?text=连衣裙'
                         }
                     ]
                 }
@@ -476,25 +419,20 @@
                     id: 2,
                     shopId: 2,
                     shopName: '数码商城',
-                    orderStatus: 2,
+                    status: 2,
                     statusText: '待发货',
                     totalPrice: 2999.00,
                     totalQuantity: 1,
                     shippingFee: 0.00,
                     createTime: '2025-12-21 16:45:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 201,
-                            spuName: '智能手机',
-                            spuMainImage: 'phone001',
-                            skuId: 2001,
-                            skuName: '黑色-256GB',
-                            specs: [
-                                { name: '颜色', value: '黑色' },
-                                { name: '内存', value: '256GB' }
-                            ],
+                            id: 201,
+                            name: '智能手机',
+                            spec: '颜色:黑色;内存:256GB',
                             price: 2999.00,
-                            quantity: 1
+                            quantity: 1,
+                            image: 'https://via.placeholder.com/160x160/4ecdc4/ffffff?text=手机'
                         }
                     ]
                 }
@@ -504,25 +442,20 @@
                     id: 3,
                     shopId: 3,
                     shopName: '家居生活馆',
-                    orderStatus: 3,
+                    status: 3,
                     statusText: '待收货',
                     totalPrice: 299.00,
                     totalQuantity: 1,
                     shippingFee: 15.00,
                     createTime: '2025-12-20 09:30:00',
-                    goodsItems: [
+                    goods: [
                         {
-                            spuId: 301,
-                            spuName: '舒适枕头',
-                            spuMainImage: 'pillow001',
-                            skuId: 3001,
-                            skuName: '记忆棉-单个装',
-                            specs: [
-                                { name: '材质', value: '记忆棉' },
-                                { name: '规格', value: '单个装' }
-                            ],
+                            id: 301,
+                            name: '舒适枕头',
+                            spec: '材质:记忆棉;规格:单个装',
                             price: 299.00,
-                            quantity: 1
+                            quantity: 1,
+                            image: 'https://via.placeholder.com/160x160/95e1d3/ffffff?text=枕头'
                         }
                     ]
                 }
@@ -563,11 +496,7 @@
                 return;
             }
             
-            const ordersHtml = orders.map(order => {
-                // 从goodsItems数组中重新计算商品总价
-                const calculatedTotalPrice = order.goodsItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-                
-                return `
+            const ordersHtml = orders.map(order => `
                 <div class="order-item">
                     <!-- 订单头部：店铺信息 -->
                     <div class="order-header">
@@ -579,12 +508,12 @@
                     </div>
                     
                     <!-- 订单商品列表 -->
-                    ${order.goodsItems.map(goods => `
+                    ${order.goods.map(goods => `
                         <div class="order-goods" onclick="goToDetail(${order.id})">
                             <img class="goods-image" src="${goods.image}" alt="${goods.name}">
                             <div class="goods-info">
                                 <div class="goods-name">${goods.name}</div>
-                                <div class="goods-spec">${goods.specs.map(spec => `${spec.name}:${spec.value}`).join('; ')}</div>
+                                <div class="goods-spec">${goods.spec}</div>
                                 <div class="goods-price-quantity">
                                     <span class="goods-price">¥${goods.price}</span>
                                     <span class="goods-quantity">x${goods.quantity}</span>
@@ -596,21 +525,20 @@
                     <!-- 订单金额 -->
                     <div class="order-amount">
                         <span>共${order.totalQuantity}件商品 合计：</span>
-                        <span class="total-price">¥${calculatedTotalPrice.toFixed(2)}</span>
+                        <span class="total-price">¥${order.totalPrice}</span>
                         ${order.shippingFee > 0 ? `<span class="shipping-fee"> (含运费¥${order.shippingFee})</span>` : ''}
                     </div>
                     
                     <!-- 订单操作按钮 -->
                     <div class="order-actions">
-                        ${getOrderActions(order.orderStatus).map(action => `
+                        ${getOrderActions(order.status).map(action => `
                             <button class="action-btn ${action.type}" onclick="handleOrderAction('${action.value}', ${order.id})">
                                 ${action.label}
                             </button>
                         `).join('')}
                     </div>
                 </div>
-            `;
-            }).join('');
+            `).join('');
             
             orderContent.innerHTML = ordersHtml + `
                 <div class="load-more-container">
@@ -622,60 +550,48 @@
         }
         
         // 获取订单操作按钮
-        function getOrderActions(orderStatus) {
+        function getOrderActions(status) {
             const actions = {
-                1: [ // 待付款 (WAIT_PAY)
-                    { label: '付款', value: 'pay', type: 'primary' },
-                    { label: '取消订单', value: 'cancel', type: 'default' }
+                1: [ // 待付款
+                    { label: '取消订单', value: 'cancel', type: 'default' },
+                    { label: '立即付款', value: 'pay', type: 'primary' }
                 ],
-                2: [ // 待发货 (WAIT_SHIP)
-                    { label: '提醒发货', value: 'remind', type: 'default' },
-                    { label: '查看详情', value: 'detail', type: 'default' }
+                2: [ // 待发货
+                    { label: '查看详情', value: 'detail', type: 'default' },
+                    { label: '提醒发货', value: 'remind', type: 'primary' }
                 ],
-                3: [ // 待收货 (WAIT_RECEIVE)
+                3: [ // 待收货
                     { label: '查看物流', value: 'logistics', type: 'default' },
                     { label: '确认收货', value: 'confirm', type: 'primary' }
                 ],
-                4: [ // 交易成功 (COMPLETED)
+                4: [ // 交易成功
                     { label: '查看详情', value: 'detail', type: 'default' },
-                    { label: '删除订单', value: 'delete', type: 'default' }
+                    { label: '再次购买', value: 'rebuy', type: 'primary' }
                 ],
-                5: [ // 交易关闭 (CLOSED)
+                5: [ // 交易关闭
                     { label: '查看详情', value: 'detail', type: 'default' },
-                    { label: '删除订单', value: 'delete', type: 'default' }
+                    { label: '再次购买', value: 'rebuy', type: 'primary' }
                 ]
             };
             
-            return actions[orderStatus] || [{ label: '查看详情', value: 'detail', type: 'default' }];
+            return actions[status] || [{ label: '查看详情', value: 'detail', type: 'default' }];
         }
         
         // 处理订单操作
         function handleOrderAction(action, orderId) {
-            switch(action) {
-                case 'pay':
-                    showToast('付款功能待实现');
-                    break;
-                case 'cancel':
-                    showToast('取消订单功能待实现');
-                    break;
-                case 'remind':
-                    showToast('提醒发货功能待实现');
-                    break;
-                case 'logistics':
-                    showToast('查看物流功能待实现');
-                    break;
-                case 'confirm':
-                    showToast('确认收货功能待实现');
-                    break;
-                case 'detail':
-                    showToast('查看详情功能待实现');
-                    break;
-                case 'delete':
-                    showToast('删除订单功能待实现');
-                    break;
-                default:
-                    showToast('未知操作');
-            }
+            console.log('订单操作:', action, orderId);
+            
+            const messages = {
+                cancel: '取消订单',
+                pay: '立即付款',
+                detail: '查看详情',
+                remind: '提醒发货',
+                logistics: '查看物流',
+                confirm: '确认收货',
+                rebuy: '再次购买'
+            };
+            
+            alert(`${messages[action] || action} - 订单ID: ${orderId}`);
         }
         
         // 跳转到订单详情

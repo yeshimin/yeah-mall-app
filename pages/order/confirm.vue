@@ -100,13 +100,13 @@
 				<text class="total-label">合计:</text>
 				<text class="total-price">¥{{ totalAmount }}</text>
 			</view>
-			<button class="submit-btn" @click="submitOrder">提交订单</button>
+			<button class="submit-btn" @click="payOrder">付款</button>
 		</view>
 	</view>
 </template>
 
 <script>
-	import { fetchOrderPreview, submitOrder } from '../../utils/api.js';
+	import { fetchOrderPreview, submitOrder, genPayInfo, queryPayOrderInfo } from '../../utils/api.js';
 	import { BASE_API } from '@/utils/config.js';
 	
 	export default {
@@ -265,14 +265,23 @@
 				console.log("选择地址");
 			},
 			
-			submitOrder() {
-				// 提交订单逻辑
-				console.log("提交订单");
+			payOrder() {
+				// 支付订单逻辑
+				console.log("支付订单");
 				
 				// 检查是否有商品
 				if (!this.groupedOrderGoods || this.groupedOrderGoods.length === 0) {
 					uni.showToast({
-						title: "没有可提交的商品",
+						title: "没有可支付的商品",
+						icon: "none"
+					});
+					return;
+				}
+				
+				// 检查是否选择了收货地址
+				if (!this.selectedAddress) {
+					uni.showToast({
+						title: "请选择收货地址",
 						icon: "none"
 					});
 					return;
@@ -280,51 +289,75 @@
 				
 				// 显示加载提示
 				uni.showLoading({
-					title: '提交订单中...'
+					title: '处理中...'
 				});
 				
-				// 按店铺维度分批提交订单
-				const submitPromises = this.groupedOrderGoods.map(shop => {
-					// 构造该店铺的订单项
-					const items = shop.items.map(item => ({
-						skuId: item.id,
-						quantity: item.quantity
-					}));
+				// 构造第一个店铺的订单项（这里简化处理，只支持单个店铺的订单）
+				const shop = this.groupedOrderGoods[0];
+				const items = shop.items.map(item => ({
+					skuId: item.id,
+					quantity: item.quantity
+				}));
 
-					// 构造请求数据
-					const data = {
-						items: items
-					};
-					
-					// 如果是从购物车下单，则添加scene参数
-					if (this.orderSource === 2) {
-						data.scene = 2; // 订单场景，2表示从购物车下单
-					}
-					
-					// 调用提交订单接口
-					return submitOrder(data);
-				});
+				// 构造请求数据
+				const data = {
+					items: items
+				};
 				
-				// 等待所有订单提交完成
-				Promise.all(submitPromises)
-					.then(results => {
-						console.log("所有订单提交成功:", results);
-						uni.hideLoading();
-						uni.showToast({
-							title: "订单提交成功",
-							icon: "success"
-						});
+				// 如果是从购物车下单，则添加scene参数
+				if (this.orderSource === 2) {
+					data.scene = 2; // 订单场景，2表示从购物车下单
+				}
+				
+				// 调用提交订单接口
+				submitOrder(data)
+					.then(result => {
+						console.log("订单提交成功:", result);
 						
-						// 可以在这里添加跳转到订单列表页面的逻辑
-						// uni.navigateTo({
-						//   url: '/pages/order/list'
-						// });
+						// 获取订单号
+						const orderNo = result.data.orderNo;
+						console.log("订单号:", orderNo);
+						
+						// 调用生成支付信息接口
+						return genPayInfo(orderNo).then(payInfo => {
+							// 返回订单号和支付信息
+							return { orderNo, payInfo };
+						});
+					})
+					.then(({ orderNo, payInfo }) => {
+						console.log("支付信息:", payInfo);
+						
+						// 发起微信支付
+						uni.requestPayment({
+							provider: 'wxpay',
+							timeStamp: payInfo.timestamp.toString(),
+							nonceStr: payInfo.nonceStr,
+							package: payInfo.packageStr,
+							signType: payInfo.signType,
+							paySign: payInfo.paySign,
+							success: (res) => {
+								console.log('支付成功:', res);
+								uni.hideLoading();
+								// 跳转到支付结果页面
+								uni.navigateTo({
+									url: `/pages/order/pay-result?orderNo=${orderNo}`
+								});
+							},
+							fail: (err) => {
+								console.log('支付失败:', err);
+								uni.hideLoading();
+								// 跳转到支付结果页面
+								uni.navigateTo({
+									url: `/pages/order/pay-result?orderNo=${orderNo}`
+								});
+							}
+						});
 					})
 					.catch(error => {
-						console.error("订单提交失败:", error);
+						console.error("支付处理失败:", error);
 						uni.hideLoading();
 						uni.showToast({
-							title: error.message || "订单提交失败",
+							title: error.message || "支付处理失败",
 							icon: "none"
 						});
 					});

@@ -26,6 +26,102 @@ export const fetchProductCategoryTree = () => {
   });
 };
 
+// 生成支付信息接口
+export const genPayInfo = (orderNo) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/genPayInfo`,
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        orderNo: orderNo
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '生成支付信息失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
+// 获取支付信息接口（与genPayInfo功能相同，用于兼容旧代码）
+export const fetchPaymentInfo = (orderNo) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/genPayInfo`,
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        orderNo: orderNo
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '获取支付信息失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
+// 查询订单支付结果接口
+export const queryPayOrderInfo = (orderNo) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/queryPayOrderInfo?orderNo=${orderNo}`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '查询订单支付结果失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
 // Function to fetch cart items
 export const fetchCartItems = () => {
   return new Promise((resolve, reject) => {

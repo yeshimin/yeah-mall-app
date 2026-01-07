@@ -92,7 +92,7 @@
 </template>
 
 <script>
-	import { fetchOrderList, fetchOrderCounts } from '../../utils/api.js';
+	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo } from '../../utils/api.js';
 	import { BASE_API } from '../../utils/config.js';
 	
 	export default {
@@ -570,14 +570,74 @@
 				return actions;
 			},
 			
+			// 生成随机字符串函数
+			generateNonceStr(length = 32) {
+				const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+				let result = '';
+				for (let i = 0; i < length; i++) {
+					result += chars.charAt(Math.floor(Math.random() * chars.length));
+				}
+				return result;
+			},
+			
 			// 处理订单操作
 			handleOrderAction(action, order) {
 				switch (action) {
 					case 'pay':
-						// 去付款
-						uni.showToast({
-							title: '付款功能待实现',
-							icon: 'none'
+						// 去付款 - 集成微信支付
+						uni.showLoading({
+							title: '加载支付信息中...'
+						});
+						
+						// 调用接口获取支付信息
+						fetchPaymentInfo(order.orderNo).then(paymentData => {
+							uni.hideLoading();
+							
+							// 转换支付参数为uni.requestPayment所需格式
+							const payParams = {
+								provider: 'wxpay',
+								// 微信小程序支付必需参数
+								timeStamp: paymentData.timestamp, // 秒级时间戳
+								nonceStr: paymentData.nonceStr, // 随机字符串
+								package: paymentData.packageStr, // 预支付交易会话标识
+								signType: paymentData.signType, // 签名类型
+								paySign: paymentData.paySign // 签名
+							};
+					
+							// 打印支付参数
+							console.log('微信支付请求参数:', payParams);
+					
+							// 调用微信支付
+							uni.requestPayment({
+								...payParams,
+								success: (res) => {
+									// 支付成功处理
+									console.log('支付成功', res);
+									uni.showToast({
+										title: '支付成功',
+										icon: 'success'
+									});
+									// 跳转到支付结果页面
+									uni.navigateTo({
+										url: `/pages/order/pay-result?orderNo=${order.orderNo}`
+									});
+								},
+								fail: (err) => {
+									// 支付失败处理
+									console.log('支付失败', err);
+									// 跳转到支付结果页面
+									uni.navigateTo({
+										url: `/pages/order/pay-result?orderNo=${order.orderNo}`
+									});
+								}
+							});
+						}).catch(err => {
+							uni.hideLoading();
+							console.error('获取支付信息失败:', err);
+							uni.showToast({
+								title: '获取支付信息失败，请稍后重试',
+								icon: 'none'
+							});
 						});
 						break;
 					case 'cancel':
@@ -603,19 +663,8 @@
 					case 'remind':
 						// 提醒发货
 						uni.showToast({
-							title: '已提醒卖家发货',
+							title: '已提醒商家发货',
 							icon: 'success'
-						});
-						break;
-					case 'detail':
-						// 查看详情
-						this.goToDetail(order.id);
-						break;
-					case 'logistics':
-						// 查看物流
-						uni.showToast({
-							title: '物流查询功能待实现',
-							icon: 'none'
 						});
 						break;
 					case 'confirm':
@@ -623,7 +672,7 @@
 						uni.showModal({
 							title: '确认收货',
 							content: '请确认您已收到商品',
-							confirmText: '确认',
+							confirmText: '确认收货',
 							cancelText: '取消',
 							success: (res) => {
 								if (res.confirm) {
@@ -648,33 +697,52 @@
 							success: (res) => {
 								if (res.confirm) {
 									// 这里应该调用删除订单接口
-									this.orders = this.orders.filter(item => item.id !== order.id);
 									uni.showToast({
 										title: '订单已删除',
 										icon: 'success'
 									});
+									// 重新获取订单列表
+									this.fetchOrders();
 								}
 							}
+						});
+						break;
+					case 'rebuy':
+						// 再次购买
+						uni.showToast({
+							title: '再次购买功能开发中',
+							icon: 'none'
+						});
+						break;
+					case 'detail':
+						// 查看详情
+						uni.navigateTo({
+							url: `/pages/order/detail?id=${order.id}`
+						});
+						break;
+					case 'refundDetail':
+						// 退款详情
+						uni.navigateTo({
+							url: `/pages/order/refund-detail?id=${order.id}`
+						});
+						break;
+					case 'afterSaleDetail':
+						// 售后详情
+						uni.navigateTo({
+							url: `/pages/order/after-sale-detail?id=${order.id}`
+						});
+						break;
+					case 'logistics':
+						// 查看物流
+						uni.showToast({
+							title: '物流查询功能待实现',
+							icon: 'none'
 						});
 						break;
 					case 'comment':
 						// 去评价
 						uni.showToast({
 							title: '评价功能待实现',
-							icon: 'none'
-						});
-						break;
-					case 'rebuy':
-						// 再次购买
-						uni.showToast({
-							title: '再次购买功能待实现',
-							icon: 'none'
-						});
-						break;
-					case 'refundDetail':
-						// 查看退款
-						uni.showToast({
-							title: '退款详情功能待实现',
 							icon: 'none'
 						});
 						break;
