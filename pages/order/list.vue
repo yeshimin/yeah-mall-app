@@ -60,6 +60,12 @@
 						<text class="shipping-fee" v-if="order.shippingFee > 0"> (含运费¥{{ order.shippingFee }})</text>
 					</view>
 					
+					<!-- 订单时间 -->
+					<view class="order-time">
+						<text class="time-label">订单时间：</text>
+						<text class="time-value">{{ getOrderTime(order) }}</text>
+					</view>
+					
 					<!-- 订单操作按钮 -->
 					<view class="order-actions">
 						<button 
@@ -176,12 +182,45 @@
 			
 			// 跳转到订单详情
 			goToDetail(orderId) {
-				// 这里可以跳转到订单详情页，目前项目中没有，所以先打印
-				console.log('查看订单详情:', orderId);
-				uni.showToast({
-					title: '订单详情功能待实现',
-					icon: 'none'
+				uni.navigateTo({
+					url: `/pages/order/detail?id=${orderId}`
 				});
+			},
+			
+			// 获取订单时间（根据订单状态显示不同时间）
+			getOrderTime(order) {
+				// 订单状态 1: 待付款 -> 显示创建时间
+				// 订单状态 2: 待发货 -> 显示支付成功时间
+				if (order.orderStatus === 1) {
+					// 待付款状态，显示创建时间
+					return this.formatTime(order.createTime);
+				} else if (order.orderStatus === 2) {
+					// 待发货状态，显示支付成功时间
+					// 如果有支付成功时间则显示，否则显示创建时间
+					if (order.paySuccessTime) {
+						return this.formatTime(order.paySuccessTime);
+					} else {
+						return this.formatTime(order.createTime);
+					}
+				} else {
+					// 其他状态默认显示创建时间
+					return this.formatTime(order.createTime);
+				}
+			},
+			
+			// 格式化时间
+			formatTime(timeStr) {
+				if (!timeStr) return '';
+				// 将时间字符串转换为Date对象
+				const date = new Date(timeStr);
+				// 格式化为 yyyy-MM-dd HH:mm:ss 格式
+				const year = date.getFullYear();
+				const month = String(date.getMonth() + 1).padStart(2, '0');
+				const day = String(date.getDate()).padStart(2, '0');
+				const hours = String(date.getHours()).padStart(2, '0');
+				const minutes = String(date.getMinutes()).padStart(2, '0');
+				const seconds = String(date.getSeconds()).padStart(2, '0');
+				return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 			},
 			
 			// 切换订单状态Tab
@@ -341,6 +380,7 @@
 						totalQuantity: totalQuantity,
 						shippingFee: parseFloat(order.shippingFee || 0),
 						createTime: order.createTime,
+						paySuccessTime: order.paySuccessTime, // 支付成功时间
 						refundStatus: order.refundStatus,
 						afterSaleStatus: order.afterSaleStatus,
 						reviewed: order.reviewed,
@@ -416,6 +456,7 @@
 						afterSaleStatus: '0',
 						shippingFee: 0.00,
 						createTime: '2025-12-21 16:45:00',
+						paySuccessTime: '2025-12-21 17:00:00', // 支付成功时间
 						items: [
 							{
 								spuId: 301,
@@ -1020,6 +1061,26 @@
 	.shipping-fee {
 		font-size: 24rpx;
 		color: #999;
+	}
+
+	/* 订单时间 */
+	.order-time {
+		display: flex;
+		justify-content: flex-start;
+		align-items: center;
+		padding: 0 20rpx 20rpx 20rpx;
+		font-size: 26rpx;
+		color: #999;
+		border-bottom: 1rpx solid #f5f5f5;
+	}
+
+	.time-label {
+		color: #999;
+	}
+
+	.time-value {
+		color: #666;
+		margin-left: 10rpx;
 	}
 
 	/* 订单操作按钮 */
