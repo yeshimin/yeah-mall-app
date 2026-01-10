@@ -11,21 +11,28 @@
 		<!-- 支付结果容器 -->
 		<view class="result-container">
 			<!-- 支付成功状态 -->
-			<view class="result-success" v-if="orderInfo && orderInfo.tradeState === 'SUCCESS'">
+			<view class="result-success" v-if="payResultInfo && payResultInfo.paySuccess">
 				<text class="iconfont success-icon">&#xe61e;</text>
 				<text class="result-text">支付成功</text>
 				<text class="result-subtext">感谢您的购买，订单已支付成功</text>
 			</view>
 			
+			<!-- 用户取消支付状态 -->
+			<view class="result-cancel" v-else-if="payResultInfo && !payResultInfo.paySuccess && payResultType === 'cancel'">
+				<text class="iconfont cancel-icon">&#xe65c;</text>
+				<text class="result-text">支付已取消</text>
+				<text class="result-subtext">您已取消支付，可以稍后重新支付</text>
+			</view>
+			
 			<!-- 支付失败状态 -->
-			<view class="result-failed" v-else-if="orderInfo && orderInfo.tradeState === 'FAIL'">
+			<view class="result-failed" v-else-if="payResultInfo && !payResultInfo.paySuccess && payResultType !== 'cancel'">
 				<text class="iconfont failed-icon">&#xe61c;</text>
 				<text class="result-text">支付失败</text>
 				<text class="result-subtext">支付过程中遇到问题，请重新尝试</text>
 			</view>
 			
 			<!-- 支付处理中状态 -->
-			<view class="result-processing" v-else-if="orderInfo">
+			<view class="result-processing" v-else-if="payResultInfo && !payResultInfo.paySuccess && !payResultType">
 				<text class="iconfont processing-icon">&#xe62a;</text>
 				<text class="result-text">支付处理中</text>
 				<text class="result-subtext">正在处理您的支付请求，请稍候...</text>
@@ -43,20 +50,16 @@
 		</view>
 		
 		<!-- 订单信息 -->
-		<view class="order-info" v-if="orderInfo">
+		<view class="order-info" v-if="payResultInfo">
 			<view class="info-item">
 				<text class="info-label">订单号：</text>
-				<text class="info-value">{{ orderInfo.outTradeNo }}</text>
+				<text class="info-value">{{ payResultInfo.orderNo }}</text>
 			</view>
-			<view class="info-item">
-				<text class="info-label">支付金额：</text>
-				<text class="info-value amount">¥{{ (orderInfo.amount.total / 100).toFixed(2) }}</text>
-			</view>
-			<view class="info-item" v-if="orderInfo.successTime">
+			<view class="info-item" v-if="payResultInfo.paySuccessTime">
 				<text class="info-label">支付时间：</text>
-				<text class="info-value">{{ formatTime(orderInfo.successTime) }}</text>
+				<text class="info-value">{{ formatTime(payResultInfo.paySuccessTime) }}</text>
 			</view>
-	</view>
+		</view>
 		
 		<!-- 底部操作按钮 -->
 		<view class="bottom-buttons">
@@ -67,7 +70,7 @@
 </template>
 
 <script>
-	import { queryPayOrderInfo } from '../../utils/api.js';
+	import { queryPayOrderInfo, queryPayResult } from '../../utils/api.js';
 	
 export default {
 		data() {
@@ -75,15 +78,21 @@ export default {
 				orderNo: '',
 				orderInfo: null,
 				loading: true,
-				pollingTimer: null
+				pollingTimer: null,
+				pollingCount: 0, // 轮询计数器
+				maxPollingCount: 30, // 最大轮询次数（60秒/2秒 = 30次）
+				payResultType: null, // 支付结果类型：success, cancel, fail
+				payResultInfo: null // 支付结果信息
 			}
 		},
 		onLoad(options) {
-			// 获取订单号
+			// 获取订单号和支付结果类型
 			this.orderNo = options.orderNo;
+			this.payResultType = options.payResultType || null; // success, cancel, fail
+			
 			if (this.orderNo) {
-				// 获取订单支付结果
-				this.fetchOrderInfo();
+				// 根据支付结果类型进行相应处理
+				this.handlePayResult();
 			} else {
 				uni.showToast({
 					title: '参数错误',
@@ -102,23 +111,40 @@ export default {
 				uni.navigateBack();
 			},
 			
-			// 获取订单支付结果
-			fetchOrderInfo() {
-				queryPayOrderInfo(this.orderNo)
+			// 处理支付结果
+			handlePayResult() {
+				if (this.payResultType === 'success') {
+					// 支付成功，直接显示成功状态
+					this.fetchPayResult();
+				} else if (this.payResultType === 'cancel') {
+					// 用户取消支付，显示取消状态
+					this.payResultInfo = {
+						orderNo: this.orderNo,
+						paySuccess: false,
+						paySuccessTime: null
+					};
+					this.loading = false;
+				} else {
+					// 支付失败，开始轮询查询
+					this.startPolling();
+				}
+			},
+			
+			// 获取支付结果
+			fetchPayResult() {
+				queryPayResult(this.orderNo)
 					.then(data => {
-						console.log('订单支付结果:', data);
-						this.orderInfo = data;
+						console.log('支付结果:', data);
+						this.payResultInfo = data;
 						this.loading = false;
 						
-						// 如果支付状态不是最终状态（成功或失败），则继续轮询
-						if (data.tradeState === 'NOTPAY' || data.tradeState === 'USERPAYING') {
-							this.pollingTimer = setTimeout(() => {
-								this.fetchOrderInfo();
-							}, 3000); // 3秒轮询一次
+						// 如果支付失败，开始轮询
+						if (!data.paySuccess && this.payResultType !== 'success') {
+							this.startPolling();
 						}
 					})
 					.catch(error => {
-						console.error('获取订单支付结果失败:', error);
+						console.error('获取支付结果失败:', error);
 						uni.showToast({
 							title: '获取支付结果失败',
 							icon: 'none'
@@ -127,10 +153,49 @@ export default {
 					});
 			},
 			
+			// 开始轮询查询支付结果
+			startPolling() {
+				if (this.pollingCount >= this.maxPollingCount) {
+					// 轮询次数已达上限，停止轮询
+					this.loading = false;
+					return;
+				}
+				
+				queryPayResult(this.orderNo)
+					.then(data => {
+						console.log('轮询支付结果:', data);
+						this.payResultInfo = data;
+						
+						// 如果支付成功，停止轮询
+						if (data.paySuccess) {
+							this.loading = false;
+							return;
+						}
+						
+						// 继续轮询
+						this.pollingCount++;
+						this.pollingTimer = setTimeout(() => {
+							this.startPolling();
+						}, 2000); // 每2秒轮询一次
+					})
+					.catch(error => {
+						console.error('查询支付结果失败:', error);
+						// 继续轮询，直到达到最大次数
+						this.pollingCount++;
+						if (this.pollingCount < this.maxPollingCount) {
+							this.pollingTimer = setTimeout(() => {
+								this.startPolling();
+							}, 2000);
+						} else {
+							this.loading = false;
+						}
+					});
+			},
+			
 			// 格式化时间
 			formatTime(timeStr) {
 				if (!timeStr) return '';
-				// 假设timeStr是ISO格式的时间字符串
+				// 假设timeStr是标准时间格式
 				const date = new Date(timeStr);
 				return date.toLocaleString();
 			},
@@ -238,6 +303,12 @@ export default {
 	.failed-icon {
 		font-size: 160rpx;
 		color: #ff4d4f;
+		margin-bottom: 30rpx;
+	}
+
+	.cancel-icon {
+		font-size: 160rpx;
+		color: #faad14; /* 橙色表示中性状态 */
 		margin-bottom: 30rpx;
 	}
 

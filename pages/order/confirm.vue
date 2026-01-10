@@ -338,18 +338,26 @@
 							success: (res) => {
 								console.log('支付成功:', res);
 								uni.hideLoading();
-								// 跳转到支付结果页面
+								// 跳转到支付结果页面，传递支付成功状态
 								uni.navigateTo({
-									url: `/pages/order/pay-result?orderNo=${orderNo}`
+									url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=success`
 								});
 							},
 							fail: (err) => {
 								console.log('支付失败:', err);
 								uni.hideLoading();
-								// 跳转到支付结果页面
-								uni.navigateTo({
-									url: `/pages/order/pay-result?orderNo=${orderNo}`
-								});
+								// 根据错误类型判断支付结果
+								if (err.errMsg === 'requestPayment:fail cancel') {
+									// 用户取消支付
+									uni.navigateTo({
+										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=cancel`
+									});
+								} else {
+									// 支付失败，启动轮询
+									uni.navigateTo({
+										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=fail`
+									});
+								}
 							}
 						});
 					})

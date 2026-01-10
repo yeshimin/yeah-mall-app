@@ -617,18 +617,25 @@
 										title: '支付成功',
 										icon: 'success'
 									});
-									// 跳转到支付结果页面
+									// 跳转到支付结果页面，传递支付成功状态
 									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${order.orderNo}`
+										url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=success`
 									});
 								},
 								fail: (err) => {
 									// 支付失败处理
 									console.log('支付失败', err);
-									// 跳转到支付结果页面
-									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${order.orderNo}`
-									});
+									if (err.errMsg === 'requestPayment:fail cancel') {
+										// 用户取消支付
+										uni.navigateTo({
+											url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=cancel`
+										});
+									} else {
+										// 支付失败，启动轮询
+										uni.navigateTo({
+											url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=fail`
+										});
+									}
 								}
 							});
 						}).catch(err => {
