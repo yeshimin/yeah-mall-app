@@ -62,7 +62,7 @@
 					
 					<!-- 订单时间 -->
 					<view class="order-time">
-						<text class="time-label">订单时间：</text>
+						<text class="time-label">{{ getTimeLabel(order) }}：</text>
 						<text class="time-value">{{ getOrderTime(order) }}</text>
 					</view>
 					
@@ -185,6 +185,20 @@
 				uni.navigateTo({
 					url: `/pages/order/detail?id=${orderId}`
 				});
+			},
+			
+			// 获取时间标签（根据订单状态显示不同标签）
+			getTimeLabel(order) {
+				// 订单状态 1: 待付款 -> 显示"创建时间"
+				// 订单状态 2: 待发货 -> 显示"支付时间"
+				// 其他状态 -> 显示"创建时间"
+				if (order.orderStatus === 1) {
+					return '创建时间';
+				} else if (order.orderStatus === 2) {
+					return '支付时间';
+				} else {
+					return '创建时间';
+				}
 			},
 			
 			// 获取订单时间（根据订单状态显示不同时间）
