@@ -2,9 +2,7 @@
 	<view class="pay-result">
 		<!-- 顶部导航栏 -->
 		<view class="navbar">
-			<view class="nav-back" @click="goBack">
-				<text class="iconfont">&#xe60e;</text>
-			</view>
+			<text class="back-btn" @click="goBack">&lt;</text>
 			<text class="nav-title">支付结果</text>
 		</view>
 		
@@ -261,17 +259,8 @@ export default {
 		z-index: 100;
 	}
 
-	.nav-back {
-		width: 60rpx;
-		height: 60rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-	}
-
-	.nav-back:active {
-		background-color: #f5f5f5;
+	.back-btn {
+		font-size: 32rpx;
 	}
 
 	.nav-title {

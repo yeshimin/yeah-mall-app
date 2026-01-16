@@ -57,7 +57,8 @@
 		{
 			"path": "pages/order/confirm",
 			"style": {
-				"navigationBarTitleText": "确认订单"
+				"navigationBarTitleText": "确认订单",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -69,7 +70,22 @@
 		{
 			"path": "pages/order/pay-result",
 			"style": {
-				"navigationBarTitleText": "支付结果"
+				"navigationBarTitleText": "支付结果",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/address/list",
+			"style": {
+				"navigationBarTitleText": "地址管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/address/edit",
+			"style": {
+				"navigationBarTitleText": "编辑地址",
+				"navigationStyle": "custom"
 			}
 		}
 	],

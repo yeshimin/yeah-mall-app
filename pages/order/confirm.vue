@@ -2,13 +2,8 @@
 	<view class="order-confirm">
 		<!-- 顶部导航栏 -->
 		<view class="navbar">
-			<view class="nav-back" @click="goBack">
-				<text class="iconfont">&#xe60e;</text>
-			</view>
+			<text class="back-btn" @click="goBack">&lt;</text>
 			<text class="nav-title">确认订单</text>
-			<view class="nav-refresh" @click="refreshOrderData">
-				<text class="iconfont">&#xe62a;</text>
-			</view>
 		</view>
 		
 		<!-- 收货地址 -->
@@ -106,17 +101,14 @@
 </template>
 
 <script>
-	import { fetchOrderPreview, submitOrder, genPayInfo, queryPayOrderInfo } from '../../utils/api.js';
+	import { fetchOrderPreview, submitOrder, queryPayOrderInfo, queryAddressList } from '../../utils/api.js';
 	import { BASE_API } from '@/utils/config.js';
 	
 	export default {
 		data() {
 		return {
-			selectedAddress: {
-				name: "张三",
-				phone: "13800138000",
-				address: "北京市朝阳区某某街道某某小区1号楼101室"
-			},
+			selectedAddress: null,
+			addressLoading: false,
 			groupedOrderGoods: [], // 按店铺分组的商品
 			goodsTotal: 0.00,
 			shippingFee: 0.00,
@@ -129,6 +121,9 @@
 		}
 	},
 		onLoad(options) {
+			// 获取默认地址
+			this.fetchDefaultAddress();
+			
 			// 接收从商品详情页传递过来的参数
 			if (options.skuId && options.quantity) {
 				console.log('接收到的SKU ID:', options.skuId);
@@ -147,8 +142,9 @@
 				// 从商品详情页跳转过来，只有一个商品，调用预览接口获取完整数据
 				this.fetchOrderPreviewData(requestItems);
 			} else {
-				// 获取从购物车页面传递的数据
+				// 获取事件通道
 				const eventChannel = this.getOpenerEventChannel();
+				// 获取从购物车页面传递的数据
 				eventChannel.on('acceptDataFromCartPage', (data) => {
 					console.log('从购物车页面接收到的数据:', data);
 					if (data && data.selectedItems && data.selectedItems.length > 0) {
@@ -170,6 +166,19 @@
 						});
 					}
 				});
+			}
+		},
+		onShow() {
+			console.log('Order confirm onShow called');
+			// 页面显示时，检查是否有选中的地址需要更新
+			const selectedAddr = uni.getStorageSync('selectedAddress');
+			console.log('Retrieved address from localStorage:', selectedAddr);
+			if (selectedAddr) {
+				this.selectedAddress = selectedAddr;
+				console.log('Selected address updated:', this.selectedAddress);
+				// 清除临时存储的地址
+				uni.removeStorageSync('selectedAddress');
+				console.log('LocalStorage cleared');
 			}
 		},
 		computed: {
@@ -260,9 +269,39 @@
 				uni.navigateBack();
 			},
 			
+			// 获取默认地址
+			fetchDefaultAddress() {
+				this.addressLoading = true;
+				queryAddressList({ isDefault: true })
+					.then(data => {
+						if (data && data.length > 0) {
+							this.selectedAddress = {
+								id: data[0].id,
+								name: data[0].name,
+								phone: data[0].contact,
+								address: data[0].fullAddress,
+								provinceCode: data[0].provinceCode,
+								cityCode: data[0].cityCode,
+								districtCode: data[0].districtCode,
+								isDefault: data[0].isDefault
+							};
+						}
+					})
+					.catch(error => {
+						console.error('获取默认地址失败:', error);
+					})
+					.finally(() => {
+						this.addressLoading = false;
+					});
+			},
+			
+			// 选择地址
 			selectAddress() {
-				// 选择地址逻辑
-				console.log("选择地址");
+				// 跳转到地址选择页面
+				uni.navigateTo({
+					url: '/pages/address/list?fromOrder=true',
+					eventChannel: this.getOpenerEventChannel()
+				});
 			},
 			
 			payOrder() {
@@ -309,57 +348,72 @@
 					data.scene = 2; // 订单场景，2表示从购物车下单
 				}
 				
-				// 调用提交订单接口
+					// 调用提交订单接口
 				submitOrder(data)
 					.then(result => {
 						console.log("订单提交成功:", result);
 						
-						// 获取订单号
+						// 直接从下单接口返回结果中获取订单号和支付信息
+						// 支付信息直接在result.data中，与genPayInfo接口返回格式一致
 						const orderNo = result.data.orderNo;
+						const paymentData = result.data;
 						console.log("订单号:", orderNo);
+						console.log("支付信息:", paymentData);
 						
-						// 调用生成支付信息接口
-						return genPayInfo(orderNo).then(payInfo => {
-							// 返回订单号和支付信息
-							return { orderNo, payInfo };
-						});
-					})
-					.then(({ orderNo, payInfo }) => {
-						console.log("支付信息:", payInfo);
-						
-						// 发起微信支付
-						uni.requestPayment({
+						// 转换支付参数为uni.requestPayment所需格式
+						const payParams = {
 							provider: 'wxpay',
-							timeStamp: payInfo.timestamp.toString(),
-							nonceStr: payInfo.nonceStr,
-							package: payInfo.packageStr,
-							signType: payInfo.signType,
-							paySign: payInfo.paySign,
-							success: (res) => {
-								console.log('支付成功:', res);
-								uni.hideLoading();
-								// 跳转到支付结果页面，传递支付成功状态
-								uni.navigateTo({
-									url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=success`
-								});
-							},
-							fail: (err) => {
-								console.log('支付失败:', err);
-								uni.hideLoading();
-								// 根据错误类型判断支付结果
-								if (err.errMsg === 'requestPayment:fail cancel') {
-									// 用户取消支付
+							// 微信小程序支付必需参数
+							timeStamp: paymentData.timestamp, // 秒级时间戳
+							nonceStr: paymentData.nonceStr, // 随机字符串
+							package: paymentData.packageStr, // 预支付交易会话标识
+							signType: paymentData.signType, // 签名类型
+							paySign: paymentData.paySign // 签名
+						};
+						
+						// 打印支付参数
+						console.log('微信支付请求参数:', payParams);
+						
+						// 检查uni.requestPayment是否存在
+						if (typeof uni.requestPayment === 'function') {
+							// 发起微信支付
+							uni.requestPayment({
+								...payParams,
+								success: (res) => {
+									// 支付成功处理
+									console.log('支付成功', res);
+									uni.hideLoading();
+									// 跳转到支付结果页面，传递支付成功状态
 									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=cancel`
+										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=success`
 									});
-								} else {
-									// 支付失败，启动轮询
-									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=fail`
-									});
+								},
+								fail: (err) => {
+									// 支付失败处理
+									console.log('支付失败', err);
+									uni.hideLoading();
+									// 根据错误类型判断支付结果
+									if (err.errMsg === 'requestPayment:fail cancel') {
+										// 用户取消支付
+										uni.navigateTo({
+											url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=cancel`
+										});
+									} else {
+										// 支付失败，启动轮询
+										uni.navigateTo({
+											url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=fail`
+										});
+									}
 								}
-							}
-						});
+							});
+						} else {
+							console.error('uni.requestPayment is not a function');
+							uni.hideLoading();
+							uni.showToast({
+								title: '当前环境不支持微信支付',
+								icon: 'none'
+							});
+						}
 					})
 					.catch(error => {
 						console.error("支付处理失败:", error);
@@ -401,7 +455,6 @@
 	.navbar {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		height: 80rpx; /* 减小导航栏高度 */
 		padding: 0 20rpx;
 		background-color: #ffffff;
@@ -411,6 +464,21 @@
 		width: 100%;
 		z-index: 100;
 		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	/* 居中标题样式 */
+	.nav-title {
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+	}
+	
+	.back-btn {
+		font-size: 32rpx;
+		z-index: 1;
 	}
 	
 	/* 加载状态样式 */
@@ -449,21 +517,8 @@
 		font-size: 28rpx;
 	}
 
-	.nav-back, .nav-refresh {
-		width: 60rpx;
-		height: 60rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-	}
-	
-	.nav-back:active, .nav-refresh:active {
-		background-color: #f5f5f5;
-	}
-	
-	.nav-refresh {
-		color: #666;
+	.back-btn {
+		font-size: 32rpx;
 	}
 
 	.nav-title {
