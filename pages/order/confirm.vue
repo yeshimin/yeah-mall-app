@@ -330,13 +330,10 @@
 
 				// 构造请求数据
 				const data = {
-					items: items
+					items: items,
+					addressId: this.selectedAddress.id, // 添加地址ID
+					scene: this.orderSource === 2 ? 2 : 1 // 添加订单场景，1:商品页下单，2:购物车下单
 				};
-				
-				// 如果是从购物车下单，则添加scene参数
-				if (this.orderSource === 2) {
-					data.scene = 2; // 订单场景，2表示从购物车下单
-				}
 				
 					// 调用提交订单接口
 				submitOrder(data)
