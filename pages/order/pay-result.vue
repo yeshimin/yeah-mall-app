@@ -1,10 +1,5 @@
 <template>
 	<view class="pay-result">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">支付结果</text>
-		</view>
 		
 		<!-- 支付结果容器 -->
 		<view class="result-container">
@@ -105,10 +100,6 @@ export default {
 			}
 		},
 		methods: {
-			goBack() {
-				uni.navigateBack();
-			},
-			
 			// 处理支付结果
 			handlePayResult() {
 				if (this.payResultType === 'success') {
@@ -246,28 +237,7 @@ export default {
 		box-sizing: border-box;
 	}
 
-	.navbar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 80rpx;
-		padding: 0 20rpx;
-		background-color: #fff;
-		border-bottom: 1rpx solid #f5f5f5;
-		position: sticky;
-		top: 0;
-		z-index: 100;
-	}
 
-	.back-btn {
-		font-size: 32rpx;
-	}
-
-	.nav-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
-	}
 
 	.result-container {
 		display: flex;

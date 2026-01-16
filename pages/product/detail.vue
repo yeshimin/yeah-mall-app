@@ -1,11 +1,5 @@
 <template>
 	<view class="product-detail-container">
-		<!-- 顶部导航栏 -->
-		<view class="top-nav">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">商品详情</text>
-			<text class="more-btn">...</text>
-		</view>
 		
 		<scroll-view class="detail-scroll" scroll-y :show-scrollbar="false">
 			<!-- 商品图片轮播 -->
@@ -722,31 +716,7 @@ export default {
 <style scoped>
 	.product-detail-container {
 		height: 100vh;
-		padding-top: var(--status-bar-height);
 		position: relative;
-	}
-	
-	.top-nav {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 100rpx;
-		padding: 0 20rpx;
-		background-color: #fff;
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		z-index: 100;
-	}
-	
-	.back-btn, .more-btn {
-		font-size: 32rpx;
-	}
-	
-	.nav-title {
-		font-size: 32rpx;
-		font-weight: bold;
 	}
 	
 	.detail-scroll {

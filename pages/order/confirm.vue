@@ -1,10 +1,5 @@
 <template>
 	<view class="order-confirm">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">确认订单</text>
-		</view>
 		
 		<!-- 收货地址 -->
 		<view class="address-section">
@@ -264,11 +259,6 @@
 					.toFixed(2);
 			},
 			
-			goBack() {
-				// 返回上一页
-				uni.navigateBack();
-			},
-			
 			// 获取默认地址
 			fetchDefaultAddress() {
 				this.addressLoading = true;
@@ -446,39 +436,9 @@
 	.order-confirm {
 		padding-bottom: 160rpx;
 		margin-bottom: 60rpx;
-		/* padding-top: 80rpx; */
 		background-color: #f7f8fa;
 		min-height: 100vh;
 		box-sizing: border-box;
-	}
-
-	.navbar {
-		display: flex;
-		align-items: center;
-		height: 80rpx; /* 减小导航栏高度 */
-		padding: 0 20rpx;
-		background-color: #ffffff;
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		z-index: 100;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	/* 居中标题样式 */
-	.nav-title {
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
-	}
-	
-	.back-btn {
-		font-size: 32rpx;
-		z-index: 1;
 	}
 	
 	/* 加载状态样式 */

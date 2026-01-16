@@ -1,11 +1,5 @@
 <template>
 	<view class="address-edit">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">{{ isEdit ? '编辑收货地址' : '新增收货地址' }}</text>
-			<text class="save-btn" @click="saveAddress">保存</text>
-		</view>
 		
 		<!-- 表单内容 -->
 		<view class="form-content">
@@ -115,11 +109,6 @@
 			}
 		},
 		methods: {
-			// 返回上一页
-			goBack() {
-				uni.navigateBack();
-			},
-			
 			// 处理switch变化
 			onSwitchChange(e) {
 				this.formData.isDefault = e.detail.value;
@@ -359,34 +348,6 @@
 	.address-edit {
 		background-color: #f8f8f8;
 		min-height: 100vh;
-	}
-
-	/* 导航栏 */
-	.navbar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 80rpx;
-		padding: 0 20rpx;
-		background-color: #fff;
-		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-		position: sticky;
-		top: 0;
-		z-index: 100;
-	}
-
-	.back-btn, .save-btn {
-		font-size: 32rpx;
-	}
-
-	.save-btn {
-		color: #ff4757;
-	}
-
-	.nav-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
 	}
 
 	/* 表单内容 */

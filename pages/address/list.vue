@@ -1,10 +1,5 @@
 <template>
 	<view class="address-list">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">地址管理</text>
-		</view>
 		
 		<!-- 地址列表 -->
 		<view class="address-content">
@@ -83,11 +78,6 @@
 			this.fetchAddressList();
 		},
 		methods: {
-			// 返回上一页
-			goBack() {
-				uni.navigateBack();
-			},
-			
 			// 加载地址列表
 			fetchAddressList() {
 				this.loading = true;
@@ -229,33 +219,6 @@
 	/* 确保最后一个地址项有足够的底部空间 */
 	.address-item:last-child {
 		margin-bottom: 50rpx;
-	}
-
-	/* 导航栏 */
-	.navbar {
-		display: flex;
-		align-items: center;
-		height: 80rpx;
-		padding: 0 20rpx;
-		background-color: #fff;
-		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-		position: sticky;
-		top: 0;
-		z-index: 100;
-	}
-
-	.back-btn {
-		font-size: 32rpx;
-		z-index: 1;
-	}
-
-	.nav-title {
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
 	}
 
 	/* 加载状态 */

@@ -1,10 +1,5 @@
 <template>
 	<view class="product-list-container">
-		<!-- 顶部导航栏 -->
-		<view class="top-nav">
-			<text class="back-btn" @click="goBack">&lt;</text>
-			<text class="nav-title">{{ categoryName }}</text>
-		</view>
 		
 		<!-- 搜索框 -->
 		<view class="search-box">
@@ -148,9 +143,6 @@
 				}
 			},
 		methods: {
-			goBack() {
-				uni.navigateBack();
-			},
 			showFilter() {
 				// 显示筛选弹窗
 				this.showFilterPopup = true;
@@ -406,32 +398,7 @@
 <style scoped>
 	.product-list-container {
 		height: 100vh;
-		padding-top: var(--status-bar-height);
-	}
-	
-	.top-nav {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			height: 100rpx;
-			padding: 0 20rpx;
-			background-color: #fff;
-			border-bottom: 1rpx solid #eee;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			z-index: 100;
-			box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-		}
-	
-	.back-btn, .filter-btn {
-		font-size: 32rpx;
-	}
-	
-	.nav-title {
-		font-size: 32rpx;
-		font-weight: bold;
+		padding-top: 0;
 	}
 		.search-box {
 			display: flex;
