@@ -5,29 +5,41 @@
 		<view class="form-content">
 			<!-- 姓名 -->
 			<view class="form-item">
-				<text class="label">收货人</text>
+				<text class="label">
+					<text class="required">*</text>
+					收货人
+				</text>
 				<input class="input" v-model="formData.name" placeholder="请输入收货人姓名" />
 			</view>
 			
 			<!-- 手机号 -->
 			<view class="form-item">
-				<text class="label">手机号</text>
+				<text class="label">
+					<text class="required">*</text>
+					手机号
+				</text>
 				<input class="input" v-model="formData.contact" placeholder="请输入手机号" type="number" />
 			</view>
 			
 			<!-- 所在地区 -->
 			<view class="form-item">
-				<text class="label">所在地区</text>
+				<text class="label">
+					<text class="required">*</text>
+					所在地区
+				</text>
 				<view class="region-picker" @click="showRegionPicker">
 				<text v-if="formData.provinceName && formData.cityName && formData.districtName" class="region-text">{{ formData.provinceName }} {{ formData.cityName }} {{ formData.districtName }}</text>
 				<text v-else class="placeholder">请选择所在地区</text>
-				<text class="arrow-icon">></text>
+				<text class="iconfont arrow-icon">&#xe65f;</text>
 			</view>
 			</view>
 			
 			<!-- 详细地址 -->
 			<view class="form-item">
-				<text class="label">详细地址</text>
+				<text class="label">
+					<text class="required">*</text>
+					详细地址
+				</text>
 				<textarea class="textarea" v-model="formData.detailAddress" placeholder="请输入详细地址信息" rows="3"></textarea>
 			</view>
 			
@@ -47,20 +59,33 @@
 		</view>
 		
 		<!-- 地区选择器 -->
-		<picker-view v-if="showPicker" class="picker-view" :value="pickerValue" @change="pickerChange">
-			<picker-view-column>
-				<view v-for="province in provinces" :key="province.code" class="picker-item">{{ province.name }}</view>
-			</picker-view-column>
-			<picker-view-column>
-				<view v-for="city in cities" :key="city.code" class="picker-item">{{ city.name }}</view>
-			</picker-view-column>
-			<picker-view-column>
-				<view v-for="district in districts" :key="district.code" class="picker-item">{{ district.name }}</view>
-			</picker-view-column>
-		</picker-view>
+		<view v-if="showPicker" class="picker-container">
+			<!-- 选择器顶部操作栏 -->
+			<view class="picker-header">
+				<text class="cancel-btn" @click="hideRegionPicker">取消</text>
+				<text class="confirm-btn" @click="confirmRegion">确定</text>
+			</view>
+			<!-- 选择器内容 -->
+			<picker-view class="picker-view" :value="pickerValue" @change="pickerChange">
+				<picker-view-column>
+					<view v-for="province in provinces" :key="province.code" class="picker-item">{{ province.name }}</view>
+				</picker-view-column>
+				<picker-view-column>
+					<view v-for="city in cities" :key="city.code" class="picker-item">{{ city.name }}</view>
+				</picker-view-column>
+				<picker-view-column>
+					<view v-for="district in districts" :key="district.code" class="picker-item">{{ district.name }}</view>
+				</picker-view-column>
+			</picker-view>
+		</view>
 		
 		<!-- 选择器遮罩 -->
 		<view v-if="showPicker" class="picker-mask" @click="hideRegionPicker"></view>
+		
+		<!-- 底部保存按钮 -->
+		<view class="bottom-save-bar">
+			<button class="save-btn" @click="saveAddress">{{ isEdit ? '更新地址' : '保存地址' }}</button>
+		</view>
 	</view>
 </template>
 
@@ -88,12 +113,21 @@
 				// 是否为编辑模式
 				isEdit: false,
 				// 地区选择器
-				showPicker: false,
-				pickerValue: [0, 0, 0],
-				// 地区数据
+			showPicker: false,
+			pickerValue: [0, 0, 0],
+			// 地区数据
 			provinces: [],
 			cities: [],
 			districts: [],
+			// 临时存储选择的地区，点击确认后才更新到表单
+			tempRegion: {
+				provinceCode: '',
+				provinceName: '',
+				cityCode: '',
+				cityName: '',
+				districtCode: '',
+				districtName: ''
+			},
 			};
 		},
 		onLoad(options) {
@@ -194,7 +228,7 @@
 						.catch(error => {
 							console.error('更新地址失败:', error);
 							uni.showToast({
-								title: '更新地址失败',
+								title: error.message || '更新地址失败',
 								icon: 'none'
 							});
 						});
@@ -212,7 +246,7 @@
 						.catch(error => {
 							console.error('添加地址失败:', error);
 							uni.showToast({
-								title: '添加地址失败',
+								title: error.message || '添加地址失败',
 								icon: 'none'
 							});
 						});
@@ -221,6 +255,15 @@
 			
 			// 显示地区选择器
 			showRegionPicker() {
+				// 初始化临时地区数据为当前表单值
+				this.tempRegion = {
+					provinceCode: this.formData.provinceCode,
+					provinceName: this.formData.provinceName,
+					cityCode: this.formData.cityCode,
+					cityName: this.formData.cityName,
+					districtCode: this.formData.districtCode,
+					districtName: this.formData.districtName
+				};
 				this.showPicker = true;
 			},
 			
@@ -290,11 +333,11 @@
 				const oldValue = this.pickerValue;
 				this.pickerValue = value;
 				
-				// 更新选中的省份
+				// 更新选中的省份到临时变量
 				const province = this.provinces[value[0]];
 				if (province) {
-					this.formData.provinceCode = province.code;
-					this.formData.provinceName = province.name;
+					this.tempRegion.provinceCode = province.code;
+					this.tempRegion.provinceName = province.name;
 					
 					// 如果省份变化，重新加载城市列表
 					if (oldValue[0] !== value[0]) {
@@ -304,11 +347,11 @@
 						return; // 等待城市列表加载完成后再更新
 					}
 					
-					// 更新选中的城市
+					// 更新选中的城市到临时变量
 					const city = this.cities[value[1]];
 					if (city) {
-						this.formData.cityCode = city.code;
-						this.formData.cityName = city.name;
+						this.tempRegion.cityCode = city.code;
+						this.tempRegion.cityName = city.name;
 						
 						// 如果城市变化，重新加载区县列表
 						if (oldValue[1] !== value[1]) {
@@ -317,14 +360,28 @@
 							return; // 等待区县列表加载完成后再更新
 						}
 						
-						// 更新选中的区县
+						// 更新选中的区县到临时变量
 						const district = this.districts[value[2]];
 						if (district) {
-							this.formData.districtCode = district.code;
-							this.formData.districtName = district.name;
+							this.tempRegion.districtCode = district.code;
+							this.tempRegion.districtName = district.name;
 						}
 					}
 				}
+			},
+			
+			// 确认选中的地区
+			confirmRegion() {
+				// 将临时选择的地区更新到表单数据
+				this.formData.provinceCode = this.tempRegion.provinceCode;
+				this.formData.provinceName = this.tempRegion.provinceName;
+				this.formData.cityCode = this.tempRegion.cityCode;
+				this.formData.cityName = this.tempRegion.cityName;
+				this.formData.districtCode = this.tempRegion.districtCode;
+				this.formData.districtName = this.tempRegion.districtName;
+				
+				// 隐藏选择器
+				this.hideRegionPicker();
 			}
 		}
 	};
@@ -369,9 +426,17 @@
 	}
 
 	.label {
-		width: 120rpx;
+		width: 140rpx;
 		font-size: 28rpx;
 		color: #333;
+		display: flex;
+		align-items: center;
+	}
+	
+	.required {
+		color: #ff4757;
+		margin-right: 5rpx;
+		font-size: 32rpx;
 	}
 
 	.input {
@@ -442,15 +507,41 @@
 		justify-content: flex-end;
 	}
 
-	/* 地区选择器 */
-	.picker-view {
+	/* 地区选择器容器 */
+	.picker-container {
 		position: fixed;
 		bottom: 0;
 		left: 0;
 		right: 0;
+		z-index: 1000;
+		background-color: #fff;
+	}
+	
+	/* 选择器顶部操作栏 */
+	.picker-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		height: 80rpx;
+		padding: 0 30rpx;
+		border-bottom: 1rpx solid #f5f5f5;
+	}
+	
+	.picker-header .cancel-btn {
+		font-size: 32rpx;
+		color: #666;
+	}
+	
+	.picker-header .confirm-btn {
+		font-size: 32rpx;
+		color: #ff4757;
+		font-weight: bold;
+	}
+	
+	/* 选择器内容 */
+	.picker-view {
 		height: 500rpx;
 		background-color: #fff;
-		z-index: 1000;
 	}
 
 	.picker-item {
@@ -468,5 +559,37 @@
 		bottom: 0;
 		background-color: rgba(0, 0, 0, 0.5);
 		z-index: 999;
+	}
+	
+	/* 底部保存按钮 */
+	.bottom-save-bar {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 100rpx;
+		background-color: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+		z-index: 100;
+	}
+	
+	.save-btn {
+		width: 90%;
+		height: 70rpx;
+		line-height: 70rpx;
+		background-color: #ff4757;
+		color: #fff;
+		border-radius: 35rpx;
+		font-size: 30rpx;
+		border: none;
+		box-shadow: 0 4rpx 12rpx rgba(255, 71, 87, 0.3);
+	}
+	
+	.save-btn:active {
+		transform: scale(0.98);
+		background-color: #ff3747;
 	}
 </style>

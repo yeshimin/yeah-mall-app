@@ -152,7 +152,7 @@
 						.catch(error => {
 							console.error('设置默认地址失败:', error);
 							uni.showToast({
-								title: '设置默认地址失败',
+								title: error.message || '设置默认地址失败',
 								icon: 'none'
 							});
 						});
@@ -178,7 +178,7 @@
 								.catch(error => {
 									console.error('删除地址失败:', error);
 									uni.showToast({
-										title: '删除地址失败',
+										title: error.message || '删除地址失败',
 										icon: 'none'
 									});
 								});
