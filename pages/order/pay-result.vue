@@ -69,6 +69,7 @@ export default {
 		data() {
 			return {
 				orderNo: '',
+				orderId: '',
 				orderInfo: null,
 				loading: true,
 				pollingTimer: null,
@@ -79,11 +80,12 @@ export default {
 			}
 		},
 		onLoad(options) {
-			// 获取订单号和支付结果类型
+			// 获取订单号、订单ID和支付结果类型
+			this.orderId = options.orderId;
 			this.orderNo = options.orderNo;
 			this.payResultType = options.payResultType || null; // success, cancel, fail
 			
-			if (this.orderNo) {
+			if (this.orderId || this.orderNo) {
 				// 根据支付结果类型进行相应处理
 				this.handlePayResult();
 			} else {
@@ -121,7 +123,7 @@ export default {
 			
 			// 获取支付结果
 			fetchPayResult() {
-				queryPayResult(this.orderNo)
+				queryPayResult(this.orderId || this.orderNo)
 					.then(data => {
 						console.log('支付结果:', data);
 						this.payResultInfo = data;
@@ -150,7 +152,7 @@ export default {
 					return;
 				}
 				
-				queryPayResult(this.orderNo)
+				queryPayResult(this.orderId || this.orderNo)
 					.then(data => {
 						console.log('轮询支付结果:', data);
 						this.payResultInfo = data;

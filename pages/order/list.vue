@@ -181,11 +181,11 @@
 			},
 			
 			// 跳转到订单详情
-			goToDetail(orderId, orderNo) {
-				uni.navigateTo({
-					url: `/pages/order/detail?orderNo=${orderNo}`
-				});
-			},
+		goToDetail(orderId, orderNo) {
+			uni.navigateTo({
+				url: `/pages/order/detail?orderId=${orderId}`
+			});
+		},
 			
 			// 获取时间标签（根据订单状态显示不同标签）
 			getTimeLabel(order) {
@@ -345,63 +345,63 @@
 			},
 			
 			// 处理订单数据，根据新的数据结构处理商品信息
-			processOrderData(orderRecords) {
-				return orderRecords.map(order => {
-					// 根据订单状态和退款、售后状态确定显示文本
-					let statusText = this.statusMap[order.orderStatus] || '未知状态';
-					
-					// 处理退款/售后状态的显示
-					if (order.refundStatus && order.refundStatus !== '0') {
-						statusText = this.refundStatusMap[order.refundStatus] || '退款中';
-					} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
-						statusText = this.afterSaleStatusMap[order.afterSaleStatus] || '售后中';
-					} else if (order.orderStatus === '4' && !order.reviewed) {
-						statusText = '待评价';
-					} else if (order.orderStatus === '4' && order.reviewed) {
-						statusText = '已完成';
-					}
-					
-					// 处理商品信息，根据新的数据结构
-					const processedGoods = order.items ? order.items.map(item => ({
-						id: item.spuId,
-						spuId: item.spuId,
-						skuId: item.skuId,
-						name: item.spuName,
-						spec: item.specs && item.specs.length > 0 
-							? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';')
-							: item.skuName || '',
-						price: parseFloat(item.price),
-						quantity: parseInt(item.quantity),
-						image: item.spuMainImage && item.spuMainImage.trim() !== '' 
-							? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}`
-							: 'https://via.placeholder.com/100'
-					})) : [];
-					
-					// 计算总数量
-					const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0);
-					
-					// 从items数组中重新计算商品总价
-					const calculatedTotalPrice = processedGoods.reduce((total, item) => total + (item.price * item.quantity), 0);
-					
-					return {
-						id: order.id,
-						orderNo: order.orderNo,
-						shopId: order.shopId,
-						shopName: order.shopName || `店铺${order.shopId}`,
-						orderStatus: parseInt(order.orderStatus),
-						statusText: statusText,
-						totalPrice: calculatedTotalPrice, // 使用计算得出的价格
-						totalQuantity: totalQuantity,
-						shippingFee: parseFloat(order.shippingFee || 0),
-						createTime: order.createTime,
-						paySuccessTime: order.paySuccessTime, // 支付成功时间
-						refundStatus: order.refundStatus,
-						afterSaleStatus: order.afterSaleStatus,
-						reviewed: order.reviewed,
-						goods: processedGoods
-					};
-				});
-			},
+		processOrderData(orderRecords) {
+			return orderRecords.map(order => {
+				// 根据订单状态和退款、售后状态确定显示文本
+				let statusText = this.statusMap[order.orderStatus] || '未知状态';
+				
+				// 处理退款/售后状态的显示
+				if (order.refundStatus && order.refundStatus !== '0') {
+					statusText = this.refundStatusMap[order.refundStatus] || '退款中';
+				} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
+					statusText = this.afterSaleStatusMap[order.afterSaleStatus] || '售后中';
+				} else if (order.orderStatus === '4' && !order.reviewed) {
+					statusText = '待评价';
+				} else if (order.orderStatus === '4' && order.reviewed) {
+					statusText = '已完成';
+				}
+				
+				// 处理商品信息，根据新的数据结构
+				const processedGoods = order.items ? order.items.map(item => ({
+					id: item.spuId,
+					spuId: item.spuId,
+					skuId: item.skuId,
+					name: item.spuName,
+					spec: item.specs && item.specs.length > 0 
+						? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';')
+						: item.skuName || '',
+					price: parseFloat(item.price),
+					quantity: parseInt(item.quantity),
+					image: item.spuMainImage && item.spuMainImage.trim() !== '' 
+						? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}`
+						: 'https://via.placeholder.com/100'
+				})) : [];
+				
+				// 计算总数量
+				const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0);
+				
+				// 从items数组中重新计算商品总价
+				const calculatedTotalPrice = processedGoods.reduce((total, item) => total + (item.price * item.quantity), 0);
+				
+				return {
+					id: order.orderId,
+					orderNo: order.orderNo,
+					shopId: order.shopId,
+					shopName: order.shopName || `店铺${order.shopId}`,
+					orderStatus: parseInt(order.orderStatus),
+					statusText: statusText,
+					totalPrice: calculatedTotalPrice, // 使用计算得出的价格
+					totalQuantity: totalQuantity,
+					shippingFee: parseFloat(order.shippingFee || 0),
+					createTime: order.createTime,
+					paySuccessTime: order.paySuccessTime, // 支付成功时间
+					refundStatus: order.refundStatus,
+					afterSaleStatus: order.afterSaleStatus,
+					reviewed: order.reviewed,
+					goods: processedGoods
+				};
+			});
+		},
 			
 			// 生成模拟订单数据，使用新的数据结构
 			generateMockOrders() {

@@ -123,10 +123,10 @@ export const queryPayOrderInfo = (orderNo) => {
 };
 
 // 查询支付结果接口（新的接口，使用不同的URL）
-export const queryPayResult = (orderNo) => {
+export const queryPayResult = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${BASE_API}/app/order/queryPayResult?orderNo=${orderNo}`,
+      url: `${BASE_API}/app/order/queryPayResult?orderId=${orderId}`,
       method: 'GET',
       header: {
         'Authorization': `Bearer ${getToken()}`,
@@ -664,10 +664,10 @@ export const confirmReceive = (orderNo) => {
 };
 
 // 获取订单详情
-export const fetchOrderDetail = (orderNo) => {
+export const fetchOrderDetail = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${BASE_API}/app/order/detail?orderNo=${orderNo}`,
+      url: `${BASE_API}/app/order/detail?orderId=${orderId}`,
       method: 'GET',
       header: {
         'Authorization': `Bearer ${getToken()}`,

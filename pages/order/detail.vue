@@ -174,12 +174,14 @@ export default {
 			};
 		},
 		onLoad(options) {
-			// 获取订单号
-			if (options.orderNo) {
+			// 获取订单号或订单ID
+			if (options.orderId) {
+				this.fetchOrderDetail(options.orderId);
+			} else if (options.orderNo) {
 				this.fetchOrderDetail(options.orderNo);
 			} else {
 				uni.showToast({
-					title: '订单号不能为空',
+					title: '订单号或订单ID不能为空',
 					icon: 'none'
 				});
 				uni.navigateBack();
@@ -349,7 +351,7 @@ export default {
 									icon: 'success'
 								});
 								// 重新获取订单详情
-								this.fetchOrderDetail(this.orderInfo.orderNo);
+								this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
 							}
 						}
 					});
@@ -395,7 +397,7 @@ export default {
 									icon: 'success'
 								});
 								// 重新获取订单详情
-								this.fetchOrderDetail(this.orderInfo.orderNo);
+								this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
 							}
 						}
 					});

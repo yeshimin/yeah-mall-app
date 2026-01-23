@@ -340,11 +340,13 @@
 					.then(result => {
 						console.log("订单提交成功:", result);
 						
-						// 直接从下单接口返回结果中获取订单号和支付信息
+						// 直接从下单接口返回结果中获取订单号、订单ID和支付信息
 						// 支付信息直接在result.data中，与genPayInfo接口返回格式一致
 						const orderNo = result.data.orderNo;
+						const orderId = result.data.orderId;
 						const paymentData = result.data;
 						console.log("订单号:", orderNo);
+						console.log("订单ID:", orderId);
 						console.log("支付信息:", paymentData);
 						
 						// 转换支付参数为uni.requestPayment所需格式
@@ -372,7 +374,7 @@
 									uni.hideLoading();
 									// 跳转到支付结果页面，传递支付成功状态
 									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=success`
+										url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
 									});
 								},
 								fail: (err) => {
@@ -383,12 +385,12 @@
 									if (err.errMsg === 'requestPayment:fail cancel') {
 										// 用户取消支付
 										uni.navigateTo({
-											url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=cancel`
+											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
 										});
 									} else {
 										// 支付失败，启动轮询
 										uni.navigateTo({
-											url: `/pages/order/pay-result?orderNo=${orderNo}&payResultType=fail`
+											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
 										});
 									}
 								}
