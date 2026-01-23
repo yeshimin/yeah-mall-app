@@ -134,7 +134,7 @@
 </template>
 
 <script>
-	import { fetchOrderDetail } from '../../utils/api.js';
+	import { fetchOrderDetail, confirmReceive } from '../../utils/api.js';
 	import { BASE_API } from '@/utils/config.js';
 	
 export default {
@@ -297,29 +297,19 @@ export default {
 						);
 						break;
 					case 3: // 待收货 (WAIT_RECEIVE)
-						// 只有当trackingNo不为空时，才显示查看物流按钮
-						if (trackingNo) {
-							actions.push(
-								{ label: '查看物流', value: 'logistics', type: 'default' }
-							);
-						}
-						actions.push(
-							{ label: '确认收货', value: 'confirm', type: 'primary' }
-						);
-						break;
-					case 4: // 交易成功 (COMPLETED)
-						// 只有当trackingNo不为空时，才显示查看物流按钮
-						if (trackingNo) {
-							actions.push(
-								{ label: '查看物流', value: 'logistics', type: 'default' }
-							);
-						}
-						actions.push(
-							{ label: '删除订单', value: 'delete', type: 'default' },
-							{ label: '去评价', value: 'comment', type: 'primary' },
-							{ label: '再次购买', value: 'rebuy', type: 'default' }
-						);
-						break;
+					// 暂时不添加查看物流按钮，使用物流信息区域的入口
+					actions.push(
+						{ label: '确认收货', value: 'confirm', type: 'primary' }
+					);
+					break;
+				case 4: // 交易成功 (COMPLETED)
+					// 暂时不添加查看物流按钮，使用物流信息区域的入口
+					actions.push(
+						{ label: '删除订单', value: 'delete', type: 'default' },
+						{ label: '去评价', value: 'comment', type: 'primary' },
+						{ label: '再次购买', value: 'rebuy', type: 'default' }
+					);
+					break;
 					case 5: // 交易关闭 (CLOSED)
 						actions.push(
 							{ label: '删除订单', value: 'delete', type: 'default' },
@@ -383,25 +373,40 @@ export default {
 						});
 						break;
 					case 'confirm':
-					// 确认收货
-					uni.showModal({
-						title: '确认收货',
-						content: '请确认您已收到商品',
-						confirmText: '确认收货',
-						cancelText: '取消',
-						success: (res) => {
-							if (res.confirm) {
-								// 这里应该调用确认收货接口
-								uni.showToast({
-									title: '已确认收货',
-									icon: 'success'
+				// 确认收货
+				uni.showModal({
+					title: '确认收货',
+					content: '请确认您已收到商品',
+					confirmText: '确认收货',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							// 调用确认收货接口
+							uni.showLoading({
+								title: '处理中...'
+							});
+							confirmReceive(this.orderInfo.orderId)
+								.then(() => {
+									uni.hideLoading();
+									uni.showToast({
+										title: '已确认收货',
+										icon: 'success'
+									});
+									// 重新获取订单详情
+									this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
+								})
+								.catch(error => {
+									uni.hideLoading();
+									console.error('确认收货失败:', error);
+									uni.showToast({
+										title: error.message || '确认收货失败',
+										icon: 'none'
+									});
 								});
-								// 重新获取订单详情
-								this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
-							}
 						}
-					});
-					break;
+					}
+				});
+				break;
 					case 'delete':
 						// 删除订单
 						uni.showModal({

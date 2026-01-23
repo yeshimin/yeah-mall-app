@@ -98,7 +98,7 @@
 </template>
 
 <script>
-	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive } from '../../utils/api.js';
+	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive, cancelOrder } from '../../utils/api.js';
 	import { BASE_API } from '../../utils/config.js';
 	
 	export default {
@@ -584,10 +584,8 @@
 						);
 						break;
 					case 2: // 待发货 (WAIT_SHIP)
-						actions.push(
-							{ label: '提醒发货', value: 'remind', type: 'default' }
-						);
-						break;
+					// 暂时不添加提醒发货按钮
+					break;
 					case 3: // 待收货 (WAIT_RECEIVE)
 						actions.push(
 							{ label: '查看物流', value: 'logistics', type: 'default' },
@@ -602,11 +600,8 @@
 						);
 						break;
 					case 5: // 交易关闭 (CLOSED)
-						actions.push(
-							{ label: '删除订单', value: 'delete', type: 'default' },
-							{ label: '再次购买', value: 'rebuy', type: 'default' }
-						);
-						break;
+					// 暂时不添加删除订单和再次购买按钮
+					break;
 					case 6: // 退款 (REFUND)
 						actions.push(
 							{ label: '退款详情', value: 'refundDetail', type: 'primary' }
@@ -700,25 +695,40 @@
 						});
 						break;
 					case 'cancel':
-						// 取消订单
-						uni.showModal({
-							title: '取消订单',
-							content: '确定要取消该订单吗？',
-							confirmText: '确定',
-							cancelText: '取消',
-							success: (res) => {
-								if (res.confirm) {
-									// 这里应该调用取消订单接口
+				// 取消订单
+				uni.showModal({
+					title: '取消订单',
+					content: '确定要取消该订单吗？',
+					confirmText: '确定',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							// 调用取消订单接口
+							uni.showLoading({
+								title: '处理中...'
+							});
+							cancelOrder(order.id)
+								.then(() => {
+									uni.hideLoading();
 									uni.showToast({
 										title: '订单已取消',
 										icon: 'success'
 									});
 									// 重新获取订单列表
 									this.fetchOrders();
-								}
-							}
-						});
-						break;
+								})
+								.catch(error => {
+									uni.hideLoading();
+									console.error('取消订单失败:', error);
+									uni.showToast({
+										title: error.message || '取消订单失败',
+										icon: 'none'
+									});
+								});
+						}
+					}
+				});
+				break;
 					case 'remind':
 						// 提醒发货
 						uni.showToast({
@@ -802,12 +812,11 @@
 						});
 						break;
 					case 'logistics':
-						// 查看物流
-						uni.showToast({
-							title: '物流查询功能待实现',
-							icon: 'none'
-						});
-						break;
+					// 查看物流
+					uni.navigateTo({
+						url: `/pages/order/logistics?orderId=${order.id}`
+					});
+					break;
 					case 'comment':
 						// 去评价
 						uni.showToast({

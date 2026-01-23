@@ -663,6 +663,39 @@ export const confirmReceive = (orderId) => {
   });
 };
 
+// 取消订单
+export const cancelOrder = (orderId) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/cancel`,
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        id: orderId
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '取消订单失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
 // 获取订单详情
 export const fetchOrderDetail = (orderId) => {
   return new Promise((resolve, reject) => {
