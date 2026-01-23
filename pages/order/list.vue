@@ -642,7 +642,7 @@
 						});
 						
 						// 调用接口获取支付信息
-						fetchPaymentInfo(order.orderNo).then(paymentData => {
+						fetchPaymentInfo(order.id).then(paymentData => {
 							uni.hideLoading();
 							
 							// 转换支付参数为uni.requestPayment所需格式
@@ -663,32 +663,32 @@
 							uni.requestPayment({
 								...payParams,
 								success: (res) => {
-									// 支付成功处理
-									console.log('支付成功', res);
-									uni.showToast({
-										title: '支付成功',
-										icon: 'success'
-									});
-									// 跳转到支付结果页面，传递支付成功状态
-									uni.navigateTo({
-										url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=success`
-									});
-								},
-								fail: (err) => {
-									// 支付失败处理
-									console.log('支付失败', err);
-									if (err.errMsg === 'requestPayment:fail cancel') {
-										// 用户取消支付
-										uni.navigateTo({
-											url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=cancel`
-										});
-									} else {
-										// 支付失败，启动轮询
-										uni.navigateTo({
-											url: `/pages/order/pay-result?orderNo=${order.orderNo}&payResultType=fail`
-										});
-									}
-								}
+							// 支付成功处理
+							console.log('支付成功', res);
+							uni.showToast({
+								title: '支付成功',
+								icon: 'success'
+							});
+							// 跳转到支付结果页面，传递支付成功状态
+							uni.navigateTo({
+								url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=success`
+							});
+						},
+						fail: (err) => {
+							// 支付失败处理
+							console.log('支付失败', err);
+							if (err.errMsg === 'requestPayment:fail cancel') {
+								// 用户取消支付
+								uni.navigateTo({
+									url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=cancel`
+								});
+							} else {
+								// 支付失败，启动轮询
+								uni.navigateTo({
+									url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=fail`
+								});
+							}
+						}
 							});
 						}).catch(err => {
 							uni.hideLoading();
@@ -727,40 +727,40 @@
 						});
 						break;
 					case 'confirm':
-					// 确认收货
-					uni.showModal({
-						title: '确认收货',
-						content: '请确认您已收到商品',
-						confirmText: '确认收货',
-						cancelText: '取消',
-						success: (res) => {
-							if (res.confirm) {
-								// 调用确认收货接口
-								uni.showLoading({
-									title: '处理中...'
-								});
-								confirmReceive(order.orderNo)
-									.then(() => {
-										uni.hideLoading();
-										uni.showToast({
-											title: '已确认收货',
-											icon: 'success'
-										});
-										// 重新获取订单列表
-										this.fetchOrders();
-									})
-									.catch(error => {
-										uni.hideLoading();
-										console.error('确认收货失败:', error);
-										uni.showToast({
-											title: error.message || '确认收货失败',
-											icon: 'none'
-										});
+				// 确认收货
+				uni.showModal({
+					title: '确认收货',
+					content: '请确认您已收到商品',
+					confirmText: '确认收货',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							// 调用确认收货接口
+							uni.showLoading({
+								title: '处理中...'
+							});
+							confirmReceive(order.id)
+								.then(() => {
+									uni.hideLoading();
+									uni.showToast({
+										title: '已确认收货',
+										icon: 'success'
 									});
-							}
+									// 重新获取订单列表
+									this.fetchOrders();
+								})
+								.catch(error => {
+									uni.hideLoading();
+									console.error('确认收货失败:', error);
+									uni.showToast({
+										title: error.message || '确认收货失败',
+										icon: 'none'
+									});
+								});
 						}
-					});
-					break;
+					}
+				});
+				break;
 					case 'delete':
 						// 删除订单
 						uni.showModal({

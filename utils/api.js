@@ -27,7 +27,7 @@ export const fetchProductCategoryTree = () => {
 };
 
 // 生成支付信息接口
-export const genPayInfo = (orderNo) => {
+export const genPayInfo = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_API}/app/order/genPayInfo`,
@@ -37,7 +37,7 @@ export const genPayInfo = (orderNo) => {
         'Content-Type': 'application/json'
       },
       data: {
-        orderNo: orderNo
+        orderId: orderId
       },
       success: (res) => {
         // 全局认证失败处理
@@ -60,7 +60,7 @@ export const genPayInfo = (orderNo) => {
 };
 
 // 获取支付信息接口（与genPayInfo功能相同，用于兼容旧代码）
-export const fetchPaymentInfo = (orderNo) => {
+export const fetchPaymentInfo = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_API}/app/order/genPayInfo`,
@@ -70,7 +70,7 @@ export const fetchPaymentInfo = (orderNo) => {
         'Content-Type': 'application/json'
       },
       data: {
-        orderNo: orderNo
+        orderId: orderId
       },
       success: (res) => {
         // 全局认证失败处理
@@ -631,7 +631,7 @@ export const fetchDistricts = (cityCode) => {
 };
 
 // 确认收货
-export const confirmReceive = (orderNo) => {
+export const confirmReceive = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_API}/app/order/confirmReceive`,
@@ -641,7 +641,7 @@ export const confirmReceive = (orderNo) => {
         'Content-Type': 'application/json'
       },
       data: {
-        orderNo: orderNo
+        orderId: orderId
       },
       success: (res) => {
         // 全局认证失败处理
