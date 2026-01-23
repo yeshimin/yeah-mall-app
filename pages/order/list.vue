@@ -98,7 +98,7 @@
 </template>
 
 <script>
-	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo } from '../../utils/api.js';
+	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive } from '../../utils/api.js';
 	import { BASE_API } from '../../utils/config.js';
 	
 	export default {
@@ -730,25 +730,40 @@
 						});
 						break;
 					case 'confirm':
-						// 确认收货
-						uni.showModal({
-							title: '确认收货',
-							content: '请确认您已收到商品',
-							confirmText: '确认收货',
-							cancelText: '取消',
-							success: (res) => {
-								if (res.confirm) {
-									// 这里应该调用确认收货接口
-									uni.showToast({
-										title: '已确认收货',
-										icon: 'success'
+					// 确认收货
+					uni.showModal({
+						title: '确认收货',
+						content: '请确认您已收到商品',
+						confirmText: '确认收货',
+						cancelText: '取消',
+						success: (res) => {
+							if (res.confirm) {
+								// 调用确认收货接口
+								uni.showLoading({
+									title: '处理中...'
+								});
+								confirmReceive(order.orderNo)
+									.then(() => {
+										uni.hideLoading();
+										uni.showToast({
+											title: '已确认收货',
+											icon: 'success'
+										});
+										// 重新获取订单列表
+										this.fetchOrders();
+									})
+									.catch(error => {
+										uni.hideLoading();
+										console.error('确认收货失败:', error);
+										uni.showToast({
+											title: error.message || '确认收货失败',
+											icon: 'none'
+										});
 									});
-									// 重新获取订单列表
-									this.fetchOrders();
-								}
 							}
-						});
-						break;
+						}
+					});
+					break;
 					case 'delete':
 						// 删除订单
 						uni.showModal({
