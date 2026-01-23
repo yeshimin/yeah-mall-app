@@ -662,3 +662,63 @@ export const confirmReceive = (orderNo) => {
     });
   });
 };
+
+// 获取订单详情
+export const fetchOrderDetail = (orderNo) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/detail?orderNo=${orderNo}`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '获取订单详情失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};
+
+// 查询物流信息
+export const queryTracking = (orderId) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/order/queryTracking?orderId=${orderId}`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        // 全局认证失败处理
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure();
+          reject(new Error('AUTH_401'));
+          return;
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error(res.data.message || '查询物流信息失败'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      }
+    });
+  });
+};

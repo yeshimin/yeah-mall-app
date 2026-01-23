@@ -41,7 +41,7 @@
 					</view>
 					
 					<!-- 订单商品列表 -->
-					<view class="order-goods" v-for="(goods, idx) in order.goods" :key="idx" @click="goToDetail(order.id)">
+					<view class="order-goods" v-for="(goods, idx) in order.goods" :key="idx" @click="goToDetail(order.id, order.orderNo)">
 						<image class="goods-image" :src="goods.image" mode="aspectFill"></image>
 						<view class="goods-info">
 							<text class="goods-name">{{ goods.name }}</text>
@@ -181,9 +181,9 @@
 			},
 			
 			// 跳转到订单详情
-			goToDetail(orderId) {
+			goToDetail(orderId, orderNo) {
 				uni.navigateTo({
-					url: `/pages/order/detail?id=${orderId}`
+					url: `/pages/order/detail?orderNo=${orderNo}`
 				});
 			},
 			
@@ -585,8 +585,7 @@
 						break;
 					case 2: // 待发货 (WAIT_SHIP)
 						actions.push(
-							{ label: '提醒发货', value: 'remind', type: 'default' },
-							{ label: '查看详情', value: 'detail', type: 'default' }
+							{ label: '提醒发货', value: 'remind', type: 'default' }
 						);
 						break;
 					case 3: // 待收货 (WAIT_RECEIVE)
@@ -610,13 +609,11 @@
 						break;
 					case 6: // 退款 (REFUND)
 						actions.push(
-							{ label: '查看详情', value: 'detail', type: 'default' },
 							{ label: '退款详情', value: 'refundDetail', type: 'primary' }
 						);
 						break;
 					case 7: // 售后 (AFTER_SALE)
 						actions.push(
-							{ label: '查看详情', value: 'detail', type: 'default' },
 							{ label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
 						);
 						break;
@@ -791,12 +788,7 @@
 							icon: 'none'
 						});
 						break;
-					case 'detail':
-						// 查看详情
-						uni.navigateTo({
-							url: `/pages/order/detail?id=${order.id}`
-						});
-						break;
+					
 					case 'refundDetail':
 						// 退款详情
 						uni.navigateTo({
