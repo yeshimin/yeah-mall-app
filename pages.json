@@ -85,6 +85,12 @@
 			}
 		},
 		{
+			"path": "pages/order/refund-apply",
+			"style": {
+				"navigationBarTitleText": "申请退款"
+			}
+		},
+		{
 			"path": "pages/address/list",
 			"style": {
 				"navigationBarTitleText": "地址管理"

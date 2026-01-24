@@ -98,7 +98,7 @@
 </template>
 
 <script>
-	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive, cancelOrder } from '../../utils/api.js';
+	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive, cancelOrder, applyRefund } from '../../utils/api.js';
 	import { BASE_API } from '../../utils/config.js';
 	
 	export default {
@@ -584,7 +584,10 @@
 						);
 						break;
 					case 2: // 待发货 (WAIT_SHIP)
-					// 暂时不添加提醒发货按钮
+					actions.push(
+						{ label: '提醒发货', value: 'remind', type: 'default' },
+						{ label: '退款', value: 'refund', type: 'primary' }
+					);
 					break;
 					case 3: // 待收货 (WAIT_RECEIVE)
 						actions.push(
@@ -734,6 +737,12 @@
 						uni.showToast({
 							title: '已提醒商家发货',
 							icon: 'success'
+						});
+						break;
+					case 'refund':
+						// 导航到退款申请页面
+						uni.navigateTo({
+							url: `/pages/order/refund-apply?orderId=${order.id}`
 						});
 						break;
 					case 'confirm':
