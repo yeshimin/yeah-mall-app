@@ -162,15 +162,23 @@ export default {
 				// 加载状态
 				loading: true,
 				// 订单状态与文本映射
-				statusMap: {
-					'1': '待付款',
-					'2': '待发货',
-					'3': '待收货',
-					'4': '交易成功',
-					'5': '交易关闭',
-					'6': '退款',
-					'7': '售后'
-				}
+			statusMap: {
+				'1': '待付款',
+				'2': '待发货',
+				'3': '待收货',
+				'4': '交易成功',
+				'5': '交易关闭',
+				'6': '退款',
+				'7': '售后'
+			},
+			// 退款子状态与文本映射
+			refundStatusMap: {
+				'1': '申请中',
+				'2': '处理中',
+				'3': '退款成功',
+				'4': '已拒绝',
+				'5': '退款失败'
+			}
 			};
 		},
 		onLoad(options) {
@@ -218,7 +226,10 @@ export default {
 				let statusText = this.statusMap[order.status] || '未知状态';
 				
 				// 处理退款/售后状态的显示
-				if (order.refundStatus && order.refundStatus !== '0') {
+				if (order.status === '6' && order.refundStatus && order.refundStatus !== '0') {
+					// 订单状态为退款时，显示具体的退款子状态
+					statusText = this.refundStatusMap[order.refundStatus] || '退款中';
+				} else if (order.refundStatus && order.refundStatus !== '0') {
 					statusText = '退款中';
 				} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
 					statusText = '售后中';

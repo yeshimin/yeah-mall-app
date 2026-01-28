@@ -606,10 +606,8 @@
 					// 暂时不添加删除订单和再次购买按钮
 					break;
 					case 6: // 退款 (REFUND)
-						actions.push(
-							{ label: '退款详情', value: 'refundDetail', type: 'primary' }
-						);
-						break;
+					// 暂时不添加退款详情按钮
+					break;
 					case 7: // 售后 (AFTER_SALE)
 						actions.push(
 							{ label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
