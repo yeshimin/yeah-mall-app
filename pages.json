@@ -107,6 +107,12 @@
 			"style": {
 				"navigationBarTitleText": "发表评价"
 			}
+		},
+		{
+			"path": "pages/order/review-detail",
+			"style": {
+				"navigationBarTitleText": "评价详情"
+			}
 		}
 	],
 	"globalStyle": {

@@ -938,9 +938,8 @@
 					case 'viewReview':
 						// 查看评价
 						console.log('Viewing review for order', order.id);
-						uni.showToast({
-							title: '查看评价功能开发中',
-							icon: 'none'
+						uni.navigateTo({
+							url: `/pages/order/review-detail?orderId=${order.id}`
 						});
 						break;
 					default:
