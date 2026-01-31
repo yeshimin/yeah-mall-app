@@ -186,8 +186,14 @@ export default {
 			// 格式化时间
 			formatTime(timeStr) {
 				if (!timeStr) return '';
+				// 处理 iOS 不支持的日期格式
+				let formattedTimeStr = timeStr;
+				// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 "yyyy/MM/dd HH:mm:ss" 格式，iOS 支持
+				if (timeStr.includes(' ') && !timeStr.includes('T')) {
+					formattedTimeStr = timeStr.replace(/-/g, '/');
+				}
 				// 将时间字符串转换为Date对象
-				const date = new Date(timeStr);
+				const date = new Date(formattedTimeStr);
 				// 格式化为 yyyy-MM-dd HH:mm:ss 格式
 				const year = date.getFullYear();
 				const month = String(date.getMonth() + 1).padStart(2, '0');

@@ -15,6 +15,19 @@
 			</view>
 		</scroll-view>
 		
+		<!-- 评价Tab的子Tab -->
+		<view v-if="activeTab == 5" class="review-sub-tabs">
+			<view 
+				v-for="tab in reviewSubTabs" 
+				:key="tab.value"
+				class="review-sub-tab-item"
+				:class="{ active: activeReviewSubTab === tab.value }"
+				@click="switchReviewSubTab(tab.value)"
+			>
+				<text>{{ tab.label }}</text>
+			</view>
+		</view>
+		
 		<!-- 订单列表 -->
 		<scroll-view class="order-content" scroll-y="true" @scrolltolower="loadMore" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
 			<view v-if="loading && orders.length === 0" class="loading-container">
@@ -68,15 +81,39 @@
 					
 					<!-- 订单操作按钮 -->
 					<view class="order-actions">
-						<button 
-							v-for="action in getOrderActions(order.orderStatus)" 
-							:key="action.value"
-							class="action-btn"
-							:class="action.type"
-							@click="handleOrderAction(action.value, order)"
-						>
-							{{ action.label }}
-						</button>
+						<template v-if="activeTab === 5">
+							<!-- 评价Tab的特殊处理 -->
+							<template v-if="activeReviewSubTab === 0">
+								<!-- 待评价 -->
+								<button 
+									class="action-btn primary"
+									@click="handleOrderAction('comment', order)"
+								>
+									去评价
+								</button>
+							</template>
+							<template v-else>
+								<!-- 已评价 -->
+								<button 
+									class="action-btn default"
+									@click="handleOrderAction('viewReview', order)"
+								>
+									查看评价
+								</button>
+							</template>
+						</template>
+						<template v-else>
+							<!-- 其他Tab的默认处理 -->
+							<button 
+								v-for="action in getOrderActions(order.orderStatus)" 
+								:key="action.value"
+								class="action-btn"
+								:class="action.type"
+								@click="handleOrderAction(action.value, order)"
+							>
+								{{ action.label }}
+							</button>
+						</template>
 					</view>
 				</view>
 				
@@ -113,8 +150,15 @@
 					{ label: '退款/售后', value: 4 },
 					{ label: '评价', value: 5 }
 				],
+				// 评价Tab的子Tab
+				reviewSubTabs: [
+					{ label: '待评价', value: 0 },
+					{ label: '已评价', value: 1 }
+				],
 				// 当前激活的Tab
 				activeTab: 0,
+				// 当前激活的评价子Tab
+				activeReviewSubTab: 0,
 				// 滚动位置
 				scrollLeft: 0,
 				// 订单数据
@@ -225,8 +269,14 @@
 			// 格式化时间
 			formatTime(timeStr) {
 				if (!timeStr) return '';
+				// 处理 iOS 不支持的日期格式
+				let formattedTimeStr = timeStr;
+				// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 "yyyy/MM/dd HH:mm:ss" 格式，iOS 支持
+				if (timeStr.includes(' ') && !timeStr.includes('T')) {
+					formattedTimeStr = timeStr.replace(/-/g, '/');
+				}
 				// 将时间字符串转换为Date对象
-				const date = new Date(timeStr);
+				const date = new Date(formattedTimeStr);
 				// 格式化为 yyyy-MM-dd HH:mm:ss 格式
 				const year = date.getFullYear();
 				const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -240,12 +290,23 @@
 			// 切换订单状态Tab
 			switchTab(value) {
 				this.activeTab = value;
+				// 如果切换到评价Tab，默认选中待评价
+				if (value === 5) {
+					this.activeReviewSubTab = 0;
+				}
 				// 重置分页信息并重新获取数据
 				this.fetchOrders(true);
 				// 计算滚动位置，让当前选中的Tab居中显示
 				this.$nextTick(() => {
 					this.scrollToActiveTab();
 				});
+			},
+			
+			// 切换评价子Tab
+			switchReviewSubTab(value) {
+				this.activeReviewSubTab = value;
+				// 重置分页信息并重新获取数据
+				this.fetchOrders(true);
 			},
 			
 			// 滚动到当前选中的Tab
@@ -277,8 +338,16 @@
 				
 				this.loading = true;
 				try {
+					// 构建conditions参数
+					let conditions = '';
+					if (this.activeTab === 5) {
+						// 评价Tab，添加isReviewed条件
+						const isReviewedValue = this.activeReviewSubTab;
+						conditions = `isReviewed:eq:${isReviewedValue}`;
+					}
+					
 					// 调用真实接口获取订单数据
-					const response = await fetchOrderList(this.activeTab, this.pageInfo.current, this.pageInfo.size);
+					const response = await fetchOrderList(this.activeTab, this.pageInfo.current, this.pageInfo.size, conditions);
 					
 					// 更新分页信息
 					this.pageInfo = {
@@ -355,9 +424,9 @@
 					statusText = this.refundStatusMap[order.refundStatus] || '退款中';
 				} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
 					statusText = this.afterSaleStatusMap[order.afterSaleStatus] || '售后中';
-				} else if (order.orderStatus === '4' && !order.reviewed) {
+				} else if (order.orderStatus === '4' && !order.isReviewed) {
 					statusText = '待评价';
-				} else if (order.orderStatus === '4' && order.reviewed) {
+				} else if (order.orderStatus === '4' && order.isReviewed) {
 					statusText = '已完成';
 				}
 				
@@ -384,22 +453,22 @@
 				const calculatedTotalPrice = processedGoods.reduce((total, item) => total + (item.price * item.quantity), 0);
 				
 				return {
-					id: order.orderId,
-					orderNo: order.orderNo,
-					shopId: order.shopId,
-					shopName: order.shopName || `店铺${order.shopId}`,
-					orderStatus: parseInt(order.orderStatus),
-					statusText: statusText,
-					totalPrice: calculatedTotalPrice, // 使用计算得出的价格
-					totalQuantity: totalQuantity,
-					shippingFee: parseFloat(order.shippingFee || 0),
-					createTime: order.createTime,
-					paySuccessTime: order.paySuccessTime, // 支付成功时间
-					refundStatus: order.refundStatus,
-					afterSaleStatus: order.afterSaleStatus,
-					reviewed: order.reviewed,
-					goods: processedGoods
-				};
+						id: order.orderId,
+						orderNo: order.orderNo,
+						shopId: order.shopId,
+						shopName: order.shopName || `店铺${order.shopId}`,
+						orderStatus: parseInt(order.orderStatus),
+						statusText: statusText,
+						totalPrice: calculatedTotalPrice, // 使用计算得出的价格
+						totalQuantity: totalQuantity,
+						shippingFee: parseFloat(order.shippingFee || 0),
+						createTime: order.createTime,
+						paySuccessTime: order.paySuccessTime, // 支付成功时间
+						refundStatus: order.refundStatus,
+						afterSaleStatus: order.afterSaleStatus,
+						isReviewed: order.isReviewed,
+						goods: processedGoods
+					};
 			});
 		},
 			
@@ -538,7 +607,7 @@
 						afterSaleStatus: '0',
 						shippingFee: 0.00,
 						createTime: '2025-12-19 14:20:00',
-						reviewed: false,
+						isReviewed: false,
 						items: [
 							{
 								spuId: 501,
@@ -554,6 +623,34 @@
 								quantity: 1
 							}
 						]
+					},
+					// 已评价订单
+					{
+						id: 6,
+						shopId: 6,
+						shopName: '电子产品店',
+						orderStatus: 4,
+						statusText: '已完成',
+						refundStatus: '0',
+						afterSaleStatus: '0',
+						shippingFee: 0.00,
+						createTime: '2025-12-18 10:30:00',
+						isReviewed: true,
+						items: [
+							{
+								spuId: 601,
+								spuName: '无线耳机',
+								spuMainImage: 'earphone001',
+								skuId: 6001,
+								skuName: '黑色-标准版',
+								specs: [
+									{ specName: '颜色', optName: '黑色' },
+									{ specName: '版本', optName: '标准版' }
+								],
+								price: 399.00,
+								quantity: 1
+							}
+						]
 					}
 				];
 				
@@ -566,7 +663,14 @@
 				} else if (this.activeTab === 3) {
 					filteredOrders = mockOrders.filter(order => order.orderStatus === 3);
 				} else if (this.activeTab === 5) {
-					filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && !order.reviewed);
+					// 根据评价子Tab过滤订单
+					if (this.activeReviewSubTab === 0) {
+						// 待评价
+						filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && !order.isReviewed);
+					} else {
+						// 已评价
+						filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && order.isReviewed);
+					}
 				}
 				
 				return this.processOrderData(filteredOrders);
@@ -826,8 +930,16 @@
 					break;
 					case 'comment':
 						// 去评价
+						console.log('Navigating to review page', order.id);
+						uni.navigateTo({
+							url: `/pages/order/review?orderId=${order.id}`
+						});
+						break;
+					case 'viewReview':
+						// 查看评价
+						console.log('Viewing review for order', order.id);
 						uni.showToast({
-							title: '评价功能待实现',
+							title: '查看评价功能开发中',
 							icon: 'none'
 						});
 						break;
@@ -890,6 +1002,43 @@
 	}
 
 	.tab-item.active::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 40rpx;
+		height: 4rpx;
+		background-color: #3cc51f;
+		border-radius: 2rpx;
+	}
+
+	/* 评价Tab的子Tab */
+	.review-sub-tabs {
+		display: flex;
+		background-color: #fff;
+		border-bottom: 1rpx solid #f5f5f5;
+		position: sticky;
+		top: 80rpx;
+		z-index: 80;
+	}
+
+	.review-sub-tab-item {
+		flex: 1;
+		height: 70rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 26rpx;
+		color: #666;
+		position: relative;
+	}
+
+	.review-sub-tab-item.active {
+		color: #3cc51f;
+	}
+
+	.review-sub-tab-item.active::after {
 		content: '';
 		position: absolute;
 		bottom: 0;

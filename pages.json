@@ -101,6 +101,12 @@
 			"style": {
 				"navigationBarTitleText": "编辑地址"
 			}
+		},
+		{
+			"path": "pages/order/review",
+			"style": {
+				"navigationBarTitleText": "发表评价"
+			}
 		}
 	],
 	"globalStyle": {

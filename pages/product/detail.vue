@@ -28,6 +28,29 @@
 					<text class="tag">7天无理由退换</text>
 				</view>
 			</view>
+            
+			<!-- 评价区域 -->
+            <view class="review-section" v-if="reviewSummary.totalCount > 0">
+                <view class="review-header">
+                    <view class="review-title">
+                        <text class="title-text">评价 ({{ reviewSummary.totalCount }})</text>
+                        <text class="good-rate">好评度 {{ reviewSummary.goodRate }}%</text>
+                    </view>
+                </view>
+                
+                <view class="review-list">
+                    <view class="review-item" v-for="(item, index) in reviewSummary.topReviews" :key="index">
+                        <view class="rp-user">
+                            <image :src="item.userAvatar || 'https://via.placeholder.com/40'" class="rp-avatar"></image>
+                            <text class="rp-name">{{ item.userName }}</text>
+                            <text class="rp-time">{{ item.createTime }}</text>
+                        </view>
+                        <view class="rp-content">
+                            {{ item.content }}
+                        </view>
+                    </view>
+                </view>
+            </view>
 			
 			<!-- 商品详情介绍图文区域 -->
 			<view class="detail-section">
@@ -151,7 +174,8 @@
 
 <script>
 	import { getUserId, handleAuthFailure, authRequest, getToken } from '@/utils/auth.js'
-	import { BASE_API } from '@/utils/config.js'
+	import { fetchReviewSummary } from '@/utils/api.js'
+    import { BASE_API } from '@/utils/config.js'
 
 export default {
 		data() {
@@ -167,10 +191,20 @@ export default {
 					selectedSpecs: {}, // 选中的规格
 					isCollected: false, // 收藏状态
 					selectedQuantity: 1,
-					stock: 100 // 示例库存
+					stock: 100, // 示例库存
+                    reviewSummary: { // 评价概览数据
+                        totalCount: 0,
+                        goodRate: 100,
+                        topReviews: []
+                    }
 				}
 			},
 		methods: {
+            loadReviewSummary(productId) {
+                fetchReviewSummary(productId).then(data => {
+                    this.reviewSummary = data;
+                });
+            },
 				goBack() {
 					uni.navigateBack();
 				},
@@ -786,6 +820,86 @@ export default {
 		padding: 5rpx 10rpx;
 		margin-right: 10rpx;
 	}
+    
+    .review-section {
+        margin-top: 20rpx;
+        padding: 20rpx;
+        background-color: #fff;
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20rpx;
+    }
+    
+    .review-title {
+        display: flex;
+        align-items: center;
+    }
+    
+    .title-text {
+        font-size: 30rpx;
+        font-weight: bold;
+        margin-right: 20rpx;
+    }
+    
+    .good-rate {
+        font-size: 24rpx;
+        color: #ff5000;
+        background-color: #fff1eb;
+        padding: 2rpx 10rpx;
+        border-radius: 20rpx;
+    }
+    
+    .review-more {
+        font-size: 24rpx;
+        color: #999;
+        display: flex;
+        align-items: center;
+    }
+    
+    .arrow {
+        margin-left: 6rpx;
+    }
+    
+    .review-preview {
+        
+    }
+    
+    .rp-user {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10rpx;
+    }
+    
+    .rp-avatar {
+        width: 40rpx;
+        height: 40rpx;
+        border-radius: 50%;
+        margin-right: 10rpx;
+        background-color: #eee;
+    }
+    
+    .rp-name {
+        font-size: 24rpx;
+        color: #666;
+    }
+    
+    .rp-content {
+        font-size: 26rpx;
+        color: #333;
+        line-height: 1.4;
+    }
+    
+    .text-ellipsis {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
 	
 	.detail-section {
 		padding: 20rpx;

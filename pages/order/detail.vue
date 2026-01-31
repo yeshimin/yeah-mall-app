@@ -440,9 +440,9 @@ export default {
 						break;
 					case 'comment':
 						// 去评价
-						uni.showToast({
-							title: '评价功能待实现',
-							icon: 'none'
+						console.log('Navigating to review page', this.orderInfo.orderId);
+						uni.navigateTo({
+							url: `/pages/order/review?orderId=${this.orderInfo.orderId}`
 						});
 						break;
 					case 'rebuy':
