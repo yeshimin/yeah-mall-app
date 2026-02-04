@@ -46,6 +46,7 @@
 	
 <script>
 	import { BASE_API } from '@/utils/config.js'
+		import wsManager from '@/utils/websocket.js'
 	
 	export default {
 		data() {
@@ -181,14 +182,17 @@
 							}
 							
 							uni.showToast({
-								title: '登录成功',
-								icon: 'success'
-							})
-							
-							// 返回到上一页
-							setTimeout(() => {
-								uni.navigateBack()
-							}, 1000)
+							title: '登录成功',
+							icon: 'success'
+						})
+						
+						// 登录成功后初始化 WebSocket 连接
+						wsManager.init();
+						
+						// 返回到上一页
+						setTimeout(() => {
+							uni.navigateBack()
+						}, 1000)
 						} else {
 							uni.showToast({
 								title: (res.data && res.data.message) || '登录失败',

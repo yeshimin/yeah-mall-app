@@ -91,6 +91,12 @@
 			}
 		},
 		{
+			"path": "pages/customer-service/index",
+			"style": {
+				"navigationBarTitleText": "客服聊天"
+			}
+		},
+		{
 			"path": "pages/address/list",
 			"style": {
 				"navigationBarTitleText": "地址管理"

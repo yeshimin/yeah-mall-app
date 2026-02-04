@@ -266,10 +266,9 @@ export default {
 				});
 			},
 			contactService() {
-					// 联系客服逻辑
-					uni.showToast({
-						title: '联系客服',
-						icon: 'none'
+					// 跳转到客服聊天页面
+					uni.navigateTo({
+						url: '/pages/customer-service/index'
 					});
 				},
 				showSpecPopup() {

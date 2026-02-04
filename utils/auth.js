@@ -1,4 +1,5 @@
 // 认证相关工具函数
+import wsManager from './websocket.js';
 
 /**
  * 解析JWT token获取payload
@@ -68,6 +69,8 @@ export function getToken() {
 export function clearAuthInfo() {
 	uni.removeStorageSync('token')
 	uni.removeStorageSync('userId')
+	// 关闭 WebSocket 连接
+	wsManager.close()
 }
 
 /**
