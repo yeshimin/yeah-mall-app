@@ -165,7 +165,10 @@
 						'可以优惠吗？'
 					],
 					showShopInfoPopup: false,
-					isInputFocused: false
+					isInputFocused: false,
+					// 会话信息
+					conversationInfo: null, // 会话信息
+					conversationId: null // 会话ID
 				};
 			},
 			computed: {
@@ -193,6 +196,12 @@
 
 				// 发送文本消息
 				sendTextMessage() {
+					// 确保会话ID存在
+					if (!this.conversationId) {
+						console.error('发送文本消息失败：会话ID为null');
+						return;
+					}
+					
 					const content = this.inputMessage.trim();
 					const now = new Date();
 					const newMessage = {
@@ -212,9 +221,7 @@
 						command: 'cs-chat.mem',
 						subCmd: 'msg.mem2mch',
 						payload: {
-							shopId: this.shopInfo.shopId,
-							from: this.userInfo.userId,
-							to: this.shopInfo.merchantId,
+							conversationId: this.conversationId,
 							content: content,
 							type: 1 // 文本消息
 						}
@@ -236,89 +243,121 @@
 				},
 
 				// 发送图片消息
-				sendImageMessage() {
-					if (!this.selectedImage) return;
+			sendImageMessage() {
+				if (!this.selectedImage) return;
 
-					// 上传图片
-					uni.showLoading({ title: '上传中...' });
-					uni.uploadFile({
-						url: 'http://localhost:8080/app/storage/upload',
-						filePath: this.selectedImage,
-						name: 'file',
-						header: {
-							'Authorization': `Bearer ${getToken()}`
-						},
-						success: (uploadRes) => {
-							uni.hideLoading();
-							if (uploadRes.statusCode === 200) {
-								const response = JSON.parse(uploadRes.data);
-								if (response.code === 0) {
-									const fileKey = response.data.fileKey;
-									
-									// 添加到用户消息列表
-									const now = new Date();
-									const newMessage = {
-										content: '[图片]',
-										time: this.getCurrentTime(),
-										timestamp: now.getTime(), // 添加时间戳
-										imageUrl: this.selectedImage,
-										type: 'user' // 用户消息
-									};
-									this.userMessages.push(newMessage);
-									this.selectedImage = null;
-									
-									// 构造WebSocket消息格式
-									const wsMessage = {
-										category: 'biz-handle',
-										command: 'cs-chat.mem',
-										subCmd: 'msg.mem2mch',
-										payload: {
-											shopId: this.shopInfo.shopId,
-											from: this.userInfo.userId,
-											to: this.shopInfo.merchantId,
-											content: fileKey,
-											type: 2 // 图片消息
-										}
-									};
-									
-									// 发送WebSocket消息
-									console.log('发送图片消息:', wsMessage);
-									const sendResult = wsManager.send(wsMessage);
-									if (!sendResult) {
-										uni.showToast({
-											title: '发送失败，请检查网络连接',
-											icon: 'none'
-										});
+				// 确保会话ID存在
+				if (!this.conversationId) {
+					this.initConversation().then(() => {
+						this.doSendImageMessage();
+					}).catch(() => {
+						uni.showToast({
+							title: '初始化会话失败，无法发送消息',
+							icon: 'none'
+						});
+					});
+				} else {
+					this.doSendImageMessage();
+				}
+			},
+
+			// 执行发送图片消息的实际操作
+			doSendImageMessage() {
+				// 上传图片
+				uni.showLoading({ title: '上传中...' });
+				uni.uploadFile({
+					url: 'http://localhost:8080/app/storage/upload',
+					filePath: this.selectedImage,
+					name: 'file',
+					header: {
+						'Authorization': `Bearer ${getToken()}`
+					},
+					success: (uploadRes) => {
+						uni.hideLoading();
+						if (uploadRes.statusCode === 200) {
+							const response = JSON.parse(uploadRes.data);
+							if (response.code === 0) {
+								const fileKey = response.data.fileKey;
+								
+								// 添加到用户消息列表
+								const now = new Date();
+								const newMessage = {
+									content: '[图片]',
+									time: this.getCurrentTime(),
+									timestamp: now.getTime(), // 添加时间戳
+									imageUrl: this.selectedImage,
+									type: 'user' // 用户消息
+								};
+								this.userMessages.push(newMessage);
+								this.selectedImage = null;
+								
+								// 构造WebSocket消息格式
+								const wsMessage = {
+									category: 'biz-handle',
+									command: 'cs-chat.mem',
+									subCmd: 'msg.mem2mch',
+									payload: {
+										conversationId: this.conversationId,
+										content: fileKey,
+										type: 2 // 图片消息
 									}
-									
-									this.$nextTick(() => {
-										this.scrollToBottom();
-									});
-								} else {
+								};
+								
+								// 发送WebSocket消息
+								console.log('发送图片消息:', wsMessage);
+								const sendResult = wsManager.send(wsMessage);
+								if (!sendResult) {
 									uni.showToast({
-										title: '上传失败: ' + (response.message || '未知错误'),
+										title: '发送失败，请检查网络连接',
 										icon: 'none'
 									});
 								}
+								
+								this.$nextTick(() => {
+									this.scrollToBottom();
+								});
 							} else {
 								uni.showToast({
-									title: '上传失败: ' + uploadRes.statusCode,
+									title: '上传失败: ' + (response.message || '未知错误'),
 									icon: 'none'
 								});
 							}
-						},
-						fail: (error) => {
-							uni.hideLoading();
+						} else {
 							uni.showToast({
-								title: '上传失败: ' + error.errMsg,
+								title: '上传失败: ' + uploadRes.statusCode,
 								icon: 'none'
 							});
 						}
-					});
-				},
+					},
+					fail: (error) => {
+						uni.hideLoading();
+						uni.showToast({
+							title: '上传失败: ' + error.errMsg,
+							icon: 'none'
+						});
+					}
+				});
+			},
 
 			// 发送快捷问题
 			sendQuickQuestion(question) {
+				// 确保会话ID存在
+				if (!this.conversationId) {
+					this.initConversation().then(() => {
+						this.doSendQuickQuestion(question);
+					}).catch(() => {
+						uni.showToast({
+							title: '初始化会话失败，无法发送消息',
+							icon: 'none'
+						});
+					});
+				} else {
+					this.doSendQuickQuestion(question);
+				}
+			},
+
+			// 执行发送快捷问题的实际操作
+			doSendQuickQuestion(question) {
 				const now = new Date();
 				const newMessage = {
 					content: question,
@@ -336,9 +375,7 @@
 					command: 'cs-chat.mem',
 					subCmd: 'msg.mem2mch',
 					payload: {
-						shopId: this.shopInfo.shopId,
-						from: this.userInfo.userId,
-						to: this.shopInfo.merchantId,
+						conversationId: this.conversationId,
 						content: question,
 						type: 1 // 文本消息
 					}
@@ -438,14 +475,65 @@
 			}
 		},
 		onLoad(options) {
-				// 接收从商品详情页面传递过来的参数
-				if (options && options.shopId) {
-					this.shopInfo.shopId = options.shopId;
-				}
-				if (options && options.mchId) {
-					this.shopInfo.merchantId = options.mchId;
-				}
-				console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
+					// 接收从商品详情页面传递过来的参数
+					if (options && options.shopId) {
+						this.shopInfo.shopId = options.shopId;
+					}
+					if (options && options.mchId) {
+						this.shopInfo.merchantId = options.mchId;
+					}
+					if (options && options.conversationId) {
+						// 如果已经从商品详情页面传递了会话ID，直接使用
+						this.conversationId = options.conversationId;
+						console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
+					} else {
+						// 否则初始化会话，获取会话ID
+						this.initConversation();
+					}
+					console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
+				},
+			// 初始化会话
+			initConversation() {
+				return new Promise((resolve, reject) => {
+					uni.showLoading({ title: '初始化会话...' });
+					uni.request({
+						url: 'http://localhost:8080/app/csConversation/init',
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${getToken()}`
+						},
+						data: {
+							shopId: this.shopInfo.shopId
+						},
+						success: (res) => {
+							uni.hideLoading();
+							if (res.statusCode === 200 && res.data.code === 0) {
+								const conversationData = res.data.data;
+								this.conversationInfo = conversationData;
+								this.conversationId = conversationData.id;
+								console.log('会话初始化成功:', conversationData);
+								resolve(conversationData);
+							} else {
+								console.error('初始化会话失败:', res.data.message);
+								uni.showToast({
+									title: '初始化会话失败，请重试',
+									icon: 'none'
+								});
+								reject(new Error('初始化会话失败'));
+							}
+						},
+						fail: (error) => {
+							uni.hideLoading();
+							console.error('请求初始化会话失败:', error);
+							uni.showToast({
+								title: '网络错误，请检查网络连接',
+								icon: 'none'
+							});
+							reject(error);
+						}
+					});
+				});
 			},
 			mounted() {
 				// 页面加载时滚动到底部
@@ -460,10 +548,24 @@
 					if (message.subCmd === 'msg.mch2mem') {
 						const payload = message.payload;
 						
-						// 验证消息是否满足条件，使用松散相等运算符自动处理类型转换
-						const isValidMessage = payload.shopId == this.shopInfo.shopId && 
+						// 验证消息是否满足条件
+						// 检查是否包含会话ID，并且会话ID与当前会话ID匹配
+						const hasValidConversationId = this.conversationId && payload.conversationId == this.conversationId;
+						
+						// 检查是否包含必要的验证字段
+						const hasValidationFields = payload.shopId && payload.from && payload.to;
+						
+						// 验证消息有效性
+						let isValidMessage = false;
+						if (hasValidationFields) {
+							// 使用松散相等运算符自动处理类型转换
+							isValidMessage = payload.shopId == this.shopInfo.shopId && 
 											  payload.from == this.shopInfo.merchantId && 
 											  payload.to == this.userInfo.userId;
+						} else if (hasValidConversationId) {
+							// 如果没有验证字段，但会话ID匹配，也认为是有效消息
+							isValidMessage = true;
+						}
 						
 						if (isValidMessage) {
 							let content = payload.content;

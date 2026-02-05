@@ -272,8 +272,44 @@ export default {
 					// 跳转到客服聊天页面，传递店铺ID和商家ID
 					const shopId = this.shop.shopId || '1';
 					const mchId = this.shop.mchId || '1';
-					uni.navigateTo({
-						url: `/pages/customer-service/index?shopId=${shopId}&mchId=${mchId}`
+					
+					// 调用初始化会话接口获取会话ID
+					uni.showLoading({ title: '初始化会话...' });
+					uni.request({
+						url: 'http://localhost:8080/app/csConversation/init',
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${getToken()}`
+						},
+						data: {
+							shopId: shopId
+						},
+						success: (res) => {
+							uni.hideLoading();
+							if (res.statusCode === 200 && res.data.code === 0) {
+								const conversationId = res.data.data.id;
+								console.log('会话初始化成功:', conversationId);
+								// 跳转到客服聊天页面，传递会话ID、店铺ID和商家ID
+								uni.navigateTo({
+									url: `/pages/customer-service/index?shopId=${shopId}&mchId=${mchId}&conversationId=${conversationId}`
+								});
+							} else {
+								console.error('初始化会话失败:', res.data.message);
+								uni.showToast({
+									title: '初始化会话失败，请重试',
+									icon: 'none'
+								});
+							}
+						},
+						fail: (error) => {
+							uni.hideLoading();
+							console.error('请求初始化会话失败:', error);
+							uni.showToast({
+								title: '网络错误，请检查网络连接',
+								icon: 'none'
+							});
+						}
 					});
 				},
 				showSpecPopup() {
