@@ -189,10 +189,17 @@
 						// 登录成功后初始化 WebSocket 连接
 						wsManager.init();
 						
-						// 返回到上一页
-						setTimeout(() => {
-							uni.navigateBack()
-						}, 1000)
+						// 导航到首页或返回上一页
+					setTimeout(() => {
+						uni.navigateBack({
+							fail: () => {
+								// 如果没有上一页，跳转到首页
+								uni.redirectTo({
+									url: '/pages/index/index'
+								})
+							}
+						})
+					}, 1000)
 						} else {
 							uni.showToast({
 								title: (res.data && res.data.message) || '登录失败',

@@ -52,25 +52,42 @@
 		<!-- 输入区域 -->
 		<view class="input-section">
 			<view class="input-container">
-				<textarea 
-					class="message-input" 
-					v-model="inputMessage" 
-					placeholder="请输入您的问题..." 
-					maxlength="500"
-					@focus="onInputFocus"
-					@blur="onInputBlur"
-				></textarea>
-				<view class="input-actions">
-					<text class="action-btn" @click="chooseImage">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M8.5 13.5L12 17L15.5 13.5" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M12 7V17" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-						</svg>
-					</text>
-				</view>
-			</view>
-			<button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim()">发送</button>
+						<textarea 
+							class="message-input" 
+							v-model="inputMessage" 
+							placeholder="请输入您的问题..." 
+							maxlength="500"
+							@focus="onInputFocus"
+							@blur="onInputBlur"
+						></textarea>
+						<view class="input-actions">
+							<text class="action-btn" @click="chooseImage">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M8.5 13.5L12 17L15.5 13.5" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M12 7V17" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+							</text>
+							<text v-if="selectedImage" class="action-btn" @click="selectedImage = null">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M18 6L6 18" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+									<path d="M6 6L18 18" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+								</svg>
+							</text>
+						</view>
+					</view>
+					<!-- 选中图片预览 -->
+					<view v-if="selectedImage" class="image-preview-container">
+						<image class="image-preview" :src="selectedImage" mode="aspectFill" @click="previewImage(selectedImage)"></image>
+						<text class="image-preview-text">点击发送图片</text>
+						<text class="image-preview-clear" @click="selectedImage = null">
+							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M18 6L6 18" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M6 6L18 18" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</text>
+					</view>
+			<button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() && !selectedImage">发送</button>
 		</view>
 
 		<!-- 店铺信息弹窗 -->
@@ -139,6 +156,7 @@
 					],
 					userMessages: [],
 					inputMessage: '',
+					selectedImage: null, // 选中的图片
 					showQuickQuestions: false, // 关闭常见问题
 					quickQuestions: [
 						'商品什么时候发货？',
@@ -164,51 +182,140 @@
 			},
 		methods: {
 			// 发送消息
-			sendMessage() {
-				if (!this.inputMessage.trim()) return;
-
-				// 构造消息内容
-				const content = this.inputMessage.trim();
-				const now = new Date();
-				const newMessage = {
-					content: content,
-					time: this.getCurrentTime(),
-					timestamp: now.getTime(), // 添加时间戳
-					type: 'user' // 用户消息
-				};
-
-				// 添加到用户消息列表
-				this.userMessages.push(newMessage);
-				this.inputMessage = '';
-
-				// 构造WebSocket消息格式
-				const wsMessage = {
-					category: 'biz-handle',
-					command: 'cs-chat.mem',
-					subCmd: 'msg.mem2mch',
-					payload: {
-						shopId: this.shopInfo.shopId,
-						from: this.userInfo.userId,
-						to: this.shopInfo.merchantId,
-						content: content,
-						type: 1 // 文本消息
+				sendMessage() {
+					// 检查是否有选中的图片
+					if (this.selectedImage) {
+						this.sendImageMessage();
+					} else if (this.inputMessage.trim()) {
+						this.sendTextMessage();
 					}
-				};
+				},
 
-				// 发送WebSocket消息
-				console.log('发送客服消息:', wsMessage);
-				const sendResult = wsManager.send(wsMessage);
-				if (!sendResult) {
-					uni.showToast({
-						title: '发送失败，请检查网络连接',
-						icon: 'none'
+				// 发送文本消息
+				sendTextMessage() {
+					const content = this.inputMessage.trim();
+					const now = new Date();
+					const newMessage = {
+						content: content,
+						time: this.getCurrentTime(),
+						timestamp: now.getTime(), // 添加时间戳
+						type: 'user' // 用户消息
+					};
+
+					// 添加到用户消息列表
+					this.userMessages.push(newMessage);
+					this.inputMessage = '';
+
+					// 构造WebSocket消息格式
+					const wsMessage = {
+						category: 'biz-handle',
+						command: 'cs-chat.mem',
+						subCmd: 'msg.mem2mch',
+						payload: {
+							shopId: this.shopInfo.shopId,
+							from: this.userInfo.userId,
+							to: this.shopInfo.merchantId,
+							content: content,
+							type: 1 // 文本消息
+						}
+					};
+
+					// 发送WebSocket消息
+					console.log('发送文本消息:', wsMessage);
+					const sendResult = wsManager.send(wsMessage);
+					if (!sendResult) {
+						uni.showToast({
+							title: '发送失败，请检查网络连接',
+							icon: 'none'
+						});
+					}
+
+					this.$nextTick(() => {
+						this.scrollToBottom();
 					});
-				}
+				},
 
-				this.$nextTick(() => {
-					this.scrollToBottom();
-				});
-			},
+				// 发送图片消息
+				sendImageMessage() {
+					if (!this.selectedImage) return;
+
+					// 上传图片
+					uni.showLoading({ title: '上传中...' });
+					uni.uploadFile({
+						url: 'http://localhost:8080/app/storage/upload',
+						filePath: this.selectedImage,
+						name: 'file',
+						header: {
+							'Authorization': `Bearer ${getToken()}`
+						},
+						success: (uploadRes) => {
+							uni.hideLoading();
+							if (uploadRes.statusCode === 200) {
+								const response = JSON.parse(uploadRes.data);
+								if (response.code === 0) {
+									const fileKey = response.data.fileKey;
+									
+									// 添加到用户消息列表
+									const now = new Date();
+									const newMessage = {
+										content: '[图片]',
+										time: this.getCurrentTime(),
+										timestamp: now.getTime(), // 添加时间戳
+										imageUrl: this.selectedImage,
+										type: 'user' // 用户消息
+									};
+									this.userMessages.push(newMessage);
+									this.selectedImage = null;
+									
+									// 构造WebSocket消息格式
+									const wsMessage = {
+										category: 'biz-handle',
+										command: 'cs-chat.mem',
+										subCmd: 'msg.mem2mch',
+										payload: {
+											shopId: this.shopInfo.shopId,
+											from: this.userInfo.userId,
+											to: this.shopInfo.merchantId,
+											content: fileKey,
+											type: 2 // 图片消息
+										}
+									};
+									
+									// 发送WebSocket消息
+									console.log('发送图片消息:', wsMessage);
+									const sendResult = wsManager.send(wsMessage);
+									if (!sendResult) {
+										uni.showToast({
+											title: '发送失败，请检查网络连接',
+											icon: 'none'
+										});
+									}
+									
+									this.$nextTick(() => {
+										this.scrollToBottom();
+									});
+								} else {
+									uni.showToast({
+										title: '上传失败: ' + (response.message || '未知错误'),
+										icon: 'none'
+									});
+								}
+							} else {
+								uni.showToast({
+									title: '上传失败: ' + uploadRes.statusCode,
+									icon: 'none'
+								});
+							}
+						},
+						fail: (error) => {
+							uni.hideLoading();
+							uni.showToast({
+								title: '上传失败: ' + error.errMsg,
+								icon: 'none'
+							});
+						}
+					});
+				},
 
 			// 发送快捷问题
 			sendQuickQuestion(question) {
@@ -253,90 +360,22 @@
 			},
 
 			// 选择图片
-			chooseImage() {
-				uni.chooseImage({
-					count: 1,
-					sizeType: ['compressed'],
-					sourceType: ['album', 'camera'],
-					success: (res) => {
-						// 上传图片
-						uni.showLoading({ title: '上传中...' });
-						uni.uploadFile({
-							url: 'http://192.168.31.61:8080/app/storage/upload',
-							filePath: res.tempFilePaths[0],
-							name: 'file',
-							header: {
-								'Authorization': `Bearer ${getToken()}`
-							},
-							success: (uploadRes) => {
-								uni.hideLoading();
-								if (uploadRes.statusCode === 200) {
-									const response = JSON.parse(uploadRes.data);
-									if (response.code === 0) {
-										const fileKey = response.data.fileKey;
-										
-										// 添加到用户消息列表
-										const now = new Date();
-										const newMessage = {
-											content: '[图片]',
-											time: this.getCurrentTime(),
-											timestamp: now.getTime(), // 添加时间戳
-											imageUrl: res.tempFilePaths[0],
-											type: 'user' // 用户消息
-										};
-										this.userMessages.push(newMessage);
-										
-										// 构造WebSocket消息格式
-										const wsMessage = {
-											category: 'biz-handle',
-											command: 'cs-chat.mem',
-											subCmd: 'msg.mem2mch',
-											payload: {
-												shopId: this.shopInfo.shopId,
-												from: this.userInfo.userId,
-												to: this.shopInfo.merchantId,
-												content: fileKey,
-												type: 2 // 图片消息
-											}
-										};
-										
-										// 发送WebSocket消息
-										console.log('发送图片消息:', wsMessage);
-										const sendResult = wsManager.send(wsMessage);
-										if (!sendResult) {
-											uni.showToast({
-												title: '发送失败，请检查网络连接',
-												icon: 'none'
-											});
-										}
-										
-										this.$nextTick(() => {
-											this.scrollToBottom();
-										});
-									} else {
-										uni.showToast({
-											title: '上传失败: ' + (response.message || '未知错误'),
-											icon: 'none'
-										});
-									}
-								} else {
-									uni.showToast({
-										title: '上传失败: ' + uploadRes.statusCode,
-										icon: 'none'
-									});
-								}
-							},
-							fail: (error) => {
-								uni.hideLoading();
-								uni.showToast({
-									title: '上传失败: ' + error.errMsg,
-									icon: 'none'
-								});
-							}
-						});
-					}
-				});
-			},
+				chooseImage() {
+					uni.chooseImage({
+						count: 1,
+						sizeType: ['compressed'],
+						sourceType: ['album', 'camera'],
+						success: (res) => {
+							// 保存选中的图片
+							this.selectedImage = res.tempFilePaths[0];
+							// 清空输入框，因为现在要发送图片
+							this.inputMessage = '';
+						},
+						fail: (error) => {
+							console.error('选择图片失败', error);
+						}
+					});
+				},
 
 			// 显示店铺信息
 			showShopInfo() {
@@ -414,12 +453,11 @@
 					let imageUrl = null;
 					
 					// 如果是图片消息，需要处理图片显示
-					if (payload.type === 2) {
-						content = '[图片]';
-						// 这里需要根据图片的fileKey构建图片URL
-						// 实际项目中可能需要使用特定的图片服务器URL
-						imageUrl = `http://192.168.31.61:8080/public/storage/preview?fileKey=${payload.content}`;
-					}
+						if (payload.type === 2) {
+							content = '[图片]';
+							// 使用HTTPS协议的预览接口
+							imageUrl = `https://192.168.31.61:8080/public/storage/preview?fileKey=${payload.content}`;
+						}
 					
 					// 添加到消息列表
 					const now = new Date();
@@ -693,10 +731,53 @@
 	}
 
 	.send-btn:disabled {
-		background-color: #f0f0f0;
-		color: #999;
-		box-shadow: none;
-	}
+					background-color: #f0f0f0;
+					color: #999;
+					box-shadow: none;
+				}
+
+				/* 图片预览样式 */
+				.image-preview-container {
+					margin-top: 10rpx;
+					margin-right: 8rpx;
+					background-color: #f8f8f8;
+					border-radius: 12rpx;
+					padding: 12rpx;
+					display: flex;
+					align-items: center;
+					border: 1rpx solid #f0f0f0;
+					width: calc(100% - 120rpx);
+				}
+
+				.image-preview {
+					width: 80rpx;
+					height: 80rpx;
+					border-radius: 8rpx;
+					margin-right: 12rpx;
+					background-color: #f0f0f0;
+				}
+
+				.image-preview-text {
+					font-size: 24rpx;
+					color: #666;
+					flex: 1;
+				}
+
+				.image-preview-clear {
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					width: 36rpx;
+					height: 36rpx;
+					border-radius: 50%;
+					background-color: #f0f0f0;
+					transition: all 0.3s ease;
+					margin-left: 8rpx;
+				}
+
+				.image-preview-clear:hover {
+					background-color: #e0e0e0;
+				}
 
 	
 

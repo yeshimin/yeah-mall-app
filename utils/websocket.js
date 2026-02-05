@@ -160,16 +160,21 @@ class WebSocketManager {
       const messageStr = JSON.stringify(message);
       if (this.isWechatMiniProgram) {
         // 在微信小程序环境中使用 wx.sendSocketMessage
-        wx.sendSocketMessage({
-          data: messageStr,
-          success: () => {
-            return true;
-          },
-          fail: (error) => {
-            console.error('WebSocket: 发送消息失败', error);
-            return false;
-          }
-        });
+        try {
+          wx.sendSocketMessage({
+            data: messageStr,
+            success: () => {
+              console.log('WebSocket: 消息发送成功');
+            },
+            fail: (error) => {
+              console.error('WebSocket: 发送消息失败', error);
+            }
+          });
+          return true;
+        } catch (wxError) {
+          console.error('WebSocket: 微信小程序发送消息失败', wxError);
+          return false;
+        }
       } else {
         // 在浏览器环境中使用标准 WebSocket 的 send 方法
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {

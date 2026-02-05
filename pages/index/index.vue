@@ -14,15 +14,15 @@
     <!-- 快捷入口 -->
     <view class="quick-links" style="margin-top: 120rpx;">
       <view class="quick-link-item" @click="goToSeckill">
-        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
         <text class="quick-link-text">秒杀</text>
       </view>
       <view class="quick-link-item" @click="goToGroupBuy">
-        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
         <text class="quick-link-text">拼团</text>
       </view>
       <view class="quick-link-item" @click="goToNewArrivals">
-        <image class="quick-link-icon" src="https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" />
+        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
         <text class="quick-link-text">新品</text>
       </view>
     </view>
@@ -85,6 +85,8 @@ export default {
       searchQuery: '',
       // 热门商品数据
       hotProducts: [],
+      // 促销活动数据
+      promotions: [],
       // 瀑布流左右两列的商品数据
       leftColumnProducts: [],
       rightColumnProducts: [],
@@ -185,7 +187,7 @@ export default {
               sales: item.sales !== undefined ? item.sales : 0,
               // 根据不同环境构造图片URL
               image: item.mainImage ? (() => {
-                const baseApi = BASE_API;
+                const baseApi = BASE_API.replace('http://', 'https://');
                 return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
               })() : ''
             }));
