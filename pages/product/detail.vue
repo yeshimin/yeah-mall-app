@@ -192,11 +192,12 @@ export default {
 					isCollected: false, // 收藏状态
 					selectedQuantity: 1,
 					stock: 100, // 示例库存
-                    reviewSummary: { // 评价概览数据
-                        totalCount: 0,
-                        goodRate: 100,
-                        topReviews: []
-                    }
+					reviewSummary: { // 评价概览数据
+						totalCount: 0,
+						goodRate: 100,
+						topReviews: []
+					},
+					shop: {} // 店铺信息
 				}
 			},
 		methods: {
@@ -212,52 +213,54 @@ export default {
 					return getToken();
 				},
 				fetchProductDetail(productId) {
-					const baseApi = BASE_API;
-					console.log('detail.productId: ' + productId)
-					// 获取token
-					const token = this.getToken();
-					uni.request({
-						url: `${baseApi}/app/product/detail?id=${productId}`,
-						method: 'GET',
-						header: {
-							'Authorization': token ? `Bearer ${token}` : '',
-							'Content-Type': 'application/json'
-						},
-						success: (res) => {
-							if (res.statusCode === 200 && res.data.code === 0) {
-								const data = res.data.data;
-								this.product = data.product;
-								
-								// 处理banner图片URL
-								this.banners = data.banners.map(item => {
-									const baseApi = BASE_API;
-									return item && item.trim() !== '' ? (() => {
-										return `${baseApi}/public/storage/preview?fileKey=${item}`;
-									})() : '';
-								});
-								
-								// 处理规格数据
-								this.specs = data.specs || [];
-								// 保存skuOptIds用于灰化处理
-								this.skuOptIds = data.skuOptIds || [];
-								// 保存skus数据用于获取库存和价格
-								this.skus = data.skus || [];
-								// 初始化选中规格
-								this.initSelectedSpecs();
-								
-								// 获取商品详情后检查收藏状态
-								this.$nextTick(() => {
-									this.checkCollectStatus();
-								});
-							} else {
-								console.error('获取商品详情失败:', res.data.message);
-							}
-						},
-						fail: (err) => {
-							console.error('请求商品详情失败:', err);
+				const baseApi = BASE_API;
+				console.log('detail.productId: ' + productId)
+				// 获取token
+				const token = this.getToken();
+				uni.request({
+					url: `${baseApi}/app/product/detail?id=${productId}`,
+					method: 'GET',
+					header: {
+						'Authorization': token ? `Bearer ${token}` : '',
+						'Content-Type': 'application/json'
+					},
+					success: (res) => {
+						if (res.statusCode === 200 && res.data.code === 0) {
+							const data = res.data.data;
+							this.product = data.product;
+							
+							// 处理banner图片URL
+							this.banners = data.banners.map(item => {
+								const baseApi = BASE_API;
+								return item && item.trim() !== '' ? (() => {
+									return `${baseApi}/public/storage/preview?fileKey=${item}`;
+								})() : '';
+							});
+							
+							// 处理规格数据
+							this.specs = data.specs || [];
+							// 保存skuOptIds用于灰化处理
+							this.skuOptIds = data.skuOptIds || [];
+							// 保存skus数据用于获取库存和价格
+							this.skus = data.skus || [];
+							// 保存店铺信息
+							this.shop = data.shop || {};
+							// 初始化选中规格
+							this.initSelectedSpecs();
+							
+							// 获取商品详情后检查收藏状态
+							this.$nextTick(() => {
+								this.checkCollectStatus();
+							});
+						} else {
+							console.error('获取商品详情失败:', res.data.message);
 						}
-					});
-				},
+					},
+					fail: (err) => {
+						console.error('请求商品详情失败:', err);
+					}
+				});
+			},
 			goToStore() {
 				// 跳转到店铺页面
 				uni.showToast({
@@ -266,9 +269,11 @@ export default {
 				});
 			},
 			contactService() {
-					// 跳转到客服聊天页面
+					// 跳转到客服聊天页面，传递店铺ID和商家ID
+					const shopId = this.shop.shopId || '1';
+					const mchId = this.shop.mchId || '1';
 					uni.navigateTo({
-						url: '/pages/customer-service/index'
+						url: `/pages/customer-service/index?shopId=${shopId}&mchId=${mchId}`
 					});
 				},
 				showSpecPopup() {

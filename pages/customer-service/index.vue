@@ -133,7 +133,7 @@
 						description: '专业的客服团队，为您提供优质服务',
 						serviceTime: '09:00-21:00',
 						rating: '4.9',
-						shopId: '3', // 店铺ID
+						shopId: '1', // 店铺ID
 						merchantId: '1' // 商家ID
 					},
 					userInfo: {
@@ -437,45 +437,65 @@
 				});
 			}
 		},
-		mounted() {
-			// 页面加载时滚动到底部
-			this.$nextTick(() => {
-				this.scrollToBottom();
-			});
-			
-			// 注册WebSocket消息处理器
-			wsManager.on('biz-handle', 'cs-chat.mch', (message) => {
-				console.log('收到商家消息:', message);
-				// 处理商家发送的消息
-				if (message.subCmd === 'msg.mch2mem') {
-					const payload = message.payload;
-					let content = payload.content;
-					let imageUrl = null;
-					
-					// 如果是图片消息，需要处理图片显示
-						if (payload.type === 2) {
-							content = '[图片]';
-							// 使用HTTPS协议的预览接口
-							imageUrl = `https://192.168.31.61:8080/public/storage/preview?fileKey=${payload.content}`;
-						}
-					
-					// 添加到消息列表
-					const now = new Date();
-					const newMessage = {
-						content: content,
-						time: this.getCurrentTime(),
-						timestamp: now.getTime(), // 添加时间戳
-						imageUrl: imageUrl,
-						type: 'service' // 客服消息
-					};
-					this.messages.push(newMessage);
-					
-					this.$nextTick(() => {
-						this.scrollToBottom();
-					});
+		onLoad(options) {
+				// 接收从商品详情页面传递过来的参数
+				if (options && options.shopId) {
+					this.shopInfo.shopId = options.shopId;
 				}
-			});
-		},
+				if (options && options.mchId) {
+					this.shopInfo.merchantId = options.mchId;
+				}
+				console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
+			},
+			mounted() {
+				// 页面加载时滚动到底部
+				this.$nextTick(() => {
+					this.scrollToBottom();
+				});
+				
+				// 注册WebSocket消息处理器
+				wsManager.on('biz-handle', 'cs-chat.mch', (message) => {
+					console.log('收到商家消息:', message);
+					// 处理商家发送的消息
+					if (message.subCmd === 'msg.mch2mem') {
+						const payload = message.payload;
+						
+						// 验证消息是否满足条件，使用松散相等运算符自动处理类型转换
+						const isValidMessage = payload.shopId == this.shopInfo.shopId && 
+											  payload.from == this.shopInfo.merchantId && 
+											  payload.to == this.userInfo.userId;
+						
+						if (isValidMessage) {
+							let content = payload.content;
+							let imageUrl = null;
+							
+							// 如果是图片消息，需要处理图片显示
+							if (payload.type === 2) {
+								content = '[图片]';
+								// 使用HTTPS协议的预览接口
+								imageUrl = `https://192.168.31.61:8080/public/storage/preview?fileKey=${payload.content}`;
+							}
+							
+							// 添加到消息列表
+							const now = new Date();
+							const newMessage = {
+								content: content,
+								time: this.getCurrentTime(),
+								timestamp: now.getTime(), // 添加时间戳
+								imageUrl: imageUrl,
+								type: 'service' // 客服消息
+							};
+							this.messages.push(newMessage);
+							
+							this.$nextTick(() => {
+								this.scrollToBottom();
+							});
+						} else {
+							console.log('收到无效消息，忽略:', message);
+						}
+					}
+				});
+			},
 	};
 </script>
 
