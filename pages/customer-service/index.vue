@@ -16,7 +16,7 @@
 			</view>
 
 			<!-- 聊天内容区域 -->
-			<scroll-view class="chat-content" scroll-y :show-scrollbar="false" ref="chatScroll">
+			<scroll-view class="chat-content" scroll-y :show-scrollbar="false" ref="chatScroll" @scroll="onScroll">
 				<view class="message-list">
 					<!-- 系统消息 -->
 					<view class="system-message">
@@ -167,8 +167,12 @@
 					showShopInfoPopup: false,
 					isInputFocused: false,
 					// 会话信息
-					conversationInfo: null, // 会话信息
-					conversationId: null // 会话ID
+				conversationInfo: null, // 会话信息
+				conversationId: null, // 会话ID
+				// 分页相关数据
+				currentPage: 1, // 当前页码
+				hasMore: true, // 是否有更多数据
+				loadingMore: false // 是否正在加载更多
 				};
 			},
 			computed: {
@@ -285,7 +289,7 @@
 									content: '[图片]',
 									time: this.getCurrentTime(),
 									timestamp: now.getTime(), // 添加时间戳
-									imageUrl: this.selectedImage,
+									imageUrl: `http://localhost:8080/public/storage/preview?fileKey=${fileKey}`,
 									type: 'user' // 用户消息
 								};
 								this.userMessages.push(newMessage);
@@ -440,17 +444,27 @@
 
 			// 滚动到底部
 			scrollToBottom() {
+				console.log('开始执行滚动到底部操作');
 				// 使用setTimeout确保DOM完全更新后执行
 				setTimeout(() => {
 					if (this.$refs.chatScroll) {
-						// 使用uni-app的scroll-view方法
-						this.$refs.chatScroll.scrollTo({
-							top: 999999, // 设置一个足够大的值，确保滚动到最底部
-							duration: 300
-						});
-						console.log('滚动到底部');
+						// 尝试获取scroll-view的实际高度
+						const scrollView = this.$refs.chatScroll;
+						console.log('找到scroll-view组件:', scrollView);
+						
+						// 使用uni-app的scroll-view方法，设置更大的top值和更长的延迟
+						setTimeout(() => {
+							// 使用uni-app的scroll-view方法
+							scrollView.scrollTo({
+								top: 9999999, // 设置一个更大的值，确保滚动到最底部
+								duration: 500
+							});
+							console.log('执行滚动操作，top: 9999999, duration: 500');
+						}, 100);
+					} else {
+						console.error('未找到scroll-view组件');
 					}
-				}, 100); // 增加延迟时间，确保DOM完全更新
+				}, 300); // 增加延迟时间，确保DOM完全更新
 			},
 
 			// 获取当前时间
@@ -472,26 +486,132 @@
 						console.error('预览图片失败', error);
 					}
 				});
-			}
-		},
-		onLoad(options) {
-					// 接收从商品详情页面传递过来的参数
-					if (options && options.shopId) {
-						this.shopInfo.shopId = options.shopId;
+			},
+
+			// 格式化消息时间
+			formatMessageTime(createTime) {
+				const date = new Date(createTime);
+				const hours = String(date.getHours()).padStart(2, '0');
+				const minutes = String(date.getMinutes()).padStart(2, '0');
+				return `${hours}:${minutes}`;
+			},
+
+			// 加载历史消息
+			loadHistoryMessages(isLoadMore = false) {
+				if (!this.conversationId) {
+					console.error('加载历史消息失败: 会话ID为空');
+					return;
+				}
+				
+				// 如果是加载更多，检查是否正在加载或没有更多数据
+				if (isLoadMore) {
+					if (this.loadingMore || !this.hasMore) {
+						return;
 					}
-					if (options && options.mchId) {
-						this.shopInfo.merchantId = options.mchId;
+					this.loadingMore = true;
+				} else {
+					// 重置分页数据
+					this.currentPage = 1;
+					this.hasMore = true;
+					// 清空现有消息
+					this.messages = [];
+					this.userMessages = [];
+					uni.showLoading({ title: '加载历史消息...' });
+				}
+				
+				const page = isLoadMore ? this.currentPage + 1 : 1;
+				console.log('开始加载历史消息，会话ID:', this.conversationId, '页码:', page, '是否加载更多:', isLoadMore);
+				
+				uni.request({
+					url: 'http://localhost:8080/app/csConversation/messages',
+					method: 'GET',
+					header: {
+						'Authorization': `Bearer ${getToken()}`
+					},
+					data: {
+						conversationId: this.conversationId,
+						current: page,
+						size: 20
+					},
+					success: (res) => {
+						if (!isLoadMore) {
+							uni.hideLoading();
+						} else {
+							this.loadingMore = false;
+						}
+						if (res.statusCode === 200 && res.data.code === 0) {
+							const historyMessages = res.data.data.records;
+							console.log('加载历史消息成功:', historyMessages.length, '条');
+							
+							// 检查是否有更多数据
+							if (historyMessages.length < 20) {
+								this.hasMore = false;
+							}
+							
+							// 更新当前页码
+							this.currentPage = page;
+							
+							// 处理历史消息，转换为页面显示格式
+							// 注意：响应数据是按时间倒序排列的，需要反转顺序
+							historyMessages.reverse().forEach(msg => {
+								// 转换消息格式
+								const message = {
+									content: msg.msgContent,
+									time: this.formatMessageTime(msg.createTime),
+									timestamp: new Date(msg.createTime).getTime(),
+									type: msg.msgDirection === 1 ? 'user' : 'service', // 1: 买家发送，2: 商家发送
+									imageUrl: msg.msgType === 2 ? `http://localhost:8080/public/storage/preview?fileKey=${msg.msgContent}` : null // 如果是图片消息，使用preview接口加载
+								};
+								
+								// 添加到消息列表
+								if (msg.msgDirection === 1) {
+									this.userMessages.unshift(message); // 买家发送的消息添加到用户消息列表
+								} else {
+									this.messages.unshift(message); // 商家发送的消息添加到商家消息列表
+								}
+							});
+							
+							// 如果是首次加载，滚动到底部
+							if (!isLoadMore) {
+								console.log('历史消息加载完成，准备滚动到底部');
+								// 确保DOM完全更新后执行滚动
+								this.$nextTick(() => {
+									console.log('DOM更新完成，准备执行滚动');
+									// 再等待一段时间，确保所有消息都已渲染
+									setTimeout(() => {
+										console.log('执行滚动到底部');
+										this.scrollToBottom();
+									}, 500); // 增加延迟时间，确保所有消息都已渲染
+								});
+							}
+						} else {
+							console.error('加载历史消息失败:', res.data.message);
+							if (isLoadMore) {
+								this.loadingMore = false;
+							} else {
+								uni.hideLoading();
+							}
+						}
+					},
+					fail: (error) => {
+						if (isLoadMore) {
+							this.loadingMore = false;
+						} else {
+							uni.hideLoading();
+						}
+						console.error('请求历史消息失败:', error);
 					}
-					if (options && options.conversationId) {
-						// 如果已经从商品详情页面传递了会话ID，直接使用
-						this.conversationId = options.conversationId;
-						console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
-					} else {
-						// 否则初始化会话，获取会话ID
-						this.initConversation();
-					}
-					console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
-				},
+				});
+			},
+
+			// 滚动事件处理
+			onScroll(event) {
+				// 当滚动到顶部时加载更多数据
+				if (event.detail.scrollTop <= 0) {
+					this.loadHistoryMessages(true);
+				}
+			},
+
 			// 初始化会话
 			initConversation() {
 				return new Promise((resolve, reject) => {
@@ -513,6 +633,13 @@
 								this.conversationInfo = conversationData;
 								this.conversationId = conversationData.id;
 								console.log('会话初始化成功:', conversationData);
+								// 确保会话ID已经设置
+								if (this.conversationId) {
+									// 加载历史消息
+									this.loadHistoryMessages();
+								} else {
+									console.error('会话初始化成功但会话ID为空');
+								}
 								resolve(conversationData);
 							} else {
 								console.error('初始化会话失败:', res.data.message);
@@ -534,7 +661,28 @@
 						}
 					});
 				});
-			},
+			}
+		},
+		onLoad(options) {
+					// 接收从商品详情页面传递过来的参数
+					if (options && options.shopId) {
+						this.shopInfo.shopId = options.shopId;
+					}
+					if (options && options.mchId) {
+						this.shopInfo.merchantId = options.mchId;
+					}
+					if (options && options.conversationId) {
+						// 如果已经从商品详情页面传递了会话ID，直接使用
+						this.conversationId = options.conversationId;
+						console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
+						// 加载历史消息
+						this.loadHistoryMessages();
+					} else {
+						// 否则初始化会话，获取会话ID
+						this.initConversation();
+					}
+					console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
+				},
 			mounted() {
 				// 页面加载时滚动到底部
 				this.$nextTick(() => {
@@ -574,8 +722,8 @@
 							// 如果是图片消息，需要处理图片显示
 							if (payload.type === 2) {
 								content = '[图片]';
-								// 使用HTTPS协议的预览接口
-								imageUrl = `https://192.168.31.61:8080/public/storage/preview?fileKey=${payload.content}`;
+								// 使用preview接口加载图片
+								imageUrl = `http://localhost:8080/public/storage/preview?fileKey=${payload.content}`;
 							}
 							
 							// 添加到消息列表
@@ -585,7 +733,7 @@
 								time: this.getCurrentTime(),
 								timestamp: now.getTime(), // 添加时间戳
 								imageUrl: imageUrl,
-								type: 'service' // 客服消息
+								type: 'service' // 商家消息
 							};
 							this.messages.push(newMessage);
 							
