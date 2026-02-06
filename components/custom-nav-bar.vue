@@ -8,7 +8,8 @@
       right: '0', 
       zIndex: '999',
       height: (statusBarInfo.plusHeight) + 'px',
-      width: '100%'
+      width: '100%',
+      backgroundColor: '#f8f8f8',
     }"
   >
     <!-- 系统状态栏占位空间 -->
@@ -16,6 +17,7 @@
       class="system-status-bar" 
       :style="{ 
         height: statusBarInfo.sysHeight + 'px', 
+        backgroundColor: '#f8f8f8',
       }"
     ></view>
     <!-- 标题栏 横着一条 -->
@@ -31,6 +33,7 @@
       <view class="left-content" :style="{
         width: statusBarInfo.leftMaxWidth + 'px',
         height: (statusBarInfo.appHeight) + 'px',
+        backgroundColor: '#f8f8f8',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -47,6 +50,7 @@
       <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
         width: statusBarInfo.middleMaxWidth + 'px',
+        backgroundColor: '#f8f8f8',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -209,7 +213,7 @@ export default {
 .search-box {
   display: flex;
   align-items: center;
-  background-color: #f5f5f5;
+  background-color: #ecdfdf;
   border-radius: 20rpx;
   padding: 0 20rpx;
   height: 40rpx;
@@ -218,7 +222,6 @@ export default {
 
 .search-icon {
   font-size: 20rpx;
-  margin-right: 8rpx;
 }
 
 .search-hint {

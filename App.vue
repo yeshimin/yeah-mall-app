@@ -26,13 +26,15 @@
 	/* 页面容器样式 */
 	page {
 		height: 100%;
+		background-color: #f8f8f8;
 	}
-	
+
 	/* 设置页面根元素的样式 */
 	uni-page-body {
 		height: 100%;
 		display: flex;
 		flex-direction: column;
+		background-color: #f8f8f8;
 	}
 	
 	/* 设置页面主要内容区域的样式 */
