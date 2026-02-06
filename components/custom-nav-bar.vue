@@ -19,10 +19,34 @@
         backgroundColor: '#aaaaaa' 
       }"
     ></view>
-    <!-- 标题栏内容本体 -->
-    <view 
-      class="app-status-bar"
-      :style="{
+    <!-- 标题栏 横着一条 -->
+    <view :style="{
+      display: 'flex',
+      // 横向布局
+      flexDirection: 'row',
+      width: '100%',
+    }"
+      >
+      
+      <!-- 左侧内容 -->
+      <view class="left-content" :style="{
+        width: statusBarInfo.leftMaxWidth + 'px',
+        height: (statusBarInfo.appHeight) + 'px',
+        backgroundColor: '#00ff00',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        // 居中
+        margin: '0'
+      }">
+        <!-- 返回按钮 -->
+        <view class="back-button" @click="handleBack">
+          <text class="back-icon">←</text>
+        </view>
+      </view>
+
+      <!-- 标题栏内容本体 -->
+      <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
         width: statusBarInfo.middleMaxWidth + 'px',
         backgroundColor: '#ff0000',
@@ -30,28 +54,23 @@
         alignItems: 'center',
         justifyContent: 'center',
         // 居中
-        margin: '0 auto'
-      }"
-    >
-      <!-- 搜索框 -->
-      <view 
-        v-if="showSearch" 
-        class="search-container" 
-        @click="handleSearch"
-        :style="{
+        margin: '0'
+      }">
+        <!-- 搜索框 -->
+        <view v-if="showSearch" class="search-container" @click="handleSearch" :style="{
           width: '50%'
-        }"
-      >
-        <view class="search-box">
-          <!-- 搜索图标 -->
-          <text class="search-icon">🔍</text>
-          <!-- 搜索提示 -->
-          <text class="search-hint">{{ searchPlaceholder }}</text>
+        }">
+          <view class="search-box">
+            <!-- 搜索图标 -->
+            <text class="search-icon">🔍</text>
+            <!-- 搜索提示 -->
+            <text class="search-hint">{{ searchPlaceholder }}</text>
+          </view>
         </view>
-      </view>
-      <!-- 标题 -->
-      <view v-else class="title-container">
-        <text class="title">{{ title }}</text>
+        <!-- 标题 -->
+        <view v-else class="title-container">
+          <text class="title">{{ title }}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -87,6 +106,7 @@ export default {
         appBottom: 0,             // 应用状态栏底部位置（px）
         plusHeight: 0,            // 应用状态栏高度（px）
         middleMaxWidth: 0,        // 中间内容最大宽度（px）
+        leftMaxWidth: 0,          // 左侧内容最大宽度（px）
       }
     }
   },
@@ -124,7 +144,9 @@ export default {
       // 自定义标题栏高度=系统状态栏高度+应用标题栏高度
       const plusHeight = sysHeight + appHeight;
       
-      const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2 - 16; // px
+      const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2; // px
+
+      const leftMaxWidth = (systemInfo.screenWidth - middleMaxWidth) / 2; // px
 
       this.statusBarInfo = {
         sysHeight,             // 系统状态栏高度（px）
@@ -132,7 +154,8 @@ export default {
         sysBottom,             // 系统状态栏底部位置（px）
         appBottom,             // 应用状态栏底部位置（px）
         plusHeight,            // 自定义标题栏高度=系统状态栏高度+应用标题栏高度
-        middleMaxWidth, // 中间内容最大宽度（px）
+        middleMaxWidth: middleMaxWidth - 16, // 中间内容最大宽度（px）
+        leftMaxWidth, // 左侧内容最大宽度（px）
       };
       
       console.log('状态栏信息:', this.statusBarInfo);
