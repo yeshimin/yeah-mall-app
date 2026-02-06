@@ -240,4 +240,28 @@ export default {
   font-weight: bold;
   color: #333;
 }
+
+/* 返回按钮样式 */
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  margin-left: 16px;
+}
+
+.back-icon {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: bold;
+  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  /* padding-right: 16px; */
+}
 </style>
