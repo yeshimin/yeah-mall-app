@@ -276,7 +276,7 @@ export default {
 					// 调用初始化会话接口获取会话ID
 					uni.showLoading({ title: '初始化会话...' });
 					uni.request({
-						url: 'http://localhost:8080/app/csConversation/init',
+						url: `${BASE_API}/app/csConversation/init`,
 						method: 'POST',
 						header: {
 							'Content-Type': 'application/json',

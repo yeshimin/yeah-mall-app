@@ -27,21 +27,31 @@
 					<template v-for="(msg, index) in sortedMessages" :key="index">
 						<!-- 客服消息 -->
 						<view v-if="msg.type === 'service'" class="message-item service-message">
-							<image class="sender-avatar" :src="shopInfo.avatar || defaultAvatar50" mode="aspectFill"></image>
-							<view class="message-content">
-								<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
-								<image v-else class="message-image" :src="msg.imageUrl" mode="aspectFill" @click="previewImage(msg.imageUrl)"></image>
-								<text class="message-time">{{ msg.time }}</text>
+							<image class="sender-avatar" :src="merchantInfo.avatar || shopInfo.avatar || defaultAvatar50" mode="aspectFill"></image>
+							<view class="message-wrapper">
+								<view class="nickname-time-wrapper">
+									<text class="sender-nickname">{{ merchantInfo.nickname || shopInfo.name || '店铺客服' }}</text>
+									<text class="message-time">[{{ msg.time }}]</text>
+								</view>
+								<view class="message-content">
+									<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
+									<image v-else class="message-image" :src="msg.imageUrl" mode="aspectFill" @click="previewImage(msg.imageUrl)"></image>
+								</view>
 							</view>
 						</view>
 
 						<!-- 用户消息 -->
 						<view v-else-if="msg.type === 'user'" class="message-item user-message">
 							<image class="sender-avatar" :src="userInfo.avatar || defaultAvatar50" mode="aspectFill"></image>
-							<view class="message-content">
-								<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
-								<image v-else class="message-image" :src="msg.imageUrl" mode="aspectFill" @click="previewImage(msg.imageUrl)"></image>
-								<text class="message-time">{{ msg.time }}</text>
+							<view class="message-wrapper">
+								<view class="nickname-time-wrapper">
+									<text class="sender-nickname">{{ userInfo.nickname || '我' }}</text>
+									<text class="message-time">[{{ msg.time }}]</text>
+								</view>
+								<view class="message-content">
+									<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
+									<image v-else class="message-image" :src="msg.imageUrl" mode="aspectFill" @click="previewImage(msg.imageUrl)"></image>
+								</view>
 							</view>
 						</view>
 					</template>
@@ -118,7 +128,8 @@
 
 <script>
 	import wsManager from '../../utils/websocket.js';
-	import { getToken } from '../../utils/auth.js';
+import { getToken } from '../../utils/auth.js';
+import { BASE_API } from '../../utils/config.js';
 		export default {
 		data() {
 				return {
@@ -138,7 +149,12 @@
 					},
 					userInfo: {
 						avatar: '',
-						userId: '1' // 用户ID
+						userId: '1', // 用户ID
+						nickname: ''
+					},
+					merchantInfo: {
+						nickname: '',
+						avatar: ''
 					},
 					messages: [
 						{
@@ -289,7 +305,7 @@
 									content: '[图片]',
 									time: this.getCurrentTime(),
 									timestamp: now.getTime(), // 添加时间戳
-									imageUrl: `http://localhost:8080/public/storage/preview?fileKey=${fileKey}`,
+									imageUrl: `${BASE_API}/public/storage/preview?fileKey=${fileKey}`,
 									type: 'user' // 用户消息
 								};
 								this.userMessages.push(newMessage);
@@ -490,7 +506,13 @@
 
 			// 格式化消息时间
 			formatMessageTime(createTime) {
-				const date = new Date(createTime);
+				// 处理iOS下的日期格式问题
+				let date;
+				if (typeof createTime === 'string' && createTime.includes(' ')) {
+					// 将 'yyyy-MM-dd HH:mm:ss' 格式转换为 'yyyy-MM-ddTHH:mm:ss' 格式
+					createTime = createTime.replace(' ', 'T');
+				}
+				date = new Date(createTime);
 				const hours = String(date.getHours()).padStart(2, '0');
 				const minutes = String(date.getMinutes()).padStart(2, '0');
 				return `${hours}:${minutes}`;
@@ -523,7 +545,7 @@
 				console.log('开始加载历史消息，会话ID:', this.conversationId, '页码:', page, '是否加载更多:', isLoadMore);
 				
 				uni.request({
-					url: 'http://localhost:8080/app/csConversation/messages',
+					url: `${BASE_API}/app/csConversation/messages`,
 					method: 'GET',
 					header: {
 						'Authorization': `Bearer ${getToken()}`
@@ -560,7 +582,7 @@
 									time: this.formatMessageTime(msg.createTime),
 									timestamp: new Date(msg.createTime).getTime(),
 									type: msg.msgDirection === 1 ? 'user' : 'service', // 1: 买家发送，2: 商家发送
-									imageUrl: msg.msgType === 2 ? `http://localhost:8080/public/storage/preview?fileKey=${msg.msgContent}` : null // 如果是图片消息，使用preview接口加载
+									imageUrl: msg.msgType === 2 ? `${BASE_API}/public/storage/preview?fileKey=${msg.msgContent}` : null // 如果是图片消息，使用preview接口加载
 								};
 								
 								// 添加到消息列表
@@ -617,7 +639,7 @@
 				return new Promise((resolve, reject) => {
 					uni.showLoading({ title: '初始化会话...' });
 					uni.request({
-						url: 'http://localhost:8080/app/csConversation/init',
+						url: `${BASE_API}/app/csConversation/init`,
 						method: 'POST',
 						header: {
 							'Content-Type': 'application/json',
@@ -631,8 +653,34 @@
 							if (res.statusCode === 200 && res.data.code === 0) {
 								const conversationData = res.data.data;
 								this.conversationInfo = conversationData;
-								this.conversationId = conversationData.id;
+								// 只有当conversationId为空时才更新它，否则保持现有值
+								if (!this.conversationId) {
+									this.conversationId = conversationData.id;
+								}
 								console.log('会话初始化成功:', conversationData);
+								
+								// 更新店铺信息
+								this.shopInfo = {
+									...this.shopInfo,
+									name: conversationData.shopName || '店铺客服',
+									avatar: conversationData.shopLogo ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.shopLogo}` : '',
+									merchantId: conversationData.mchId || this.shopInfo.merchantId
+								};
+								
+								// 更新用户信息
+								this.userInfo = {
+									...this.userInfo,
+									avatar: conversationData.memberAvatar ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.memberAvatar}` : '',
+									userId: conversationData.memberId || this.userInfo.userId,
+									nickname: conversationData.memberNickname || ''
+								};
+								
+								// 保存商家信息
+								this.merchantInfo = {
+									nickname: conversationData.mchNickname || '',
+									avatar: conversationData.mchAvatar ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.mchAvatar}` : ''
+								};
+								
 								// 确保会话ID已经设置
 								if (this.conversationId) {
 									// 加载历史消息
@@ -675,13 +723,12 @@
 						// 如果已经从商品详情页面传递了会话ID，直接使用
 						this.conversationId = options.conversationId;
 						console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
-						// 加载历史消息
-						this.loadHistoryMessages();
+						// 仍然需要初始化会话以获取店铺信息、买家信息和商家信息
+						this.initConversation();
 					} else {
 						// 否则初始化会话，获取会话ID
 						this.initConversation();
 					}
-					console.log('客服聊天页面 - 店铺信息:', this.shopInfo);
 				},
 			mounted() {
 				// 页面加载时滚动到底部
@@ -723,7 +770,7 @@
 							if (payload.type === 2) {
 								content = '[图片]';
 								// 使用preview接口加载图片
-								imageUrl = `http://localhost:8080/public/storage/preview?fileKey=${payload.content}`;
+								imageUrl = `${BASE_API}/public/storage/preview?fileKey=${payload.content}`;
 							}
 							
 							// 添加到消息列表
@@ -843,62 +890,114 @@
 	}
 
 	.message-item {
-		display: flex;
-		margin-bottom: 20rpx;
-		align-items: flex-end;
-	}
-
-	.service-message {
-					flex-direction: row;
+					display: flex;
+					margin-bottom: 20rpx;
+					align-items: flex-start;
 				}
 
-				.user-message {
-					flex-direction: row-reverse;
+					.service-message {
+								flex-direction: row;
+							}
+
+							.user-message {
+								flex-direction: row-reverse;
+								justify-content: flex-start;
+							}
+
+				.sender-avatar {
+					width: 50rpx;
+					height: 50rpx;
+					border-radius: 50%;
+					margin: 0 10rpx;
+					background-color: #f0f0f0;
+				}
+
+				.message-wrapper {
+					max-width: 70%;
+				}
+
+				.nickname-time-wrapper {
+					display: flex;
+					align-items: center;
+					margin-bottom: 8rpx;
+				}
+
+				.service-message .nickname-time-wrapper {
 					justify-content: flex-start;
 				}
 
-	.sender-avatar {
-		width: 50rpx;
-		height: 50rpx;
-		border-radius: 50%;
-		margin: 0 10rpx;
-		background-color: #f0f0f0;
-	}
-
-	.message-content {
-		max-width: 70%;
-		word-wrap: break-word;
-	}
-
-	.service-message .message-content {
-					background-color: #fff;
-					border-radius: 0 15rpx 15rpx 15rpx;
-					padding: 15rpx;
-					border: 1rpx solid #eee;
+				.user-message .nickname-time-wrapper {
+					justify-content: flex-end;
 				}
 
-				.user-message .message-content {
-					background-color: #3cc51f;
-					color: #fff;
-					border-radius: 15rpx 0 15rpx 15rpx;
-					padding: 15rpx;
+				.sender-nickname {
+					font-size: 20rpx;
+					color: #999;
+					line-height: 1.2;
+					margin-right: 10rpx;
 				}
 
-	.message-text {
-		font-size: 28rpx;
-		line-height: 1.4;
-		margin-bottom: 5rpx;
-	}
+				.user-message .sender-nickname {
+					margin-right: 0;
+					margin-left: 10rpx;
+				}
 
-	.message-time {
-		font-size: 20rpx;
-		color: #999;
-		text-align: right;
-	}
+				.service-message .message-time {
+					margin-left: 0;
+				}
 
-	.user-message .message-time {
-						color: rgba(255, 255, 255, 0.7);
+				.user-message .message-time {
+					margin-left: 10rpx;
+				}
+
+				.message-time {
+					font-size: 20rpx;
+					color: #999;
+					line-height: 1.2;
+				}
+
+				.user-message .message-time {
+					color: #999;
+				}
+
+				.message-content {
+					word-wrap: break-word;
+				}
+
+				.service-message .message-content {
+						background-color: #fff;
+						border-radius: 0 15rpx 15rpx 15rpx;
+						padding: 15rpx;
+						border: 1rpx solid #eee;
 					}
+
+						.user-message .message-content {
+							background-color: #3cc51f;
+							color: #fff;
+							border-radius: 15rpx 0 15rpx 15rpx;
+							padding: 15rpx;
+						}
+
+				.message-text {
+					font-size: 28rpx;
+					line-height: 1.4;
+					margin-bottom: 8rpx;
+				}
+
+				.message-time {
+					font-size: 20rpx;
+					color: #999;
+					text-align: right;
+				}
+
+			
+					.user-message .sender-nickname {
+						text-align: right;
+					}
+
+					.user-message .message-time {
+							color: #999;
+						}
 					
 					.message-image {
 						width: 200rpx;
