@@ -1,18 +1,16 @@
 <template>
   <view class="container">
-    <!-- 搜索栏 -->
-    <view class="search-bar" style="position: fixed; top: 0; left: 0; right: 0; z-index: 999;">
-      <view 
-        class="search-input" 
-        @click="handleSearch"
-      >
-        <text class="search-placeholder">搜索商品或商家</text>
-      </view>
-      <button class="search-button" @click="handleSearch">搜索</button>
-    </view>
+    <!-- 自定义标题栏组件 -->
+    <custom-nav-bar 
+      :show-search="true"
+      :search-placeholder="'搜索商品'"
+      @search="handleSearch"
+    />
 
     <!-- 快捷入口 -->
-    <view class="quick-links" style="margin-top: 120rpx;">
+    <view 
+      class="quick-links" 
+    >
       <view class="quick-link-item" @click="goToSeckill">
         <image class="quick-link-icon" src="https://via.placeholder.com/100" />
         <text class="quick-link-text">秒杀</text>
@@ -79,7 +77,11 @@
 
 <script>
 import { BASE_API } from '@/utils/config.js'
+import customNavBar from '../../components/custom-nav-bar.vue'
 export default {
+  components: {
+    'custom-nav-bar': customNavBar
+  },
   data() {
     return {
       searchQuery: '',
@@ -93,7 +95,7 @@ export default {
       // 滚动分页token
       scrollToken: null,
       // 是否还有更多数据
-      hasMore: true
+      hasMore: true,
     }
   },
   methods: {
@@ -215,49 +217,6 @@ export default {
 </script>
 
 <style scoped>
-/* 搜索栏样式 */
-.search-bar {
-  display: flex;
-  padding: 20rpx;
-  background-color: #fff;
-  border-radius: 0; /* 改为直角 */
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-  margin: 0;
-  align-items: center;
-  width: 100%;
-}
-
-.search-input {
-  flex: 1;
-  padding: 15rpx 20rpx;
-  font-size: 28rpx;
-  border: none;
-  outline: none;
-  background-color: #f5f5f5;
-  border-radius: 0; /* 改为直角 */
-  min-width: 100rpx; /* 设置最小宽度防止过度收缩 */
-  display: flex;
-  align-items: center;
-  color: #999;
-}
-
-.search-placeholder {
-  color: #999;
-}
-
-.search-button {
-  padding: 15rpx 30rpx;
-  background-color: #ff5500;
-  color: #fff;
-  border: none;
-  border-radius: 0; /* 改为直角 */
-  font-size: 28rpx;
-  cursor: pointer;
-  margin-left: 10rpx;
-  font-weight: bold;
-  flex-shrink: 0; /* 防止按钮收缩 */
-}
-
 /* 推荐商家样式 */
 .section-title {
   font-size: 36rpx;
