@@ -7,22 +7,13 @@
 					<image class="shop-avatar" :src="shopInfo.avatar || defaultAvatar60" mode="aspectFill"></image>
 					<view class="shop-details">
 						<text class="shop-name">{{ shopInfo.name || '店铺客服' }}</text>
-						<text class="service-status">{{ shopInfo.status || '在线' }}</text>
 					</view>
-				</view>
-				<view class="header-actions">
-					<text class="action-icon" @click="showShopInfo">ℹ️</text>
 				</view>
 			</view>
 
 			<!-- 聊天内容区域 -->
 			<scroll-view class="chat-content" scroll-y :show-scrollbar="false" ref="chatScroll" @scroll="onScroll">
 				<view class="message-list">
-					<!-- 系统消息 -->
-					<view class="system-message">
-						<text class="system-text">今天 10:00</text>
-					</view>
-
 					<!-- 所有消息，按时间顺序排列 -->
 					<template v-for="(msg, index) in sortedMessages" :key="index">
 						<!-- 客服消息 -->
@@ -849,20 +840,7 @@ import { BASE_API } from '../../utils/config.js';
 		margin-bottom: 5rpx;
 	}
 
-	.service-status {
-		font-size: 24rpx;
-		color: #3cc51f;
-	}
-
-	.header-actions {
-		display: flex;
-		align-items: center;
-	}
-
-	.action-icon {
-		font-size: 36rpx;
-		margin-left: 20rpx;
-	}
+	
 
 	.chat-content {
 		flex: 1;
@@ -875,19 +853,7 @@ import { BASE_API } from '../../utils/config.js';
 		width: 100%;
 	}
 
-	.system-message {
-		display: flex;
-		justify-content: center;
-		margin: 20rpx 0;
-	}
-
-	.system-text {
-		font-size: 20rpx;
-		color: #999;
-		background-color: #f0f0f0;
-		padding: 5rpx 15rpx;
-		border-radius: 20rpx;
-	}
+	
 
 	.message-item {
 					display: flex;
