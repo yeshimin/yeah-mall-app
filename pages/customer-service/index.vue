@@ -12,17 +12,17 @@
 			</view>
 
 			<!-- 聊天内容区域 -->
-			<scroll-view class="chat-content" scroll-y :show-scrollbar="false" ref="chatScroll" @scroll="onScroll">
+			<scroll-view class="chat-content" scroll-y :show-scrollbar="false" ref="chatScroll" @scroll="onScroll" :scroll-into-view="scrollToView">
 				<view class="message-list">
 					<!-- 所有消息，按时间顺序排列 -->
 					<template v-for="(msg, index) in sortedMessages" :key="index">
 						<!-- 客服消息 -->
-						<view v-if="msg.type === 'service'" class="message-item service-message">
+						<view v-if="msg.type === 'service'" :id="index === sortedMessages.length - 1 ? 'last-message' : ''" class="message-item service-message">
 							<image class="sender-avatar" :src="merchantInfo.avatar || shopInfo.avatar || defaultAvatar50" mode="aspectFill"></image>
 							<view class="message-wrapper">
 								<view class="nickname-time-wrapper">
 									<text class="sender-nickname">{{ merchantInfo.nickname || shopInfo.name || '店铺客服' }}</text>
-									<text class="message-time">[{{ msg.time }}]</text>
+									<text class="message-time">{{ msg.time }}</text>
 								</view>
 								<view class="message-content">
 									<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
@@ -32,12 +32,12 @@
 						</view>
 
 						<!-- 用户消息 -->
-						<view v-else-if="msg.type === 'user'" class="message-item user-message">
+						<view v-else-if="msg.type === 'user'" :id="index === sortedMessages.length - 1 ? 'last-message' : ''" class="message-item user-message">
 							<image class="sender-avatar" :src="userInfo.avatar || defaultAvatar50" mode="aspectFill"></image>
 							<view class="message-wrapper">
 								<view class="nickname-time-wrapper">
+									<text class="message-time">{{ msg.time }}</text>
 									<text class="sender-nickname">{{ userInfo.nickname || '我' }}</text>
-									<text class="message-time">[{{ msg.time }}]</text>
 								</view>
 								<view class="message-content">
 									<text class="message-text" v-if="!msg.imageUrl">{{ msg.content }}</text>
@@ -123,64 +123,65 @@ import { getToken } from '../../utils/auth.js';
 import { BASE_API } from '../../utils/config.js';
 		export default {
 		data() {
-				return {
-					// 默认头像（Base64编码，避免网络请求）
-					defaultAvatar50: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-					defaultAvatar60: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-					defaultAvatar80: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-					shopInfo: {
-						name: '店铺客服',
-						avatar: '',
-						status: '在线',
-						description: '专业的客服团队，为您提供优质服务',
-						serviceTime: '09:00-21:00',
-						rating: '4.9',
-						shopId: '1', // 店铺ID
-						merchantId: '1' // 商家ID
-					},
-					userInfo: {
-						avatar: '',
-						userId: '1', // 用户ID
-						nickname: ''
-					},
-					merchantInfo: {
-						nickname: '',
-						avatar: ''
-					},
-					messages: [
-						{
-							content: '您好！欢迎咨询，有什么可以帮助您的吗？',
-							time: '10:01',
-							timestamp: new Date().setHours(10, 1, 0, 0), // 添加时间戳
-							type: 'service'
+					return {
+						// 默认头像（Base64编码，避免网络请求）
+						defaultAvatar50: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
+						defaultAvatar60: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
+						defaultAvatar80: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
+						shopInfo: {
+							name: '店铺客服',
+							avatar: '',
+							description: '专业的客服团队，为您提供优质服务',
+							serviceTime: '09:00-21:00',
+							rating: '4.9',
+							shopId: '1', // 店铺ID
+							merchantId: '1' // 商家ID
 						},
-						{
-							content: '我们的商品支持7天无理由退换，请您放心购买。',
-							time: '10:02',
-							timestamp: new Date().setHours(10, 2, 0, 0), // 添加时间戳
-							type: 'service'
-						}
-					],
-					userMessages: [],
-					inputMessage: '',
-					selectedImage: null, // 选中的图片
-					showQuickQuestions: false, // 关闭常见问题
-					quickQuestions: [
-						'商品什么时候发货？',
-						'支持7天无理由退换吗？',
-						'商品质量有保障吗？',
-						'可以优惠吗？'
-					],
-					showShopInfoPopup: false,
-					isInputFocused: false,
-					// 会话信息
-				conversationInfo: null, // 会话信息
-				conversationId: null, // 会话ID
-				// 分页相关数据
-				currentPage: 1, // 当前页码
-				hasMore: true, // 是否有更多数据
-				loadingMore: false // 是否正在加载更多
-				};
+						userInfo: {
+							avatar: '',
+							userId: '1', // 用户ID
+							nickname: ''
+						},
+						merchantInfo: {
+							nickname: '',
+							avatar: ''
+						},
+						messages: [
+							{
+								content: '您好！欢迎咨询，有什么可以帮助您的吗？',
+								time: '10:01',
+								timestamp: new Date().setHours(10, 1, 0, 0), // 添加时间戳
+								type: 'service'
+							},
+							{
+								content: '我们的商品支持7天无理由退换，请您放心购买。',
+								time: '10:02',
+								timestamp: new Date().setHours(10, 2, 0, 0), // 添加时间戳
+								type: 'service'
+							}
+						],
+						userMessages: [],
+						inputMessage: '',
+						selectedImage: null, // 选中的图片
+						showQuickQuestions: false, // 关闭常见问题
+						quickQuestions: [
+							'商品什么时候发货？',
+							'支持7天无理由退换吗？',
+							'商品质量有保障吗？',
+							'可以优惠吗？'
+						],
+						showShopInfoPopup: false,
+						isInputFocused: false,
+						// 会话信息
+						conversationInfo: null, // 会话信息
+						conversationId: null, // 会话ID
+						// 分页相关数据
+						currentPage: 1, // 当前页码
+						hasMore: true, // 是否有更多数据
+						loadingMore: false, // 是否正在加载更多
+						// 滚动相关
+						scrollToView: '', // 滚动到指定元素的ID
+					};
 			},
 			computed: {
 				// 合并并排序消息
@@ -454,24 +455,17 @@ import { BASE_API } from '../../utils/config.js';
 				console.log('开始执行滚动到底部操作');
 				// 使用setTimeout确保DOM完全更新后执行
 				setTimeout(() => {
-					if (this.$refs.chatScroll) {
-						// 尝试获取scroll-view的实际高度
-						const scrollView = this.$refs.chatScroll;
-						console.log('找到scroll-view组件:', scrollView);
-						
-						// 使用uni-app的scroll-view方法，设置更大的top值和更长的延迟
+					// 微信小程序中使用scroll-into-view属性
+					this.scrollToView = 'last-message';
+					console.log('执行滚动操作，scrollToView: last-message');
+					
+					// 为了避免重复滚动问题，在下次DOM更新后清空scrollToView
+					this.$nextTick(() => {
 						setTimeout(() => {
-							// 使用uni-app的scroll-view方法
-							scrollView.scrollTo({
-								top: 9999999, // 设置一个更大的值，确保滚动到最底部
-								duration: 500
-							});
-							console.log('执行滚动操作，top: 9999999, duration: 500');
+							this.scrollToView = '';
 						}, 100);
-					} else {
-						console.error('未找到scroll-view组件');
-					}
-				}, 300); // 增加延迟时间，确保DOM完全更新
+					});
+				}, 800); // 增加延迟时间，确保DOM完全更新
 			},
 
 			// 获取当前时间
@@ -619,8 +613,9 @@ import { BASE_API } from '../../utils/config.js';
 
 			// 滚动事件处理
 			onScroll(event) {
-				// 当滚动到顶部时加载更多数据
-				if (event.detail.scrollTop <= 0) {
+				// 当滚动到距离顶部50px以内时加载更多数据，增加触发区域
+				// 确保不在加载中且还有更多数据
+				if (event.detail.scrollTop <= 50 && !this.loadingMore && this.hasMore) {
 					this.loadHistoryMessages(true);
 				}
 			},
@@ -703,87 +698,102 @@ import { BASE_API } from '../../utils/config.js';
 			}
 		},
 		onLoad(options) {
-					// 接收从商品详情页面传递过来的参数
-					if (options && options.shopId) {
-						this.shopInfo.shopId = options.shopId;
-					}
-					if (options && options.mchId) {
-						this.shopInfo.merchantId = options.mchId;
-					}
-					if (options && options.conversationId) {
-						// 如果已经从商品详情页面传递了会话ID，直接使用
-						this.conversationId = options.conversationId;
-						console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
-						// 仍然需要初始化会话以获取店铺信息、买家信息和商家信息
-						this.initConversation();
-					} else {
-						// 否则初始化会话，获取会话ID
-						this.initConversation();
-					}
-				},
-			mounted() {
-				// 页面加载时滚动到底部
-				this.$nextTick(() => {
-					this.scrollToBottom();
-				});
-				
-				// 注册WebSocket消息处理器
-				wsManager.on('biz-handle', 'cs-chat.mch', (message) => {
-					console.log('收到商家消息:', message);
-					// 处理商家发送的消息
-					if (message.subCmd === 'msg.mch2mem') {
-						const payload = message.payload;
-						
-						// 验证消息是否满足条件
-						// 检查是否包含会话ID，并且会话ID与当前会话ID匹配
-						const hasValidConversationId = this.conversationId && payload.conversationId == this.conversationId;
-						
-						// 检查是否包含必要的验证字段
-						const hasValidationFields = payload.shopId && payload.from && payload.to;
-						
-						// 验证消息有效性
-						let isValidMessage = false;
-						if (hasValidationFields) {
-							// 使用松散相等运算符自动处理类型转换
-							isValidMessage = payload.shopId == this.shopInfo.shopId && 
-											  payload.from == this.shopInfo.merchantId && 
-											  payload.to == this.userInfo.userId;
-						} else if (hasValidConversationId) {
-							// 如果没有验证字段，但会话ID匹配，也认为是有效消息
-							isValidMessage = true;
-						}
-						
-						if (isValidMessage) {
-							let content = payload.content;
-							let imageUrl = null;
-							
-							// 如果是图片消息，需要处理图片显示
-							if (payload.type === 2) {
-								content = '[图片]';
-								// 使用preview接口加载图片
-								imageUrl = `${BASE_API}/public/storage/preview?fileKey=${payload.content}`;
-							}
-							
-							// 添加到消息列表
-							const now = new Date();
-							const newMessage = {
-								content: content,
-								time: this.getCurrentTime(),
-								timestamp: now.getTime(), // 添加时间戳
-								imageUrl: imageUrl,
-								type: 'service' // 商家消息
-							};
-							this.messages.push(newMessage);
-							
-							this.$nextTick(() => {
-								this.scrollToBottom();
-							});
-						} else {
-							console.log('收到无效消息，忽略:', message);
-						}
-					}
-				});
+				// 接收从商品详情页面传递过来的参数
+				if (options && options.shopId) {
+					this.shopInfo.shopId = options.shopId;
+				}
+				if (options && options.mchId) {
+					this.shopInfo.merchantId = options.mchId;
+				}
+				if (options && options.conversationId) {
+					// 如果已经从商品详情页面传递了会话ID，直接使用
+					this.conversationId = options.conversationId;
+					console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
+					// 仍然需要初始化会话以获取店铺信息、买家信息和商家信息
+					this.initConversation().then(() => {
+						// 初始化会话完成后滚动到底部
+						this.$nextTick(() => {
+							this.scrollToBottom();
+						});
+					});
+				} else {
+					// 否则初始化会话，获取会话ID
+					this.initConversation().then(() => {
+						// 初始化会话完成后滚动到底部
+						this.$nextTick(() => {
+							this.scrollToBottom();
+						});
+					});
+				}
 			},
+			mounted() {
+			// 页面加载后尝试滚动到底部
+			this.$nextTick(() => {
+				this.scrollToBottom();
+			});
+			
+			// 再延迟一段时间后再次尝试滚动，确保所有消息都已加载完成
+			setTimeout(() => {
+				this.scrollToBottom();
+			}, 1000);
+			
+			// 注册WebSocket消息处理器
+			wsManager.on('biz-handle', 'cs-chat.mch', (message) => {
+				console.log('收到商家消息:', message);
+				// 处理商家发送的消息
+				if (message.subCmd === 'msg.mch2mem') {
+					const payload = message.payload;
+					
+					// 验证消息是否满足条件
+					// 检查是否包含会话ID，并且会话ID与当前会话ID匹配
+					const hasValidConversationId = this.conversationId && payload.conversationId == this.conversationId;
+					
+					// 检查是否包含必要的验证字段
+					const hasValidationFields = payload.shopId && payload.from && payload.to;
+					
+					// 验证消息有效性
+					let isValidMessage = false;
+					if (hasValidationFields) {
+						// 使用松散相等运算符自动处理类型转换
+						isValidMessage = payload.shopId == this.shopInfo.shopId && 
+										  payload.from == this.shopInfo.merchantId && 
+										  payload.to == this.userInfo.userId;
+					} else if (hasValidConversationId) {
+						// 如果没有验证字段，但会话ID匹配，也认为是有效消息
+						isValidMessage = true;
+					}
+					
+					if (isValidMessage) {
+						let content = payload.content;
+						let imageUrl = null;
+						
+						// 如果是图片消息，需要处理图片显示
+						if (payload.type === 2) {
+							content = '[图片]';
+							// 使用preview接口加载图片
+							imageUrl = `${BASE_API}/public/storage/preview?fileKey=${payload.content}`;
+						}
+						
+						// 添加到消息列表
+						const now = new Date();
+						const newMessage = {
+							content: content,
+							time: this.getCurrentTime(),
+							timestamp: now.getTime(), // 添加时间戳
+							imageUrl: imageUrl,
+							type: 'service' // 商家消息
+						};
+						this.messages.push(newMessage);
+						
+						this.$nextTick(() => {
+							this.scrollToBottom();
+						});
+					} else {
+						console.log('收到无效消息，忽略:', message);
+					}
+				}
+			});
+		},
 	};
 </script>
 
