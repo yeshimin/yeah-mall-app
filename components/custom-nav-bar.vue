@@ -16,7 +16,6 @@
       class="system-status-bar" 
       :style="{ 
         height: statusBarInfo.sysHeight + 'px', 
-        backgroundColor: '#aaaaaa' 
       }"
     ></view>
     <!-- 标题栏 横着一条 -->
@@ -32,7 +31,6 @@
       <view class="left-content" :style="{
         width: statusBarInfo.leftMaxWidth + 'px',
         height: (statusBarInfo.appHeight) + 'px',
-        backgroundColor: '#00ff00',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -49,7 +47,6 @@
       <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
         width: statusBarInfo.middleMaxWidth + 'px',
-        backgroundColor: '#ff0000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -58,7 +55,7 @@
       }">
         <!-- 搜索框 -->
         <view v-if="showSearch" class="search-container" @click="handleSearch" :style="{
-          width: '50%'
+          width: '80%'
         }">
           <view class="search-box">
             <!-- 搜索图标 -->
