@@ -1,21 +1,21 @@
 <template>
   <view class="profile-container">
     <!-- 个人信息区域 -->
-    <view class="profile-header">
+    <view class="profile-header" @click="editProfile">
       <view class="user-info">
-        <image class="user-avatar" :src="userInfo.avatar" mode="aspectFill"></image>
+        <image class="user-avatar" :src="userInfo.avatarUrl" mode="aspectFill"></image>
         <view class="user-details">
-          <text class="user-name">{{ userInfo.name }}</text>
-          <text class="user-id">ID: {{ userInfo.id }}</text>
+          <text class="user-name">{{ userInfo.nickname }}</text>
         </view>
       </view>
+      <text class="edit-arrow">&gt;</text>
     </view>
     
     <!-- 订单管理 -->
     <view class="section">
       <view class="section-header" @click="viewAllOrders">
         <text class="section-title">我的订单</text>
-        <text class="section-more">查看全部订单 ></text>
+        <text class="section-more">查看全部订单 &gt; </text>
       </view>
       <view class="order-stats">
         <view class="stat-item" v-for="(stat, index) in orderStats" :key="index" @click="viewOrdersByStatus(index)">
@@ -39,7 +39,7 @@
     <view class="section">
       <view class="list-item" v-for="(setting, index) in settings" :key="index" @click="openSetting(index)">
         <text class="list-item-text">{{ setting.name }}</text>
-        <text class="list-item-arrow">></text>
+        <text class="list-item-arrow">&gt;</text>
       </view>
     </view>
   </view>
@@ -47,16 +47,21 @@
 
 <script>
 import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js'
-import { fetchOrderCounts } from '../../utils/api.js'
+import { fetchOrderCounts, fetchUserDetail } from '../../utils/api.js'
+import { BASE_API } from '../../utils/config.js'
 
 export default {
   name: 'Profile',
   data() {
     return {
       userInfo: {
-        avatar: '../../static/logo.png',
-        name: '用户名',
-        id: '123456789'
+        id: '',
+        nickname: '用户名',
+        avatarUrl: '../../static/logo.png',
+        mobile: '',
+        account: '',
+        gender: 0,
+        birthday: ''
       },
       orderStats: [
         { name: '待付款', key: 'waitPayCount', count: 0 },
@@ -84,10 +89,38 @@ export default {
       handleAuthFailure()
       return
     }
-    // 已登录则拉取订单数量
+    // 已登录则拉取用户信息和订单数量
+    this.loadUserInfo()
     this.loadOrderCounts()
   },
   methods: {
+    // 加载用户信息
+    loadUserInfo() {
+      fetchUserDetail()
+        .then(data => {
+          // 处理用户头像URL
+          const avatarUrl = data.avatar ? `${BASE_API}/public/storage/preview?fileKey=${data.avatar}` : '../../static/logo.png'
+          
+          this.userInfo = {
+            id: data.id || '',
+            nickname: data.nickname || data.mobile || '用户名',
+            avatarUrl: avatarUrl,
+            mobile: data.mobile || '',
+            account: data.account || '',
+            gender: data.gender || 0,
+            birthday: data.birthday || ''
+          }
+        })
+        .catch(err => {
+          // 认证失败已在全局处理，这里不再重复提示
+          if (err && err.message === 'AUTH_401') {
+            return
+          }
+          console.error('获取用户信息失败', err)
+          // 保持默认用户信息，不影响页面显示
+        })
+    },
+    
     // 查看全部订单
     viewAllOrders() {
       console.log('查看全部订单')
@@ -144,6 +177,13 @@ export default {
     openSetting(index) {
       console.log('打开设置:', this.settings[index].name)
       // 这里可以跳转到相应的设置页面
+    },
+    
+    // 编辑个人信息
+    editProfile() {
+      uni.navigateTo({
+        url: '/pages/profile/edit'
+      })
     }
   }
 }
@@ -157,9 +197,26 @@ export default {
 }
 
 .profile-header {
-  background: linear-gradient(90deg, #ff6b35, #f7941d);
+  background-color: white;
   padding: 40rpx 30rpx;
-  color: white;
+  margin: 20rpx;
+  border-radius: 10rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-arrow {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.user-name {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 10rpx;
+  color: #333;
 }
 
 .user-info {
@@ -178,17 +235,6 @@ export default {
 .user-details {
   display: flex;
   flex-direction: column;
-}
-
-.user-name {
-  font-size: 36rpx;
-  font-weight: bold;
-  margin-bottom: 10rpx;
-}
-
-.user-id {
-  font-size: 24rpx;
-  opacity: 0.9;
 }
 
 .section {
