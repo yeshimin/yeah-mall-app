@@ -40,7 +40,7 @@
         margin: '0'
       }">
         <!-- 返回按钮 -->
-        <view class="back-button" @click="handleBack">
+        <view v-if="showBack" class="back-button" @click="handleBack">
           <text class="back-icon">←</text>
         </view>
       </view>
@@ -80,6 +80,11 @@
 export default {
   name: 'custom-nav-bar',
   props: {
+    // 是否显示返回按钮
+    showBack: {
+      type: Boolean,
+      default: false
+    },
     // 是否显示搜索框
     showSearch: {
       type: Boolean,
