@@ -1,10 +1,11 @@
 <template>
-  <view class="container">
+  <view class="container" :style="{ paddingTop: navBarHeight + 'px' }">
     <!-- 自定义标题栏组件 -->
     <custom-nav-bar 
       :show-search="true"
       :search-placeholder="'搜索商品'"
       @search="handleSearch"
+      @height-calculated="handleNavBarHeightCalculated"
     />
 
     <!-- 快捷入口 -->
@@ -96,6 +97,8 @@ export default {
       scrollToken: null,
       // 是否还有更多数据
       hasMore: true,
+      // 自定义标题栏高度
+      navBarHeight: 0
     }
   },
   methods: {
@@ -103,6 +106,10 @@ export default {
       uni.navigateTo({
         url: `/pages/product/list`
       })
+    },
+    // 处理自定义标题栏高度计算完成事件
+    handleNavBarHeightCalculated(e) {
+      this.navBarHeight = e.plusHeight;
     },
     goToProduct(productId) {
       uni.navigateTo({

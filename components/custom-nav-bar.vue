@@ -136,6 +136,9 @@ export default {
       };
       
       console.log('状态栏信息:', this.statusBarInfo);
+      
+      // 触发事件，将 plusHeight 值传递给父组件
+      this.$emit('height-calculated', { plusHeight });
     },
     // 处理搜索框点击
     handleSearch() {
