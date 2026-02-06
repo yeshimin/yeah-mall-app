@@ -9,12 +9,13 @@ class WebSocketManager {
     this.isConnected = false;
     this.isReconnecting = false;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
     this.heartbeatIntervalTime = 30000; // 30秒
-    this.reconnectDelay = 3000; // 3秒
+    this.baseReconnectDelay = 3000; // 基础重连延迟
+    this.reconnectDelay = 3000; // 当前重连延迟
     this.url = 'ws://192.168.31.61:8080/ws/ns/default';
     this.messageHandlers = {};
     this.isWechatMiniProgram = typeof wx !== 'undefined' && typeof wx.connectSocket !== 'undefined';
+    this.initNetworkListener(); // 初始化网络状态监听
   }
 
   // 初始化 WebSocket 连接
@@ -49,8 +50,7 @@ class WebSocketManager {
     this.ws.onopen = () => {
       console.log('WebSocket: 连接成功');
       this.isConnected = true;
-      this.reconnectAttempts = 0;
-      this.isReconnecting = false;
+      this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
     };
 
@@ -99,8 +99,7 @@ class WebSocketManager {
     wx.onSocketOpen(() => {
       console.log('WebSocket: 连接成功');
       this.isConnected = true;
-      this.reconnectAttempts = 0;
-      this.isReconnecting = false;
+      this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
     });
 
@@ -219,9 +218,47 @@ class WebSocketManager {
     this.send(heartbeatMessage);
   }
 
+  // 初始化网络状态监听
+  initNetworkListener() {
+    if (this.isWechatMiniProgram) {
+      // 微信小程序环境
+      wx.onNetworkStatusChange((res) => {
+        if (res.isConnected) {
+          console.log('WebSocket: 网络已连接，尝试重连');
+          if (!this.isConnected && !this.isReconnecting) {
+            this.resetReconnectState();
+            this.init();
+          }
+        } else {
+          console.log('WebSocket: 网络已断开');
+        }
+      });
+    } else if (typeof window !== 'undefined') {
+      // 浏览器环境
+      window.addEventListener('online', () => {
+        console.log('WebSocket: 网络已连接，尝试重连');
+        if (!this.isConnected && !this.isReconnecting) {
+          this.resetReconnectState();
+          this.init();
+        }
+      });
+      
+      window.addEventListener('offline', () => {
+        console.log('WebSocket: 网络已断开');
+      });
+    }
+  }
+
+  // 重置重连状态
+  resetReconnectState() {
+    this.reconnectAttempts = 0;
+    this.reconnectDelay = this.baseReconnectDelay;
+    this.stopReconnect();
+  }
+
   // 尝试重连
   attemptReconnect() {
-    if (this.isReconnecting || this.reconnectAttempts >= this.maxReconnectAttempts) {
+    if (this.isReconnecting) {
       return;
     }
 
@@ -234,7 +271,10 @@ class WebSocketManager {
     this.isReconnecting = true;
     this.reconnectAttempts++;
 
-    console.log(`WebSocket: 尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    // 使用指数退避策略，每次重连延迟翻倍，最大不超过30秒
+    this.reconnectDelay = Math.min(this.baseReconnectDelay * Math.pow(2, Math.min(this.reconnectAttempts - 1, 5)), 30000);
+
+    console.log(`WebSocket: 尝试重连 (${this.reconnectAttempts})，延迟 ${this.reconnectDelay}ms`);
 
     this.reconnectInterval = setTimeout(() => {
       this.isReconnecting = false;
