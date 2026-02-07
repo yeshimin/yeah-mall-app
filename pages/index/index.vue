@@ -23,14 +23,11 @@
 
     <!-- 快捷入口 -->
     <view 
+      v-if="!quickLinksLoading && quickLinks.length > 0"
       class="quick-links" 
     >
-      <!-- 加载状态 -->
-      <view v-if="quickLinksLoading" class="loading-container">
-        <text>加载中...</text>
-      </view>
       <!-- 快捷入口列表 -->
-      <view v-else>
+      <view>
         <!-- 遍历每一行 -->
         <view 
           v-for="(row, rowIndex) in quickLinkRows" 
@@ -711,7 +708,7 @@ export default {
 
 /* 快捷入口样式 */
 .quick-links {
-  padding: 30rpx 0;
+  padding: 20rpx 0 10rpx;
   background-color: #fff;
   border-radius: 15rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
@@ -719,7 +716,7 @@ export default {
 }
 
 .quick-link-row {
-  margin-bottom: 20rpx;
+  margin-bottom: 15rpx;
 }
 
 .quick-link-item {
