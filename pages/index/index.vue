@@ -25,17 +25,14 @@
     <view 
       class="quick-links" 
     >
-      <view class="quick-link-item" @click="goToSeckill">
-        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
-        <text class="quick-link-text">秒杀</text>
-      </view>
-      <view class="quick-link-item" @click="goToGroupBuy">
-        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
-        <text class="quick-link-text">拼团</text>
-      </view>
-      <view class="quick-link-item" @click="goToNewArrivals">
-        <image class="quick-link-icon" src="https://via.placeholder.com/100" />
-        <text class="quick-link-text">新品</text>
+      <view 
+        class="quick-link-item" 
+        v-for="link in quickLinks" 
+        :key="link.id"
+        @click="handleQuickLinkClick(link.action)"
+      >
+        <image class="quick-link-icon" :src="link.icon" />
+        <text class="quick-link-text">{{ link.name }}</text>
       </view>
     </view>
 
@@ -103,6 +100,17 @@ export default {
       banners: [],
       // Banner加载状态
       bannersLoading: false,
+      // 金刚区数据
+      quickLinks: [
+        { id: 1, name: '秒杀', icon: 'https://via.placeholder.com/100', action: 'goToSeckill' },
+        { id: 2, name: '拼团', icon: 'https://via.placeholder.com/100', action: 'goToGroupBuy' },
+        { id: 3, name: '新品', icon: 'https://via.placeholder.com/100', action: 'goToNewArrivals' },
+        { id: 4, name: '优惠券', icon: 'https://via.placeholder.com/100', action: 'goToCoupons' },
+        { id: 5, name: '会员', icon: 'https://via.placeholder.com/100', action: 'goToMember' },
+        { id: 6, name: '积分', icon: 'https://via.placeholder.com/100', action: 'goToPoints' },
+        { id: 7, name: '客服', icon: 'https://via.placeholder.com/100', action: 'goToService' },
+        { id: 8, name: '设置', icon: 'https://via.placeholder.com/100', action: 'goToSettings' }
+      ],
       // 热门商品数据
       hotProducts: [],
       // 促销活动数据
@@ -129,6 +137,50 @@ export default {
       // 根据bannerId跳转到相应页面
       console.log('Banner clicked:', bannerId);
       // 暂时不跳转，仅记录点击事件
+    },
+    // 处理金刚区点击
+    handleQuickLinkClick(action) {
+      if (typeof this[action] === 'function') {
+        this[action]();
+      } else {
+        console.log('Action not found:', action);
+      }
+    },
+    // 优惠券页面
+    goToCoupons() {
+      console.log('Go to coupons');
+      // 这里可以添加实际的跳转逻辑
+    },
+    // 会员页面
+    goToMember() {
+      console.log('Go to member');
+      // 这里可以添加实际的跳转逻辑
+    },
+    // 积分页面
+    goToPoints() {
+      console.log('Go to points');
+      // 这里可以添加实际的跳转逻辑
+    },
+    // 客服页面
+    goToService() {
+      console.log('Go to service');
+      // 这里可以添加实际的跳转逻辑
+    },
+    // 设置页面
+    goToSettings() {
+      console.log('Go to settings');
+      // 这里可以添加实际的跳转逻辑
+    },
+    // 获取金刚区数据
+    fetchQuickLinks() {
+      // 暂时使用模拟数据
+      // 后续可以替换为真实API请求
+      console.log('Fetching quick links...');
+      // 模拟API请求延迟
+      setTimeout(() => {
+        // 数据已经在data中定义
+        console.log('Quick links fetched successfully');
+      }, 300);
     },
     // 获取平台Banner列表
     fetchBanners() {
@@ -283,6 +335,7 @@ export default {
   // 在页面加载时获取数据
   mounted() {
     this.fetchBanners();
+    this.fetchQuickLinks();
     this.fetchHotProducts();
   }
 }
@@ -504,7 +557,7 @@ export default {
 /* 快捷入口样式 */
 .quick-links {
   display: flex;
-  justify-content: space-around;
+  flex-wrap: wrap;
   padding: 30rpx 0;
   background-color: #fff;
   border-radius: 15rpx;
@@ -517,7 +570,8 @@ export default {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  width: 33.33%; /* 三个项目并排 */
+  width: 25%; /* 四个项目并排 */
+  margin-bottom: 20rpx;
 }
 
 .quick-link-icon {
