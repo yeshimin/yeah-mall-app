@@ -30,15 +30,32 @@
         <text>加载中...</text>
       </view>
       <!-- 快捷入口列表 -->
-      <view 
-        v-else
-        class="quick-link-item" 
-        v-for="link in quickLinks" 
-        :key="link.id"
-        @click="handleQuickLinkClick(link.action)"
-      >
-        <image class="quick-link-icon" :src="link.icon" />
-        <text class="quick-link-text">{{ link.name }}</text>
+      <view v-else>
+        <!-- 遍历每一行 -->
+        <view 
+          v-for="(row, rowIndex) in quickLinkRows" 
+          :key="rowIndex"
+          class="quick-link-row"
+          :style="{ display: 'flex', justifyContent: 'flex-start' }"
+        >
+          <!-- 遍历行内每个快捷入口 -->
+          <view 
+            class="quick-link-item" 
+            v-for="link in row.items" 
+            :key="link.id"
+            @click="handleQuickLinkClick(link.action)"
+            :style="{ width: `${100 / row.maxCount}%`, boxSizing: 'border-box', padding: '0 10rpx' }"
+          >
+            <image class="quick-link-icon" :src="link.icon" />
+            <text class="quick-link-text">{{ link.name }}</text>
+          </view>
+          <!-- 填充空白项，确保对齐 -->
+          <view 
+            v-for="i in (row.maxCount - row.items.length)" 
+            :key="`empty-${rowIndex}-${i}`"
+            :style="{ width: `${100 / row.maxCount}%` }"
+          ></view>
+        </view>
       </view>
     </view>
 
@@ -201,8 +218,8 @@ export default {
             const quickLinkData = res.data.data;
             console.log('快捷入口数据:', quickLinkData);
             
-            // 构建完整的数据结构，最多显示8个（两行4列）
-            const quickLinksWithDetails = quickLinkData.slice(0, 8).map((link, index) => ({
+            // 构建完整的数据结构，最多显示10个
+            const quickLinksWithDetails = quickLinkData.slice(0, 10).map((link, index) => ({
               id: index + 1,
               name: link.name,
               // 构建完整的图片URL
@@ -420,6 +437,41 @@ export default {
       });
     }
   },
+  
+  // 计算属性
+  computed: {
+    // 根据快捷入口数量计算每行显示的数量
+    quickLinkRows() {
+      const count = this.quickLinks.length;
+      // 最多显示10个
+      const displayCount = Math.min(count, 10);
+      
+      if (displayCount <= 4) {
+        // <=4个，一行展示
+        return [{
+          items: this.quickLinks.slice(0, displayCount),
+          count: displayCount,
+          maxCount: displayCount
+        }];
+      } else {
+        // 5-10个，两行布局
+        const firstRowCount = Math.ceil(displayCount / 2);
+        const secondRowCount = displayCount - firstRowCount;
+        return [{
+          items: this.quickLinks.slice(0, firstRowCount),
+          count: firstRowCount,
+          // 记录最大列数，用于对齐
+          maxCount: firstRowCount
+        }, {
+          items: this.quickLinks.slice(firstRowCount, displayCount),
+          count: secondRowCount,
+          // 记录最大列数，用于对齐
+          maxCount: firstRowCount
+        }];
+      }
+    }
+  },
+  
   // 在页面加载时获取数据
   mounted() {
     console.log('首页组件mounted生命周期执行');
@@ -659,8 +711,6 @@ export default {
 
 /* 快捷入口样式 */
 .quick-links {
-  display: flex;
-  flex-wrap: wrap;
   padding: 30rpx 0;
   background-color: #fff;
   border-radius: 15rpx;
@@ -668,13 +718,18 @@ export default {
   margin: 20rpx;
 }
 
+.quick-link-row {
+  margin-bottom: 20rpx;
+}
+
 .quick-link-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  width: 25%; /* 四个项目并排 */
   margin-bottom: 20rpx;
+  box-sizing: border-box;
+  padding: 0 10rpx;
 }
 
 .quick-link-icon {
