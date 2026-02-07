@@ -8,6 +8,19 @@
       @height-calculated="handleNavBarHeightCalculated"
     />
 
+    <!-- Banner滚动区域 -->
+    <view class="banner-section">
+      <swiper class="banner-swiper" :autoplay="true" :interval="3000" :duration="500" :circular="true" :indicator-dots="true" :indicator-color="'rgba(255,255,255,0.5)'" :indicator-active-color="'#fff'">
+        <swiper-item 
+          v-for="(banner, index) in banners" 
+          :key="index"
+          @click="handleBannerClick(banner.id)"
+        >
+          <image class="banner-image" :src="banner.image" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
+    </view>
+
     <!-- 快捷入口 -->
     <view 
       class="quick-links" 
@@ -86,6 +99,10 @@ export default {
   data() {
     return {
       searchQuery: '',
+      // Banner数据
+      banners: [],
+      // Banner加载状态
+      bannersLoading: false,
       // 热门商品数据
       hotProducts: [],
       // 促销活动数据
@@ -106,6 +123,56 @@ export default {
       uni.navigateTo({
         url: `/pages/product/list`
       })
+    },
+    // 处理Banner点击
+    handleBannerClick(bannerId) {
+      // 根据bannerId跳转到相应页面
+      console.log('Banner clicked:', bannerId);
+      // 这里可以根据实际业务逻辑进行跳转
+      uni.navigateTo({
+        url: `/pages/product/list`
+      })
+    },
+    // 获取平台Banner列表
+    fetchBanners() {
+      this.bannersLoading = true;
+      
+      // 构建API请求URL
+      const url = `${BASE_API}/app/platBanner/query`;
+      
+      uni.request({
+        url: url,
+        method: 'GET',
+        header: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxIiwiaWF0IjoxNzU0ODMxOTI0LCJzdWIiOiJhcHAiLCJ0ZXJtIjoiYXBwIiwiaWF0TXMiOjE3NTQ4MzE5MjQ5NjksImV4cE1zIjoxNzU0ODM1NTI0OTY5fQ.T5UGHYy6ThASbwIae6aM1tJue15rJaAFnyXI945UhSk',
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          if (res.statusCode === 200 && res.data.code === 0) {
+            // 处理返回的Banner数据
+            const bannerData = res.data.data;
+            
+            // 构建完整的图片URL
+            const bannersWithImages = bannerData.map((banner, index) => ({
+              id: index + 1,
+              image: banner.imageUrl ? (() => {
+                const baseApi = BASE_API;
+                return `${baseApi}/public/storage/preview?fileKey=${banner.imageUrl}`;
+              })() : ''
+            }));
+            
+            this.banners = bannersWithImages;
+          } else {
+            console.error('获取平台Banner失败:', res.data.message);
+          }
+        },
+        fail: (err) => {
+          console.error('请求平台Banner失败:', err);
+        },
+        complete: () => {
+          this.bannersLoading = false;
+        }
+      });
     },
     // 处理自定义标题栏高度计算完成事件
     handleNavBarHeightCalculated(e) {
@@ -196,7 +263,7 @@ export default {
               sales: item.sales !== undefined ? item.sales : 0,
               // 根据不同环境构造图片URL
               image: item.mainImage ? (() => {
-                const baseApi = BASE_API.replace('http://', 'https://');
+                const baseApi = BASE_API;
                 return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
               })() : ''
             }));
@@ -216,8 +283,9 @@ export default {
       });
     }
   },
-  // 在页面加载时获取热门商品列表
+  // 在页面加载时获取数据
   mounted() {
+    this.fetchBanners();
     this.fetchHotProducts();
   }
 }
@@ -415,6 +483,25 @@ export default {
   font-size: 28rpx;
   font-weight: bold;
   text-shadow: 1rpx 1rpx 2rpx rgba(0, 0, 0, 0.5);
+}
+
+/* Banner滚动区域样式 */
+.banner-section {
+  margin: 20rpx;
+  border-radius: 15rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.banner-swiper {
+  width: 100%;
+  height: 300rpx;
+  position: relative;
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
 }
 
 /* 快捷入口样式 */
