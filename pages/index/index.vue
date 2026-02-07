@@ -25,7 +25,13 @@
     <view 
       class="quick-links" 
     >
+      <!-- 加载状态 -->
+      <view v-if="quickLinksLoading" class="loading-container">
+        <text>加载中...</text>
+      </view>
+      <!-- 快捷入口列表 -->
       <view 
+        v-else
         class="quick-link-item" 
         v-for="link in quickLinks" 
         :key="link.id"
@@ -111,6 +117,8 @@ export default {
         { id: 7, name: '客服', icon: 'https://via.placeholder.com/100', action: 'goToService' },
         { id: 8, name: '设置', icon: 'https://via.placeholder.com/100', action: 'goToSettings' }
       ],
+      // 金刚区加载状态
+      quickLinksLoading: false,
       // 热门商品数据
       hotProducts: [],
       // 促销活动数据
@@ -173,14 +181,52 @@ export default {
     },
     // 获取金刚区数据
     fetchQuickLinks() {
-      // 暂时使用模拟数据
-      // 后续可以替换为真实API请求
-      console.log('Fetching quick links...');
-      // 模拟API请求延迟
-      setTimeout(() => {
-        // 数据已经在data中定义
-        console.log('Quick links fetched successfully');
-      }, 300);
+      console.log('开始获取快捷入口数据');
+      this.quickLinksLoading = true;
+      // 构建API请求URL
+      const url = `${BASE_API}/app/platQuickEntry/query`;
+      console.log('快捷入口API地址:', url);
+      
+      // 直接使用uni.request发起请求，不使用token
+      uni.request({
+        url: url,
+        method: 'GET',
+        header: {
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          console.log('快捷入口API响应:', res);
+          if (res.statusCode === 200 && res.data.code === 0) {
+            // 处理返回的快捷入口数据
+            const quickLinkData = res.data.data;
+            console.log('快捷入口数据:', quickLinkData);
+            
+            // 构建完整的数据结构，最多显示8个（两行4列）
+            const quickLinksWithDetails = quickLinkData.slice(0, 8).map((link, index) => ({
+              id: index + 1,
+              name: link.name,
+              // 构建完整的图片URL
+              icon: link.icon ? `${BASE_API}/public/storage/preview?fileKey=${link.icon}` : '',
+              type: link.type,
+              target: link.target,
+              // 根据类型和目标生成action
+              action: this.getActionForQuickLink(link.type, link.target)
+            }));
+            
+            console.log('处理后的快捷入口数据:', quickLinksWithDetails);
+            this.quickLinks = quickLinksWithDetails;
+          } else {
+            console.error('获取快捷入口失败:', res.data.message);
+          }
+        },
+        fail: (err) => {
+          console.error('请求快捷入口失败:', err);
+        },
+        complete: () => {
+          console.log('快捷入口请求完成');
+          this.quickLinksLoading = false;
+        }
+      });
     },
     // 获取平台Banner列表
     fetchBanners() {
@@ -267,6 +313,48 @@ export default {
         }
       });
     },
+    // 根据快捷入口类型和目标生成action方法名
+    getActionForQuickLink(type, target) {
+      // 根据类型和目标映射到对应的action方法
+      switch (type) {
+        case 1: // 秒杀活动
+          return 'goToSeckill';
+        case 2: // 拼团
+          return 'goToGroupBuy';
+        case 3: // 新品
+          return 'goToNewArrivals';
+        case 4: // 优惠券
+          return 'goToCoupons';
+        case 5: // 会员
+          return 'goToMember';
+        case 6: // 积分
+          return 'goToPoints';
+        case 7: // 客服
+          return 'goToService';
+        case 8: // 设置
+          return 'goToSettings';
+        default:
+          // 如果有target，可能是自定义链接
+          if (target) {
+            return 'handleCustomQuickLink';
+          }
+          // 默认返回一个通用方法
+          return 'handleDefaultQuickLink';
+      }
+    },
+    
+    // 处理默认快捷入口点击
+    handleDefaultQuickLink() {
+      console.log('Default quick link clicked');
+      // 可以根据target参数进行相应处理
+    },
+    
+    // 处理自定义链接类型的快捷入口
+    handleCustomQuickLink() {
+      console.log('Custom quick link clicked');
+      // 可以根据target参数跳转到相应链接
+    },
+    
     // 获取热门商品列表
     fetchHotProducts() {
       // 如果没有更多数据，直接返回
@@ -334,9 +422,24 @@ export default {
   },
   // 在页面加载时获取数据
   mounted() {
+    console.log('首页组件mounted生命周期执行');
     this.fetchBanners();
+    console.log('调用fetchQuickLinks前');
     this.fetchQuickLinks();
+    console.log('调用fetchQuickLinks后');
     this.fetchHotProducts();
+    console.log('mounted生命周期执行完成');
+  },
+  
+  // 添加onLoad生命周期钩子
+  onLoad() {
+    console.log('首页组件onLoad生命周期执行');
+  },
+  
+  // 添加onShow生命周期钩子
+  onShow() {
+    console.log('首页组件onShow生命周期执行');
+    // 不再重复调用fetchQuickLinks，避免接口调用两次
   }
 }
 </script>
@@ -586,5 +689,16 @@ export default {
 .quick-link-text {
   font-size: 26rpx;
   color: #333;
+}
+
+/* 加载状态样式 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200rpx;
+  width: 100%;
+  font-size: 28rpx;
+  color: #999;
 }
 </style>
