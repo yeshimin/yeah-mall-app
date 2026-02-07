@@ -128,10 +128,7 @@ export default {
     handleBannerClick(bannerId) {
       // 根据bannerId跳转到相应页面
       console.log('Banner clicked:', bannerId);
-      // 这里可以根据实际业务逻辑进行跳转
-      uni.navigateTo({
-        url: `/pages/product/list`
-      })
+      // 暂时不跳转，仅记录点击事件
     },
     // 获取平台Banner列表
     fetchBanners() {
