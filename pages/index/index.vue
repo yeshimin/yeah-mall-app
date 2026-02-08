@@ -315,11 +315,12 @@ export default {
     },
     // 瀑布流布局方法
     initWaterfall() {
-      // 简单的瀑布流实现，将商品交替分配到左右两列
+      // 交替分配商品，实现左边一个右边一个的排列
       this.leftColumnProducts = [];
       this.rightColumnProducts = [];
       
       this.hotProducts.forEach((product, index) => {
+        // 偶数索引的商品放到左列，奇数索引的商品放到右列
         if (index % 2 === 0) {
           this.leftColumnProducts.push(product);
         } else {
@@ -622,7 +623,8 @@ export default {
 
 .product-image {
   width: 100%;
-  height: 300rpx;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .product-info {
