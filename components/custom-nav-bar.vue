@@ -9,7 +9,8 @@
       zIndex: '999',
       height: (statusBarInfo.plusHeight) + 'px',
       width: '100%',
-      backgroundColor: '#f8f8f8',
+      backgroundColor: transparent ? 'transparent' : backgroundColor,
+      boxShadow: transparent ? 'none' : '0 4rpx 20rpx rgba(0, 0, 0, 0.1)',
     }"
   >
     <!-- 系统状态栏占位空间 -->
@@ -17,7 +18,7 @@
       class="system-status-bar" 
       :style="{ 
         height: statusBarInfo.sysHeight + 'px', 
-        backgroundColor: '#f8f8f8',
+        backgroundColor: transparent ? 'transparent' : backgroundColor,
       }"
     ></view>
     <!-- 标题栏 横着一条 -->
@@ -33,7 +34,7 @@
       <view class="left-content" :style="{
         width: statusBarInfo.leftMaxWidth + 'px',
         height: (statusBarInfo.appHeight) + 'px',
-        backgroundColor: '#f8f8f8',
+        backgroundColor: transparent ? 'transparent' : backgroundColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -50,7 +51,7 @@
       <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
         width: statusBarInfo.middleMaxWidth + 'px',
-        backgroundColor: '#f8f8f8',
+        backgroundColor: transparent ? 'transparent' : backgroundColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -100,6 +101,16 @@ export default {
     title: {
       type: String,
       default: ''
+    },
+    // 是否透明背景
+    transparent: {
+      type: Boolean,
+      default: false
+    },
+    // 背景颜色
+    backgroundColor: {
+      type: String,
+      default: '#f8f8f8'
     }
   },
   data() {
@@ -172,6 +183,10 @@ export default {
     // 处理搜索框点击
     handleSearch() {
       this.$emit('search', {});
+    },
+    // 处理返回按钮点击
+    handleBack() {
+      this.$emit('back');
     }
   },
   // 组件挂载时计算状态栏信息
@@ -184,7 +199,6 @@ export default {
 <style scoped>
 /* 自定义标题栏样式 */
 .custom-nav-bar {
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -254,19 +268,18 @@ export default {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   margin-left: 16px;
 }
 
 .back-icon {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #333;
   font-weight: bold;
   text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
   padding-top: 8px;
   padding-bottom: 8px;
-  /* padding-right: 16px; */
 }
 </style>

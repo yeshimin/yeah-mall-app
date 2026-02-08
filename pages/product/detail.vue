@@ -1,5 +1,14 @@
 <template>
 	<view class="product-detail-container">
+		<!-- 自定义标题栏组件 -->
+		<custom-nav-bar 
+			:show-back="true"
+			:show-search="false"
+			:title="''"
+			:transparent="true"
+			@height-calculated="handleNavBarHeightCalculated"
+			@back="goBack"
+		/>
 		
 		<scroll-view class="detail-scroll" scroll-y :show-scrollbar="false">
 			<!-- 商品图片轮播 -->
@@ -176,31 +185,37 @@
 	import { getUserId, handleAuthFailure, authRequest, getToken } from '@/utils/auth.js'
 	import { fetchReviewSummary } from '@/utils/api.js'
     import { BASE_API } from '@/utils/config.js'
+	import customNavBar from '../../components/custom-nav-bar.vue'
 
 export default {
-		data() {
-				return {
-					showSpec: false,
-					showCartPopup: false,
-					purchaseMode: 'cart', // 'cart' 表示加入购物车，'buy' 表示立即购买
-					product: {},
-					banners: [],
-					specs: [], // 商品规格数据
-					skuOptIds: [], // SKU配置的选项ID
-					skus: [], // SKU数据，包含库存和价格信息
-					selectedSpecs: {}, // 选中的规格
-					isCollected: false, // 收藏状态
-					selectedQuantity: 1,
-					stock: 100, // 示例库存
-					reviewSummary: { // 评价概览数据
-						totalCount: 0,
-						goodRate: 100,
-						topReviews: []
-					},
-					shop: {} // 店铺信息
-				}
+	components: {
+		'custom-nav-bar': customNavBar
+	},
+	data() {
+		return {
+			showSpec: false,
+			showCartPopup: false,
+			purchaseMode: 'cart', // 'cart' 表示加入购物车，'buy' 表示立即购买
+			product: {},
+			banners: [],
+			specs: [], // 商品规格数据
+			skuOptIds: [], // SKU配置的选项ID
+			skus: [], // SKU数据，包含库存和价格信息
+			selectedSpecs: {}, // 选中的规格
+			isCollected: false, // 收藏状态
+			selectedQuantity: 1,
+			stock: 100, // 示例库存
+			reviewSummary: { // 评价概览数据
+				totalCount: 0,
+				goodRate: 100,
+				topReviews: []
 			},
-		methods: {
+			shop: {}, // 店铺信息
+			// 自定义标题栏高度
+			navBarHeight: 0
+		}
+	},
+	methods: {
             loadReviewSummary(productId) {
                 fetchReviewSummary(productId).then(data => {
                     this.reviewSummary = data;
@@ -208,6 +223,10 @@ export default {
             },
 				goBack() {
 					uni.navigateBack();
+				},
+				// 处理自定义标题栏高度计算完成事件
+				handleNavBarHeightCalculated(e) {
+					this.navBarHeight = e.plusHeight;
 				},
 				getToken() {
 					return getToken();
@@ -768,23 +787,23 @@ export default {
 							icon: 'success'
 						});
 					}
-				}
-			},
-			// 在页面加载时获取商品详情
-			onLoad(options) {
-				console.log(options);
-				// 从路由参数中获取商品ID
-				const productId = options.productId;
-				this.fetchProductDetail(productId);
-
-				// 获取商品详情后检查收藏状态
-				this.$nextTick(() => {
-					if (this.product.id) {
-						this.checkCollectStatus();
-					}
-				});
 			}
-		}
+		},
+	// 在页面加载时获取商品详情
+	onLoad(options) {
+		console.log(options);
+		// 从路由参数中获取商品ID
+		const productId = options.productId;
+		this.fetchProductDetail(productId);
+
+		// 获取商品详情后检查收藏状态
+		this.$nextTick(() => {
+			if (this.product.id) {
+				this.checkCollectStatus();
+			}
+		});
+	}
+}
 </script>
 
 <style scoped>
@@ -794,9 +813,9 @@ export default {
 	}
 	
 	.detail-scroll {
-		height: calc(100vh - 200rpx);
-		margin-top: 0rpx;
+		height: 100vh;
 		margin-bottom: 100rpx;
+		padding-top: 0;
 	}
 	
 	.product-swiper {

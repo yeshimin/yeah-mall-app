@@ -67,9 +67,21 @@
             @click="goToProduct(product.id)"
           >
             <image class="product-image" :src="product.image" v-if="product.image" />
-            <text class="product-name">{{ product.name }}</text>
-            <text class="product-price">￥{{ product.price }}</text>
-            <text class="product-sales">销量: {{ product.sales }}</text>
+            <view class="product-info">
+              <text class="product-name">{{ product.name }}</text>
+              <!-- 标签区域 -->
+              <view class="product-tags" v-if="product.tags && product.tags.length > 0">
+                <text 
+                  v-for="(tag, index) in product.tags.slice(0, 3)" 
+                  :key="index"
+                  class="product-tag"
+                >{{ tag }}</text>
+              </view>
+              <view class="price-sales-container">
+                <text class="product-price">￥{{ product.price }}</text>
+                <text class="product-sales">已售{{ product.sales }}件</text>
+              </view>
+            </view>
           </view>
         </view>
         <view class="waterfall-column">
@@ -80,9 +92,21 @@
             @click="goToProduct(product.id)"
           >
             <image class="product-image" :src="product.image" v-if="product.image" />
-            <text class="product-name">{{ product.name }}</text>
-            <text class="product-price">￥{{ product.price }}</text>
-            <text class="product-sales">销量: {{ product.sales }}</text>
+            <view class="product-info">
+              <text class="product-name">{{ product.name }}</text>
+              <!-- 标签区域 -->
+              <view class="product-tags" v-if="product.tags && product.tags.length > 0">
+                <text 
+                  v-for="(tag, index) in product.tags.slice(0, 3)" 
+                  :key="index"
+                  class="product-tag"
+                >{{ tag }}</text>
+              </view>
+              <view class="price-sales-container">
+                <text class="product-price">￥{{ product.price }}</text>
+                <text class="product-sales">已售{{ product.sales }}件</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -411,6 +435,8 @@ export default {
               name: item.name,
               price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : '0.00',
               sales: item.sales !== undefined ? item.sales : 0,
+              // 处理标签数据
+              tags: item.tags || item.labelList || [],
               // 根据不同环境构造图片URL
               image: item.mainImage ? (() => {
                 const baseApi = BASE_API;
@@ -613,16 +639,23 @@ export default {
 
 .product-item {
   background: #fff;
-  border-radius: 10rpx;
+  border-radius: 12rpx;
   overflow: hidden;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
-  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08);
+  margin-bottom: 24rpx;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-item:hover {
+  transform: translateY(-4rpx);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.12);
 }
 
 .product-image {
   width: 100%;
   height: auto;
   aspect-ratio: 1;
+  border-bottom: 1rpx solid #f5f5f5;
 }
 
 .product-info {
@@ -632,13 +665,44 @@ export default {
 .product-name {
   font-size: 28rpx;
   font-weight: bold;
-  margin-bottom: 10rpx;
+  color: #000;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-tags {
+  display: flex;
+  margin-bottom: 14rpx;
+  flex-wrap: wrap;
+}
+
+.product-tag {
+  font-size: 18rpx;
+  color: #ff6b6b;
+  background-color: #fff0f0;
+  padding: 6rpx 12rpx;
+  border-radius: 6rpx;
+  margin-right: 10rpx;
+  margin-bottom: 8rpx;
+  border: 1rpx solid #ffecec;
+}
+
+.price-sales-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8rpx;
 }
 
 .product-price {
   color: #e4393c;
-  font-size: 24rpx;
-  margin-bottom: 10rpx;
+  font-size: 28rpx;
+  font-weight: bold;
 }
 
 .product-sales {
