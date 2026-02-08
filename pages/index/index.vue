@@ -58,7 +58,6 @@
 
     <!-- 热门商品 -->
     <view class="section">
-      <view class="section-title">热门商品</view>
       <view class="waterfall-container">
         <view class="waterfall-column">
           <view 
@@ -91,7 +90,6 @@
 
     <!-- 促销活动 -->
     <view class="section">
-      <view class="section-title">促销活动</view>
       <scroll-view class="promotion-list" scroll-x>
         <view 
           class="promotion-item" 
