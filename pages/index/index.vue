@@ -654,7 +654,7 @@ export default {
 .product-image {
   width: 100%;
   height: auto;
-  aspect-ratio: 1;
+  aspect-ratio: 100 / 80;
   border-bottom: 1rpx solid #f5f5f5;
 }
 
