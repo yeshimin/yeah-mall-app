@@ -127,6 +127,12 @@
 			"style": {
 				"navigationBarTitleText": "编辑个人信息"
 			}
+		},
+		{
+			"path": "pages/seckill/list",
+			"style": {
+				"navigationBarTitleText": "秒杀活动"
+			}
 		}
 	],
 	"globalStyle": {
