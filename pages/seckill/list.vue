@@ -6,6 +6,7 @@
         v-for="(activity, index) in seckillActivities" 
         :key="activity.id"
         class="activity-item"
+        @click="goToActivityDetail(activity)"
       >
         <!-- 活动图片 -->
         <view class="activity-image-container">
@@ -21,8 +22,8 @@
         <view class="activity-info">
           <view class="activity-header">
             <text class="activity-name">{{ activity.name }}</text>
-            <view class="activity-status" :class="{ active: activity.status === '2' }">
-              <text class="status-text">{{ activity.status === '2' ? '进行中' : '未开始' }}</text>
+            <view class="activity-status" :class="{ active: activity.status === '5' }">
+              <text class="status-text">{{ getActivityStatusText(activity.status) }}</text>
             </view>
           </view>
           <text class="activity-description">{{ activity.description }}</text>
@@ -35,8 +36,13 @@
             <text class="time-text">{{ activity.activityEndTime }}</text>
           </view>
         </view>
+        
+        <!-- 透明覆盖层，确保点击事件被捕获 -->
+        <view class="activity-overlay"></view>
       </view>
     </view>
+
+
 
     <!-- 加载状态 -->
     <view v-if="loading" class="loading-container">
@@ -73,6 +79,30 @@ export default {
     handleImageError(e) {
       console.log('图片加载失败:', e)
       // 可以在这里设置默认图片
+    },
+
+    // 跳转到商品详情页面
+    goToProductDetail(productId) {
+      console.log('跳转到商品详情:', productId)
+      console.log('准备执行uni.navigateTo')
+      const url = `/pages/product/detail?productId=${productId}&scene=seckill`
+      console.log('跳转URL:', url)
+      
+      try {
+        uni.navigateTo({
+          url: url,
+          success: function(res) {
+            console.log('跳转成功:', res)
+          },
+          fail: function(err) {
+            console.log('跳转失败:', err)
+            console.log('错误代码:', err.errCode)
+            console.log('错误信息:', err.errMsg)
+          }
+        })
+      } catch (e) {
+        console.log('跳转时发生异常:', e)
+      }
     },
 
     // 获取秒杀活动列表
@@ -153,12 +183,76 @@ export default {
           }
         ]
       }
+    },
+
+
+    
+
+    
+    // 跳转到秒杀商品列表页面
+    goToActivityDetail(activity) {
+      console.log('活动被点击:', activity)
+      console.log('活动状态:', activity.status)
+      
+      // 检查活动状态
+      if (activity.status === '6') {
+        // 活动已结束，显示提示
+        uni.showToast({
+          title: '活动已结束',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      } else if (activity.status !== '5') {
+        // 活动未开始，显示提示
+        uni.showToast({
+          title: '活动尚未开始',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      console.log('开始跳转...')
+      try {
+        uni.navigateTo({
+          url: `/pages/seckill/product-list?activityId=${activity.id}&activityName=${encodeURIComponent(activity.name)}&activityDescription=${encodeURIComponent(activity.description)}&activityStatus=${activity.status}&activityBeginTime=${encodeURIComponent(activity.activityBeginTime)}&activityEndTime=${encodeURIComponent(activity.activityEndTime)}&coverImage=${encodeURIComponent(activity.coverImage)}`,
+          success: function(res) {
+            console.log('跳转成功:', res)
+          },
+          fail: function(err) {
+            console.log('跳转失败:', err)
+            console.log('错误代码:', err.errCode)
+            console.log('错误信息:', err.errMsg)
+          }
+        })
+      } catch (e) {
+        console.log('跳转时发生异常:', e)
+      }
+    },
+    
+    // 获取活动状态文本
+    getActivityStatusText(status) {
+      const statusMap = {
+        '1': '新建',
+        '2': '发布',
+        '3': '开始报名',
+        '4': '结束报名',
+        '5': '开始活动',
+        '6': '结束活动'
+      }
+      return statusMap[status] || '未知状态'
     }
   },
 
   // 页面加载时获取数据
   mounted() {
+    console.log('页面加载，开始获取数据')
     this.fetchSeckillActivities()
+    // 直接使用模拟活动数据，确保活动列表显示
+    this.useMockActivityData()
+    console.log('活动数据:', this.seckillActivities)
+    console.log('活动数量:', this.seckillActivities.length)
   }
 }
 </script>
@@ -181,6 +275,8 @@ export default {
   width: 100%;
 }
 
+
+
 /* 活动列表样式 */
 .activity-list {
   background-color: #f5f5f5;
@@ -196,6 +292,20 @@ export default {
   border-radius: 8px;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
   background-color: #ffffff;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.activity-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background-color: transparent;
+  cursor: pointer;
 }
 
 .activity-image-container {
@@ -266,6 +376,153 @@ export default {
 .activity-status.active {
   background-color: #ff4444;
   color: #ffffff;
+}
+
+/* 秒杀商品列表样式 */
+.seckill-products {
+  background-color: #ffffff;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.product-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.product-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.product-item:last-child {
+  border-bottom: none;
+}
+
+.product-image-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.seckill-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #ff4444;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px 0 4px 0;
+  font-size: 12px;
+}
+
+.product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.product-name {
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price-container {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.seckill-price {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-symbol {
+  font-size: 12px;
+  color: #ff4444;
+  margin-right: 2px;
+}
+
+.price-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ff4444;
+}
+
+.original-price {
+  font-size: 12px;
+  color: #999999;
+  text-decoration: line-through;
+}
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #ff4444;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #999999;
+  min-width: 60px;
+  text-align: right;
 }
 
 /* 加载状态样式 */

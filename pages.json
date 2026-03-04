@@ -133,6 +133,12 @@
 			"style": {
 				"navigationBarTitleText": "秒杀活动"
 			}
+		},
+		{
+			"path": "pages/seckill/product-list",
+			"style": {
+				"navigationBarTitleText": "秒杀商品"
+			}
 		}
 	],
 	"globalStyle": {
