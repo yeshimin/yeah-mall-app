@@ -12,7 +12,8 @@ class WebSocketManager {
     this.heartbeatIntervalTime = 30000; // 30秒
     this.baseReconnectDelay = 3000; // 基础重连延迟
     this.reconnectDelay = 3000; // 当前重连延迟
-    this.url = 'ws://192.168.31.61:8080/ws/ns/default';
+    // this.url = 'ws://192.168.31.61:8080/ws/ns/default';
+    this.url = 'ws://10.20.31.248:8080/ws/ns/default';
     this.messageHandlers = {};
     this.isWechatMiniProgram = typeof wx !== 'undefined' && typeof wx.connectSocket !== 'undefined';
     this.initNetworkListener(); // 初始化网络状态监听

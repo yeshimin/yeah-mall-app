@@ -42,6 +42,13 @@
         <view class="product-info">
           <text class="product-name">{{ product.name }}</text>
           
+          <!-- 商家和场次信息 -->
+          <view class="product-meta">
+            <text class="mch-name">{{ product.mchName }}</text>
+            <text class="shop-name">{{ product.shopName }}</text>
+            <text class="session-name">{{ product.sessionName }}</text>
+          </view>
+          
           <!-- 价格信息 -->
           <view class="price-container">
             <view class="seckill-price">
@@ -53,16 +60,7 @@
             </view>
           </view>
 
-          <!-- 进度条和库存 -->
-          <view class="progress-container">
-            <view class="progress-bar">
-              <view 
-                class="progress-fill"
-                :style="{ width: product.progress + '%' }"
-              ></view>
-            </view>
-            <text class="progress-text">{{ product.progress }}%已抢</text>
-          </view>
+
         </view>
         
         <!-- 透明覆盖层，确保点击事件被捕获 -->
@@ -136,7 +134,7 @@ export default {
       this.loading = true
 
       // 构建API请求URL
-      const url = `${BASE_API}/app/seckillActivity/detail?id=${activityId}`
+      const url = `${BASE_API}/app/seckill/queryActivityDetail?id=${activityId}`
 
       // 使用带认证的请求
       authRequest({
@@ -195,7 +193,7 @@ export default {
       this.loading = true
 
       // 构建API请求URL
-      const url = `${BASE_API}/app/seckill/query?activityId=${activityId}`
+      const url = `${BASE_API}/app/seckill/queryProduct?activityId=${activityId}`
 
       // 使用带认证的请求
       authRequest({
@@ -210,14 +208,18 @@ export default {
           const responseData = res.data.data
           
           // 处理商品数据
-          const products = responseData.data.map(item => ({
+          const products = responseData.records.map(item => ({
             id: item.id,
             name: item.name,
             image: item.mainImage ? `${BASE_API}/public/storage/preview?fileKey=${item.mainImage}` : '',
-            seckillPrice: item.seckillPrice.toFixed(2),
-            originalPrice: item.originalPrice.toFixed(2),
-            stock: item.stock,
-            progress: item.progress || 0
+            seckillPrice: item.minSeckillPrice ? item.minSeckillPrice.toFixed(2) : '0.00',
+            originalPrice: item.minOriginPrice ? item.minOriginPrice.toFixed(2) : '0.00',
+            stock: 0, // 接口未返回，暂时设为0
+            progress: 0, // 接口未返回，暂时设为0
+            sales: item.sales || 0,
+            mchName: item.mchName,
+            shopName: item.shopName,
+            sessionName: item.sessionName
           }))
 
           this.seckillProducts = products
@@ -374,17 +376,19 @@ export default {
 
 .activity-status {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 12px;
   background-color: #f0f0f0;
   color: #666666;
   flex-shrink: 0;
+  border: 1px solid #e0e0e0;
 }
 
 .activity-status.active {
-  background-color: #ff4444;
-  color: #ffffff;
+  background-color: #fff0f0;
+  color: #ff4444;
+  border-color: #ffcccc;
 }
 
 /* 秒杀商品列表样式 */
@@ -464,6 +468,24 @@ export default {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.product-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mch-name,
+.shop-name,
+.session-name {
+  font-size: 12px;
+  color: #999999;
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .price-container {
@@ -493,34 +515,6 @@ export default {
   font-size: 12px;
   color: #999999;
   text-decoration: line-through;
-}
-
-.progress-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 4px;
-  background-color: #f0f0f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #ff4444;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 12px;
-  color: #999999;
-  min-width: 60px;
-  text-align: right;
 }
 
 .product-overlay {

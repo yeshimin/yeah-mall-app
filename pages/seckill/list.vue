@@ -112,7 +112,7 @@ export default {
       this.loading = true
 
       // 构建API请求URL
-      const url = `${BASE_API}/app/seckillActivity/query`
+      const url = `${BASE_API}/app/seckill/queryActivity`
 
       // 使用带认证的请求
       authRequest({
@@ -142,48 +142,16 @@ export default {
           this.seckillActivities = activities
         } else {
           console.error('获取秒杀活动失败:', res.data.message)
-          // 使用模拟数据
-          this.useMockActivityData()
         }
         this.loading = false
       }, (err) => {
         // 错误回调
         console.error('请求秒杀活动失败:', err)
-        // 使用模拟数据
-        this.useMockActivityData()
         this.loading = false
       })
     },
 
-    // 使用模拟活动数据
-    useMockActivityData() {
-      if (this.seckillActivities.length === 0) {
-        this.seckillActivities = [
-          {
-            id: '2026211216331399169',
-            name: '618秒杀活动',
-            description: '全场爆款限时秒杀',
-            coverImage: 'https://via.placeholder.com/200x200',
-            applyBeginTime: '2026-06-01 10:00:00',
-            applyEndTime: '2026-06-05 23:59:59',
-            activityBeginTime: '2026-06-18 00:00:00',
-            activityEndTime: '2026-06-18 23:59:59',
-            status: '2'
-          },
-          {
-            id: '2026211216331399170',
-            name: '双11秒杀活动',
-            description: '年度最大力度秒杀',
-            coverImage: 'https://via.placeholder.com/200x200',
-            applyBeginTime: '2026-11-01 10:00:00',
-            applyEndTime: '2026-11-10 23:59:59',
-            activityBeginTime: '2026-11-11 00:00:00',
-            activityEndTime: '2026-11-11 23:59:59',
-            status: '1'
-          }
-        ]
-      }
-    },
+
 
 
     
@@ -249,8 +217,6 @@ export default {
   mounted() {
     console.log('页面加载，开始获取数据')
     this.fetchSeckillActivities()
-    // 直接使用模拟活动数据，确保活动列表显示
-    this.useMockActivityData()
     console.log('活动数据:', this.seckillActivities)
     console.log('活动数量:', this.seckillActivities.length)
   }
@@ -365,17 +331,19 @@ export default {
 
 .activity-status {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 12px;
   background-color: #f0f0f0;
   color: #666666;
   flex-shrink: 0;
+  border: 1px solid #e0e0e0;
 }
 
 .activity-status.active {
-  background-color: #ff4444;
-  color: #ffffff;
+  background-color: #fff0f0;
+  color: #ff4444;
+  border-color: #ffcccc;
 }
 
 /* 秒杀商品列表样式 */
