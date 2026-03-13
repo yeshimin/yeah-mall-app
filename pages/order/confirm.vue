@@ -412,84 +412,250 @@
 					scene: this.orderSource === 2 ? 2 : 1 // 添加订单场景，1:商品页下单，2:购物车下单
 				};
 				
-					// 调用提交订单接口
-				submitOrder(data)
-					.then(result => {
-						console.log("订单提交成功:", result);
-						
-						// 直接从下单接口返回结果中获取订单号、订单ID和支付信息
-						// 支付信息直接在result.data中，与genPayInfo接口返回格式一致
-						const orderNo = result.data.orderNo;
-						const orderId = result.data.orderId;
-						const paymentData = result.data;
-						console.log("订单号:", orderNo);
-						console.log("订单ID:", orderId);
-						console.log("支付信息:", paymentData);
-						
-						// 转换支付参数为uni.requestPayment所需格式
-						const payParams = {
-							provider: 'wxpay',
-							// 微信小程序支付必需参数
-							timeStamp: paymentData.timestamp, // 秒级时间戳
-							nonceStr: paymentData.nonceStr, // 随机字符串
-							package: paymentData.packageStr, // 预支付交易会话标识
-							signType: paymentData.signType, // 签名类型
-							paySign: paymentData.paySign // 签名
-						};
-						
-						// 打印支付参数
-						console.log('微信支付请求参数:', payParams);
-						
-						// 检查uni.requestPayment是否存在
-						if (typeof uni.requestPayment === 'function') {
-							// 发起微信支付
-							uni.requestPayment({
-								...payParams,
-								success: (res) => {
-									// 支付成功处理
-									console.log('支付成功', res);
+				// 秒杀场景使用seckill接口
+				if (this.scene === 'seckill') {
+					// 调用秒杀接口
+					uni.request({
+						url: `${BASE_API}/app/order/seckill`,
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${uni.getStorageSync('token')}`
+						},
+						data: data,
+						success: (res) => {
+							if (res.statusCode === 200 && res.data.code === 0) {
+								const seckillResult = res.data.data;
+								console.log('秒杀接口响应:', seckillResult);
+								
+								if (seckillResult.success) {
+									// 秒杀抢购成功，需要轮询查询结果
 									uni.hideLoading();
-									// 跳转到支付结果页面，传递支付成功状态
-									uni.navigateTo({
-										url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
+									// 显示完整的秒杀成功提示
+									uni.showToast({
+										title: '秒杀抢购成功，等待业务处理',
+										icon: 'none',
+										duration: 2000
 									});
-								},
-								fail: (err) => {
-									// 支付失败处理
-									console.log('支付失败', err);
+									// 延迟1秒后开始轮询，让用户有时间看到提示
+									setTimeout(() => {
+										uni.showLoading({ title: '正在处理...' });
+										this.pollSeckillResult(seckillResult.skuId, 0);
+									}, 1000);
+								} else {
+									// 秒杀失败
 									uni.hideLoading();
-									// 根据错误类型判断支付结果
-									if (err.errMsg === 'requestPayment:fail cancel') {
-										// 用户取消支付
-										uni.navigateTo({
-											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
-										});
-									} else {
-										// 支付失败，启动轮询
-										uni.navigateTo({
-											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
-										});
-									}
+									uni.showToast({
+										title: seckillResult.message || '秒杀失败',
+										icon: 'none'
+									});
 								}
-							});
-						} else {
-							console.error('uni.requestPayment is not a function');
+							} else {
+								uni.hideLoading();
+								console.error('秒杀接口请求失败:', res.data.message);
+								uni.showToast({
+									title: '秒杀请求失败，请重试',
+									icon: 'none'
+								});
+							}
+						},
+						fail: (err) => {
 							uni.hideLoading();
+							console.error('秒杀接口请求失败:', err);
 							uni.showToast({
-								title: '当前环境不支持微信支付',
+								title: '网络错误，请稍后重试',
 								icon: 'none'
 							});
 						}
-					})
-					.catch(error => {
-						console.error("支付处理失败:", error);
-						uni.hideLoading();
-						uni.showToast({
-							title: error.message || "支付处理失败",
-							icon: "none"
-						});
 					});
-			}
+				} else {
+					// 普通场景使用原来的submitOrder接口
+					submitOrder(data)
+						.then(result => {
+							console.log("订单提交成功:", result);
+							
+							// 直接从下单接口返回结果中获取订单号、订单ID和支付信息
+							// 支付信息直接在result.data中，与genPayInfo接口返回格式一致
+							const orderNo = result.data.orderNo;
+							const orderId = result.data.orderId;
+							const paymentData = result.data;
+							console.log("订单号:", orderNo);
+							console.log("订单ID:", orderId);
+							console.log("支付信息:", paymentData);
+							
+							// 转换支付参数为uni.requestPayment所需格式
+							const payParams = {
+								provider: 'wxpay',
+								// 微信小程序支付必需参数
+								timeStamp: paymentData.timestamp, // 秒级时间戳
+								nonceStr: paymentData.nonceStr, // 随机字符串
+								package: paymentData.packageStr, // 预支付交易会话标识
+								signType: paymentData.signType, // 签名类型
+								paySign: paymentData.paySign // 签名
+							};
+							
+							// 打印支付参数
+							console.log('微信支付请求参数:', payParams);
+							
+							// 检查uni.requestPayment是否存在
+							if (typeof uni.requestPayment === 'function') {
+								// 发起微信支付
+								uni.requestPayment({
+									...payParams,
+									success: (res) => {
+										// 支付成功处理
+										console.log('支付成功', res);
+										uni.hideLoading();
+										// 跳转到支付结果页面，传递支付成功状态
+										uni.navigateTo({
+											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
+										});
+									},
+									fail: (err) => {
+										// 支付失败处理
+										console.log('支付失败', err);
+										uni.hideLoading();
+										// 根据错误类型判断支付结果
+										if (err.errMsg === 'requestPayment:fail cancel') {
+											// 用户取消支付
+											uni.navigateTo({
+												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
+											});
+										} else {
+											// 支付失败，启动轮询
+											uni.navigateTo({
+												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
+											});
+										}
+									}
+								});
+							} else {
+								console.error('uni.requestPayment is not a function');
+								uni.hideLoading();
+								uni.showToast({
+									title: '当前环境不支持微信支付',
+									icon: 'none'
+								});
+							}
+						})
+						.catch(error => {
+							console.error("支付处理失败:", error);
+							uni.hideLoading();
+							uni.showToast({
+								title: error.message || "支付处理失败",
+								icon: "none"
+							});
+						});
+				}
+			},
+			
+			// 轮询秒杀结果
+			pollSeckillResult(skuId, retryCount) {
+				// 最多轮询2分钟，每2秒一次，共60次
+				if (retryCount >= 60) {
+					uni.hideLoading();
+					uni.showToast({
+						title: '秒杀处理超时，请稍后查询订单状态',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 调用查询秒杀结果接口
+				uni.request({
+					url: `${BASE_API}/app/order/querySeckillResult`,
+					method: 'GET',
+					header: {
+						'Authorization': `Bearer ${uni.getStorageSync('token')}`
+					},
+					data: {
+						skuId: skuId
+					},
+					success: (res) => {
+						if (res.statusCode === 200 && res.data.code === 0) {
+							const result = res.data.data;
+							console.log('秒杀结果查询响应:', result);
+							
+							if (result && result.success) {
+								// 秒杀处理成功，获取支付信息
+								uni.hideLoading();
+								const paymentData = result.data;
+								const orderId = paymentData.orderId;
+								
+								// 转换支付参数为uni.requestPayment所需格式
+								const payParams = {
+									provider: 'wxpay',
+									// 微信小程序支付必需参数
+									timeStamp: paymentData.timestamp, // 秒级时间戳
+									nonceStr: paymentData.nonceStr, // 随机字符串
+									package: paymentData.packageStr, // 预支付交易会话标识
+									signType: paymentData.signType, // 签名类型
+									paySign: paymentData.paySign // 签名
+								};
+								
+								// 打印支付参数
+								console.log('微信支付请求参数:', payParams);
+								
+								// 检查uni.requestPayment是否存在
+								if (typeof uni.requestPayment === 'function') {
+									// 发起微信支付
+									uni.requestPayment({
+										...payParams,
+										success: (res) => {
+											// 支付成功处理
+											console.log('支付成功', res);
+											// 跳转到支付结果页面，传递支付成功状态
+											uni.navigateTo({
+												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
+											});
+										},
+										fail: (err) => {
+											// 支付失败处理
+											console.log('支付失败', err);
+											// 根据错误类型判断支付结果
+											if (err.errMsg === 'requestPayment:fail cancel') {
+												// 用户取消支付
+												uni.navigateTo({
+													url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
+												});
+											} else {
+												// 支付失败
+												uni.navigateTo({
+													url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
+												});
+											}
+										}
+									});
+								} else {
+									console.error('uni.requestPayment is not a function');
+									uni.showToast({
+										title: '当前环境不支持微信支付',
+										icon: 'none'
+									});
+								}
+							} else {
+								// 秒杀处理中，继续轮询
+								setTimeout(() => {
+									this.pollSeckillResult(skuId, retryCount + 1);
+								}, 2000); // 每2秒轮询一次
+							}
+						} else {
+							console.error('查询秒杀结果失败:', res.data.message);
+							// 继续轮询
+							setTimeout(() => {
+								this.pollSeckillResult(skuId, retryCount + 1);
+							}, 2000);
+						}
+					},
+					fail: (err) => {
+						console.error('查询秒杀结果失败:', err);
+						// 继续轮询
+						setTimeout(() => {
+							this.pollSeckillResult(skuId, retryCount + 1);
+						}, 2000);
+					}
+				});
+			},
 		}
 	}
 </script>
