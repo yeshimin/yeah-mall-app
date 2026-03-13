@@ -111,8 +111,10 @@ export default {
     goToProductDetail(productId) {
       console.log('跳转到商品详情:', productId)
       try {
+        // 构建跳转URL，传递活动开始和结束时间
+        const url = `/pages/product/detail?productId=${productId}&scene=seckill&activityBeginTime=${encodeURIComponent(this.activityInfo.activityBeginTime)}&activityEndTime=${encodeURIComponent(this.activityInfo.activityEndTime)}`
         uni.navigateTo({
-          url: `/pages/product/detail?productId=${productId}&scene=seckill`,
+          url: url,
           success: function(res) {
             console.log('跳转成功:', res)
           },

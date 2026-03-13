@@ -285,6 +285,9 @@ export default {
 			},
 			shop: {}, // 店铺信息
 			scene: '', // 场景值
+			// 秒杀活动时间
+			activityBeginTime: '',
+			activityEndTime: '',
 			// 自定义标题栏高度
 			navBarHeight: 0
 		}
@@ -431,6 +434,15 @@ export default {
 				this.showCartPopup = false;
 			},
 			addToCart() {
+				// 检查是否在秒杀活动时间范围内
+				if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
+					uni.showToast({
+						title: '当前不在秒杀活动时间范围内',
+						icon: 'none'
+					});
+					return;
+				}
+				
 				// 设置为购物车模式并显示购物车弹窗
 				this.purchaseMode = 'cart';
 				this.showCartPopup = true;
@@ -571,6 +583,15 @@ export default {
 				}
 			},
 			buyNow() {
+				// 检查是否在秒杀活动时间范围内
+				if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
+					uni.showToast({
+						title: '当前不在秒杀活动时间范围内',
+						icon: 'none'
+					});
+					return;
+				}
+				
 				// 设置为购买模式并显示规格选择弹窗
 				this.purchaseMode = 'buy';
 				this.showSpec = true;
@@ -734,6 +755,36 @@ export default {
 				this.selectedSku = sku;
 				// 选择SKU后，更新弹窗顶部的价格和库存信息
 				this.$forceUpdate();
+			},
+			
+			// 检查当前时间是否在秒杀活动时间范围内
+			isWithinActivityTime() {
+				if (this.scene !== 'seckill') {
+					return true;
+				}
+				
+				if (!this.activityBeginTime || !this.activityEndTime) {
+					return true;
+				}
+				
+				const now = new Date();
+				console.log('isWithinActivityTime - 当前时间:', now);
+				
+				// 解析活动时间
+				const beginTime = new Date(this.activityBeginTime);
+				const endTime = new Date(this.activityEndTime);
+				console.log('isWithinActivityTime - 开始时间:', beginTime);
+				console.log('isWithinActivityTime - 结束时间:', endTime);
+				
+				// 检查时间解析是否成功
+				if (isNaN(beginTime.getTime()) || isNaN(endTime.getTime())) {
+					console.error('时间解析失败:', this.activityBeginTime, this.activityEndTime);
+					return true; // 时间解析失败时默认允许购买
+				}
+				
+				const result = now >= beginTime && now <= endTime;
+				console.log('isWithinActivityTime - 结果:', result);
+				return result;
 			},
 			// 获取当前选中的规格描述
 			getSelectedSpecDesc() {
@@ -975,20 +1026,40 @@ export default {
 		},
 	// 在页面加载时获取商品详情
 	onLoad(options) {
-		console.log(options);
-		// 从路由参数中获取商品ID和场景值
-		const productId = options.productId;
-		const scene = options.scene;
-		this.scene = scene;
-		this.fetchProductDetail(productId, scene);
+			console.log(options);
+			// 从路由参数中获取商品ID和场景值
+			const productId = options.productId;
+			const scene = options.scene;
+			this.scene = scene;
+			
+			// 接收秒杀活动时间
+				if (scene === 'seckill') {
+					// 解码URL编码的时间字符串
+					this.activityBeginTime = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : '';
+					this.activityEndTime = options.activityEndTime ? decodeURIComponent(options.activityEndTime) : '';
+					console.log('秒杀活动开始时间:', this.activityBeginTime);
+					console.log('秒杀活动结束时间:', this.activityEndTime);
+					// 打印当前时间，用于调试
+					const now = new Date();
+					console.log('当前时间:', now);
+					// 解析活动时间并打印，用于调试
+					const beginTime = new Date(this.activityBeginTime);
+					const endTime = new Date(this.activityEndTime);
+					console.log('解析后的开始时间:', beginTime);
+					console.log('解析后的结束时间:', endTime);
+					// 打印时间比较结果，用于调试
+					console.log('是否在活动时间范围内:', now >= beginTime && now <= endTime);
+				}
+			
+			this.fetchProductDetail(productId, scene);
 
-		// 获取商品详情后检查收藏状态
-		this.$nextTick(() => {
-			if (this.product.id) {
-				this.checkCollectStatus();
-			}
-		});
-	}
+			// 获取商品详情后检查收藏状态
+			this.$nextTick(() => {
+				if (this.product.id) {
+					this.checkCollectStatus();
+				}
+			});
+		}
 }
 </script>
 
