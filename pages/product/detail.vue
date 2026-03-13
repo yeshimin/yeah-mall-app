@@ -84,10 +84,10 @@
 				<text>客服</text>
 			</view>
 			<view class="bottom-bar-item" @click="addToFavorites">
-						<text class="icon">{{ isCollected ? '❤️' : '🤍' }}</text>
-						<text class="bottom-bar-text">{{ isCollected ? '已收藏' : '收藏' }}</text>
-					</view>
-			<view class="bar-item cart-item" @click="addToCart">
+							<text class="icon">{{ isCollected ? '❤️' : '🤍' }}</text>
+							<text class="bottom-bar-text">{{ isCollected ? '已收藏' : '收藏' }}</text>
+						</view>
+			<view class="bar-item cart-item" @click="addToCart" v-if="scene !== 'seckill'">
 				<text class="cart-text">加入购物车</text>
 			</view>
 			<view class="bar-item buy-item" @click="buyNow">
@@ -105,32 +105,68 @@
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
-						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
+						<text class="popup-spec" v-if="scene !== 'seckill'">已选: {{ getSelectedSpecDesc() }}</text>
+						<text class="popup-spec" v-else>已选: {{ selectedSku ? selectedSku.name : '请选择规格' }}</text>
 					</view>
 				</view>
-				<view class="spec-options" v-for="spec in specs" :key="spec.specId">
-					<text class="spec-title">{{ spec.specName }}</text>
-					<view class="spec-list">
+				
+				<!-- 普通场景：规格选择 -->
+				<view v-if="scene !== 'seckill'">
+					<view class="spec-options" v-for="spec in specs" :key="spec.specId">
+						<text class="spec-title">{{ spec.specName }}</text>
+						<view class="spec-list">
+							<view 
+									class="spec-item" 
+									:class="{ 
+										active: selectedSpecs[spec.specId] === opt.optId,
+										disabled: isOptionDisabled(spec.specId, opt.optId)
+									}"
+									v-for="opt in spec.opts" 
+									:key="opt.optId"
+									@click="selectSpecOption(spec.specId, opt.optId)"
+								>
+									{{ opt.optName }}
+								</view>
+						</view>
+					</view>
+				</view>
+				
+				<!-- 秒杀场景：直接展示SKU列表 -->
+				<view v-else-if="scene === 'seckill'" class="sku-list">
+					<text class="spec-title">选择规格</text>
+					<view class="sku-items">
 						<view 
-								class="spec-item" 
-								:class="{ 
-									active: selectedSpecs[spec.specId] === opt.optId,
-									disabled: isOptionDisabled(spec.specId, opt.optId)
-								}"
-								v-for="opt in spec.opts" 
-								:key="opt.optId"
-								@click="selectSpecOption(spec.specId, opt.optId)"
-							>
-								{{ opt.optName }}
+							class="sku-item" 
+							:class="{ active: selectedSku && selectedSku.id === sku.id }"
+							v-for="sku in skus" 
+							:key="sku.id"
+							@click="selectSku(sku)"
+						>
+							<view class="sku-image-container">
+								<image class="sku-image" :src="sku.mainImage || 'https://via.placeholder.com/60'"
+								     style="width: 40px; height: 40px; border-radius: 4px;"></image>
 							</view>
+							<view class="sku-info">
+						<text class="sku-name">{{ sku.name }}</text>
+					</view>
+						</view>
 					</view>
 				</view>
-				<view class="quantity-selector">
+				
+				<view class="quantity-selector" v-if="scene !== 'seckill'">
 					<text class="quantity-title">数量</text>
 					<view class="quantity-controls">
 						<text class="control-btn" @click="decreaseQuantity">-</text>
 						<text class="quantity">{{ selectedQuantity }}</text>
 						<text class="control-btn" @click="increaseQuantity">+</text>
+					</view>
+				</view>
+				
+				<!-- 秒杀场景：固定数量为1 -->
+				<view class="quantity-selector" v-else>
+					<text class="quantity-title">数量</text>
+					<view class="quantity-controls">
+						<text class="quantity">1</text>
 					</view>
 				</view>
 				<view class="confirm-btn" @click="confirmSpec">确定</view>
@@ -147,32 +183,68 @@
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
-						<text class="popup-spec">已选: {{ getSelectedSpecDesc() }}</text>
+						<text class="popup-spec" v-if="scene !== 'seckill'">已选: {{ getSelectedSpecDesc() }}</text>
+						<text class="popup-spec" v-else>已选: {{ selectedSku ? selectedSku.name : '请选择规格' }}</text>
 					</view>
 				</view>
-				<view class="spec-options" v-for="spec in specs" :key="spec.specId">
-					<text class="spec-title">{{ spec.specName }}</text>
-					<view class="spec-list">
-						<view 
-							class="spec-item" 
-							:class="{ 
-								active: selectedSpecs[spec.specId] === opt.optId,
-								disabled: isOptionDisabled(spec.specId, opt.optId)
-							}"
-							v-for="opt in spec.opts" 
-							:key="opt.optId"
-							@click="selectSpecOption(spec.specId, opt.optId)"
-						>
-							{{ opt.optName }}
+				
+				<!-- 普通场景：规格选择 -->
+				<view v-if="scene !== 'seckill'">
+					<view class="spec-options" v-for="spec in specs" :key="spec.specId">
+						<text class="spec-title">{{ spec.specName }}</text>
+						<view class="spec-list">
+							<view 
+								class="spec-item" 
+								:class="{ 
+									active: selectedSpecs[spec.specId] === opt.optId,
+									disabled: isOptionDisabled(spec.specId, opt.optId)
+								}"
+								v-for="opt in spec.opts" 
+								:key="opt.optId"
+								@click="selectSpecOption(spec.specId, opt.optId)"
+							>
+								{{ opt.optName }}
+							</view>
 						</view>
 					</view>
 				</view>
-				<view class="quantity-selector">
+				
+				<!-- 秒杀场景：直接展示SKU列表 -->
+				<view v-else-if="scene === 'seckill'" class="sku-list">
+					<text class="spec-title">选择规格</text>
+					<view class="sku-items">
+						<view 
+							class="sku-item" 
+							:class="{ active: selectedSku && selectedSku.id === sku.id }"
+							v-for="sku in skus" 
+							:key="sku.id"
+							@click="selectSku(sku)"
+						>
+							<view class="sku-image-container">
+								<image class="sku-image" :src="sku.mainImage || 'https://via.placeholder.com/60'"
+								     style="width: 40px; height: 40px; border-radius: 4px;"></image>
+							</view>
+							<view class="sku-info">
+						<text class="sku-name">{{ sku.name }}</text>
+					</view>
+						</view>
+					</view>
+				</view>
+				
+				<view class="quantity-selector" v-if="scene !== 'seckill'">
 					<text class="quantity-title">数量</text>
 					<view class="quantity-controls">
 						<text class="control-btn" @click="decreaseQuantity">-</text>
 						<text class="quantity">{{ selectedQuantity }}</text>
 						<text class="control-btn" @click="increaseQuantity">+</text>
+					</view>
+				</view>
+				
+				<!-- 秒杀场景：固定数量为1 -->
+				<view class="quantity-selector" v-else>
+					<text class="quantity-title">数量</text>
+					<view class="quantity-controls">
+						<text class="quantity">1</text>
 					</view>
 				</view>
 				<view class="confirm-btn" @click="confirmAddToCart">{{ purchaseMode === 'buy' ? '立即购买' : '加入购物车' }}</view>
@@ -202,6 +274,7 @@ export default {
 			skuOptIds: [], // SKU配置的选项ID
 			skus: [], // SKU数据，包含库存和价格信息
 			selectedSpecs: {}, // 选中的规格
+			selectedSku: null, // 选中的SKU（秒杀场景）
 			isCollected: false, // 收藏状态
 			selectedQuantity: 1,
 			stock: 100, // 示例库存
@@ -211,6 +284,7 @@ export default {
 				topReviews: []
 			},
 			shop: {}, // 店铺信息
+			scene: '', // 场景值
 			// 自定义标题栏高度
 			navBarHeight: 0
 		}
@@ -231,54 +305,70 @@ export default {
 				getToken() {
 					return getToken();
 				},
-				fetchProductDetail(productId) {
-				const baseApi = BASE_API;
-				console.log('detail.productId: ' + productId)
-				// 获取token
-				const token = this.getToken();
-				uni.request({
-					url: `${baseApi}/app/product/detail?id=${productId}`,
-					method: 'GET',
-					header: {
-						'Authorization': token ? `Bearer ${token}` : '',
-						'Content-Type': 'application/json'
-					},
-					success: (res) => {
-						if (res.statusCode === 200 && res.data.code === 0) {
-							const data = res.data.data;
-							this.product = data.product;
-							
-							// 处理banner图片URL
-							this.banners = data.banners.map(item => {
-								const baseApi = BASE_API;
-								return item && item.trim() !== '' ? (() => {
-									return `${baseApi}/public/storage/preview?fileKey=${item}`;
-								})() : '';
+				fetchProductDetail(productId, scene) {
+			const baseApi = BASE_API;
+			console.log('detail.productId: ' + productId)
+			console.log('detail.scene: ' + scene)
+			// 获取token
+			const token = this.getToken();
+			
+			// 根据场景值决定使用哪个接口
+			let url = '';
+			if (scene === 'seckill') {
+				url = `${baseApi}/app/seckill/queryProductDetail?id=${productId}`;
+			} else {
+				url = `${baseApi}/app/product/detail?id=${productId}`;
+			}
+			
+			uni.request({
+				url: url,
+				method: 'GET',
+				header: {
+					'Authorization': token ? `Bearer ${token}` : '',
+					'Content-Type': 'application/json'
+				},
+				success: (res) => {
+					if (res.statusCode === 200 && res.data.code === 0) {
+						const data = res.data.data;
+						this.product = data.product;
+						
+						// 处理banner图片URL
+						this.banners = data.banners.map(item => {
+							const baseApi = BASE_API;
+							return item && item.trim() !== '' ? (() => {
+								return `${baseApi}/public/storage/preview?fileKey=${item}`;
+							})() : '';
+						});
+						
+						// 处理规格数据
+						this.specs = data.specs || [];
+						// 保存skuOptIds用于灰化处理
+						this.skuOptIds = data.skuOptIds || [];
+						// 保存skus数据用于获取库存和价格
+							this.skus = (data.skus || []).map(sku => {
+								// 处理SKU的mainImage，确保使用正确的URL格式
+								if (sku.mainImage && sku.mainImage.trim() !== '') {
+									sku.mainImage = `${BASE_API}/public/storage/preview?fileKey=${sku.mainImage}`;
+								}
+								return sku;
 							});
-							
-							// 处理规格数据
-							this.specs = data.specs || [];
-							// 保存skuOptIds用于灰化处理
-							this.skuOptIds = data.skuOptIds || [];
-							// 保存skus数据用于获取库存和价格
-							this.skus = data.skus || [];
-							// 保存店铺信息
-							this.shop = data.shop || {};
-							// 初始化选中规格
-							this.initSelectedSpecs();
-							
-							// 获取商品详情后检查收藏状态
-							this.$nextTick(() => {
-								this.checkCollectStatus();
-							});
-						} else {
-							console.error('获取商品详情失败:', res.data.message);
-						}
-					},
-					fail: (err) => {
-						console.error('请求商品详情失败:', err);
+						// 保存店铺信息
+						this.shop = data.shop || {};
+						// 初始化选中规格
+						this.initSelectedSpecs();
+						
+						// 获取商品详情后检查收藏状态
+						this.$nextTick(() => {
+							this.checkCollectStatus();
+						});
+					} else {
+						console.error('获取商品详情失败:', res.data.message);
 					}
-				});
+				},
+				fail: (err) => {
+					console.error('请求商品详情失败:', err);
+				}
+			});
 			},
 			goToStore() {
 				// 跳转到店铺页面
@@ -346,17 +436,28 @@ export default {
 				this.showCartPopup = true;
 			},
 			confirmAddToCart() {
-				// 检查是否所有规格都已选择
-				const allSpecsSelected = this.specs.every(spec => {
-					return this.selectedSpecs[spec.specId] !== undefined;
-				});
-				
-				if (!allSpecsSelected) {
-					uni.showToast({
-						title: '请选择完整的规格',
-						icon: 'none'
+				// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
+				if (this.scene === 'seckill') {
+					if (!this.selectedSku) {
+						uni.showToast({
+							title: '请选择商品规格',
+							icon: 'none'
+						});
+						return;
+					}
+				} else {
+					// 普通场景：检查是否所有规格都已选择
+					const allSpecsSelected = this.specs.every(spec => {
+						return this.selectedSpecs[spec.specId] !== undefined;
 					});
-					return;
+					
+					if (!allSpecsSelected) {
+						uni.showToast({
+							title: '请选择完整的规格',
+							icon: 'none'
+						});
+						return;
+					}
 				}
 				
 				// 获取当前选中的SKU信息
@@ -382,6 +483,8 @@ export default {
 				
 				// 根据purchaseMode决定调用哪个接口
 				if (this.purchaseMode === 'buy') {
+					// 秒杀场景下数量固定为1
+					const quantity = this.scene === 'seckill' ? 1 : this.selectedQuantity;
 					// 调用立即购买接口
 					const requestData = {
 						url: `${BASE_API}/app/order/submit`,
@@ -392,7 +495,7 @@ export default {
 						data: {
 							items: [{
 								skuId: currentSkuInfo.id,
-								quantity: this.selectedQuantity
+								quantity: quantity
 							}]
 						}
 					};
@@ -626,6 +729,12 @@ export default {
 					this.$set(this.selectedSpecs, specId, optId);
 				}
 			},
+			// 选择SKU（秒杀场景）
+			selectSku(sku) {
+				this.selectedSku = sku;
+				// 选择SKU后，更新弹窗顶部的价格和库存信息
+				this.$forceUpdate();
+			},
 			// 获取当前选中的规格描述
 			getSelectedSpecDesc() {
 				const selectedSpecs = [];
@@ -647,6 +756,25 @@ export default {
 			},
 			// 获取当前选中规格组合的SKU信息
 			getCurrentSkuInfo() {
+				// 秒杀场景下直接返回选中的SKU信息
+				if (this.scene === 'seckill') {
+					if (this.selectedSku) {
+						return {
+							id: this.selectedSku.id,
+							price: this.selectedSku.price,
+							stock: this.selectedSku.stock
+						};
+					} else {
+						// 秒杀场景下未选择SKU时，返回空信息
+						return {
+							id: null,
+							price: null,
+							stock: 0
+						};
+					}
+				}
+				
+				// 普通场景下通过规格组合查找SKU
 				// 获取所有选中的选项ID
 				const selectedOptIds = Object.values(this.selectedSpecs).filter(id => id);
 				
@@ -738,7 +866,17 @@ export default {
 					}
 				},
 				confirmSpec() {
-					// 检查是否所有规格都已选择
+				// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
+				if (this.scene === 'seckill') {
+					if (!this.selectedSku) {
+						uni.showToast({
+							title: '请选择商品规格',
+							icon: 'none'
+						});
+						return;
+					}
+				} else {
+					// 普通场景：检查是否所有规格都已选择
 					const allSpecsSelected = this.specs.every(spec => {
 						return this.selectedSpecs[spec.specId] !== undefined;
 					});
@@ -750,51 +888,99 @@ export default {
 						});
 						return;
 					}
+				}
+				
+				// 获取当前选中的SKU信息
+				const currentSkuInfo = this.getCurrentSkuInfo();
+				
+				// 检查是否有有效的SKU ID
+				if (!currentSkuInfo.id) {
+					uni.showToast({
+						title: '未找到有效的商品规格',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 检查库存
+				if (this.selectedQuantity > currentSkuInfo.stock) {
+					uni.showToast({
+						title: '购买数量超过库存',
+						icon: 'none'
+					});
+					return;
+				}
+				
+				// 确认规格选择
+				this.closeSpecPopup();
+				
+				// 如果是购买模式，则跳转到下单页面
+				if (this.purchaseMode === 'buy') {
+					// 秒杀场景下数量固定为1
+					const quantity = this.scene === 'seckill' ? 1 : this.selectedQuantity;
 					
-					// 获取当前选中的SKU信息
-					const currentSkuInfo = this.getCurrentSkuInfo();
-					
-					// 检查是否有有效的SKU ID
-					if (!currentSkuInfo.id) {
-						uni.showToast({
-							title: '未找到有效的商品规格',
-							icon: 'none'
-						});
-						return;
-					}
-					
-					// 检查库存
-					if (this.selectedQuantity > currentSkuInfo.stock) {
-						uni.showToast({
-							title: '购买数量超过库存',
-							icon: 'none'
-						});
-						return;
-					}
-					
-					// 确认规格选择
-					this.closeSpecPopup();
-					
-					// 如果是购买模式，则跳转到下单页面
-					if (this.purchaseMode === 'buy') {
-						// 跳转到订单确认页面，并传递商品信息
-						uni.navigateTo({
-							url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${this.selectedQuantity}`
+					// 秒杀场景：使用previewForSeckill接口
+					if (this.scene === 'seckill') {
+						uni.showLoading({ title: '加载订单信息...' });
+						uni.request({
+							url: `${BASE_API}/app/order/previewForSeckill`,
+							method: 'POST',
+							header: {
+								'Content-Type': 'application/json',
+								'Authorization': `Bearer ${this.getToken()}`
+							},
+							data: {
+								items: [{
+									skuId: currentSkuInfo.id,
+									quantity: quantity
+								}]
+							},
+							success: (res) => {
+								uni.hideLoading();
+								if (res.statusCode === 200 && res.data.code === 0) {
+									// 跳转到订单确认页面，并传递预览结果
+									uni.navigateTo({
+										url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}&orderPreview=${encodeURIComponent(JSON.stringify(res.data.data))}&scene=seckill`
+									});
+								} else {
+									console.error('获取秒杀订单预览失败:', res.data.message);
+									uni.showToast({
+										title: '获取订单信息失败，请重试',
+										icon: 'none'
+									});
+								}
+							},
+							fail: (err) => {
+								uni.hideLoading();
+								console.error('请求秒杀订单预览失败:', err);
+								uni.showToast({
+									title: '网络错误，请稍后重试',
+									icon: 'none'
+								});
+							}
 						});
 					} else {
-						uni.showToast({
-							title: '已选择规格',
-							icon: 'success'
+						// 普通场景：直接跳转到订单确认页面
+						uni.navigateTo({
+							url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}`
 						});
 					}
+				} else {
+					uni.showToast({
+						title: '已选择规格',
+						icon: 'success'
+					});
+				}
 			}
 		},
 	// 在页面加载时获取商品详情
 	onLoad(options) {
 		console.log(options);
-		// 从路由参数中获取商品ID
+		// 从路由参数中获取商品ID和场景值
 		const productId = options.productId;
-		this.fetchProductDetail(productId);
+		const scene = options.scene;
+		this.scene = scene;
+		this.fetchProductDetail(productId, scene);
 
 		// 获取商品详情后检查收藏状态
 		this.$nextTick(() => {
@@ -1177,10 +1363,72 @@ export default {
 	}
 	
 	.confirm-btn {
-		background-color: #ff0000;
-		color: #fff;
-		padding: 20rpx;
-		text-align: center;
-		border-radius: 10rpx;
-	}
+				background-color: #ff0000;
+				color: #fff;
+				padding: 20rpx;
+				text-align: center;
+				border-radius: 10rpx;
+			}
+			
+			/* 秒杀场景下的SKU列表样式 */
+			.sku-list {
+				margin-bottom: 30rpx;
+			}
+			
+			.sku-items {
+				display: flex;
+				flex-direction: column;
+				gap: 15rpx;
+			}
+			
+			.sku-item {
+				display: flex;
+				padding: 20rpx;
+				border: 1rpx solid #eee;
+				border-radius: 10rpx;
+				align-items: center;
+			}
+			
+			.sku-item.active {
+				border-color: #ff0000;
+				background-color: #fff5f5;
+			}
+			
+			.sku-image-container {
+				margin-right: 20rpx;
+			}
+			
+			.sku-image {
+				width: 120rpx;
+				height: 120rpx;
+				border-radius: 8rpx;
+			}
+			
+			.sku-info {
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				gap: 10rpx;
+			}
+			
+			.sku-name {
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #333;
+			}
+			
+			.sku-price {
+				font-size: 32rpx;
+				color: #ff0000;
+				font-weight: bold;
+			}
+			
+			.sku-stock {
+				font-size: 24rpx;
+				color: #888;
+			}
+			
+			.sku-stock.out-of-stock {
+				color: #ff0000;
+			}
 </style>

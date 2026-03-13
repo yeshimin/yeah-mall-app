@@ -112,12 +112,18 @@
 			// 用于存储原始的请求参数，以便需要时可以重新获取数据
 			requestItems: [],
 			// 订单来源：1-商品详情页，2-购物车页面
-			orderSource: 1
+			orderSource: 1,
+			// 场景值：普通场景或秒杀场景
+			scene: ''
 		}
 	},
 		onLoad(options) {
 			// 获取默认地址
 			this.fetchDefaultAddress();
+			
+			// 接收场景值
+			this.scene = options.scene || '';
+			console.log('接收到的场景值:', this.scene);
 			
 			// 接收从商品详情页传递过来的参数
 			if (options.skuId && options.quantity) {
@@ -134,8 +140,15 @@
 				}];
 				this.requestItems = requestItems;
 				
-				// 从商品详情页跳转过来，只有一个商品，调用预览接口获取完整数据
-				this.fetchOrderPreviewData(requestItems);
+				// 检查是否有订单预览数据（秒杀场景下从商品详情页传递）
+				if (options.orderPreview) {
+					console.log('接收到的订单预览数据:', options.orderPreview);
+					// 使用传递过来的订单预览数据
+					this.processOrderPreviewData(JSON.parse(decodeURIComponent(options.orderPreview)));
+				} else {
+					// 从商品详情页跳转过来，只有一个商品，调用预览接口获取完整数据
+					this.fetchOrderPreviewData(requestItems);
+				}
 			} else {
 				// 获取事件通道
 				const eventChannel = this.getOpenerEventChannel();
@@ -207,41 +220,79 @@
 					title: '加载中...'
 				});
 				
-				fetchOrderPreview(items)
-					.then(data => {
-						console.log('订单预览数据:', data);
-						
-						// 完全使用服务器返回的数据，不依赖本地传递的参数
-						// 更新店铺分组商品数据
-						this.groupedOrderGoods = data.map(shop => ({
-							shopId: shop.shopId,
-							shopName: shop.shopName,
-							items: shop.items.map(item => ({
-								id: item.skuId,
-								name: item.spuName,
-								spec: item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';'),
-								// 严格使用服务器返回的价格和数量
-								price: item.price,
-								quantity: item.quantity, // 优先使用服务器返回的数量
-								// 构造图片URL
-								image: item.spuMainImage ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}` : ''
-							}))
-						}));
-						
-						// 计算商品总额 - 使用服务器返回的价格和数量计算
-						this.goodsTotal = this.calculateTotalPrice();
-					})
-					.catch(error => {
-						console.error('获取订单预览数据失败:', error);
-						uni.showToast({
-							title: '获取订单预览数据失败',
-							icon: 'none'
-						});
-					})
-					.finally(() => {
-						this.loading = false;
-						uni.hideLoading();
+				// 秒杀场景使用previewForSeckill接口
+				if (this.scene === 'seckill') {
+					uni.request({
+						url: `${BASE_API}/app/order/previewForSeckill`,
+						method: 'POST',
+						header: {
+							'Content-Type': 'application/json',
+							'Authorization': `Bearer ${uni.getStorageSync('token')}`
+						},
+						data: {
+							items: items
+						},
+						success: (res) => {
+							if (res.statusCode === 200 && res.data.code === 0) {
+								console.log('秒杀订单预览数据:', res.data.data);
+								// 处理秒杀订单预览数据
+								this.processOrderPreviewData(res.data.data);
+							} else {
+								console.error('获取秒杀订单预览失败:', res.data.message);
+								uni.showToast({
+									title: '获取订单信息失败，请重试',
+									icon: 'none'
+								});
+								this.loading = false;
+							}
+						},
+						fail: (err) => {
+							console.error('请求秒杀订单预览失败:', err);
+							uni.showToast({
+								title: '网络错误，请稍后重试',
+								icon: 'none'
+							});
+							this.loading = false;
+						}
 					});
+				} else {
+					// 普通场景使用原来的preview接口
+					fetchOrderPreview(items)
+						.then(data => {
+							console.log('订单预览数据:', data);
+							
+							// 完全使用服务器返回的数据，不依赖本地传递的参数
+							// 更新店铺分组商品数据
+							this.groupedOrderGoods = data.map(shop => ({
+								shopId: shop.shopId,
+								shopName: shop.shopName,
+								items: shop.items.map(item => ({
+									id: item.skuId,
+									name: item.spuName,
+									spec: item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';'),
+									// 严格使用服务器返回的价格和数量
+									price: item.price,
+									quantity: item.quantity, // 优先使用服务器返回的数量
+									// 构造图片URL，支持spuMainImage和mainImage两种字段
+										image: (item.spuMainImage || item.mainImage) ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage || item.mainImage}` : ''
+								}))
+							}));
+							
+							// 计算商品总额 - 使用服务器返回的价格和数量计算
+							this.goodsTotal = this.calculateTotalPrice();
+						})
+						.catch(error => {
+							console.error('获取订单预览数据失败:', error);
+							uni.showToast({
+								title: '获取订单预览数据失败',
+								icon: 'none'
+							});
+						})
+						.finally(() => {
+							this.loading = false;
+							uni.hideLoading();
+						});
+				}
 			},
 			
 			// 计算所有商品的总价
@@ -257,6 +308,32 @@
 				return shop.items
 					.reduce((total, item) => total + item.price * item.quantity, 0)
 					.toFixed(2);
+			},
+			
+			// 处理订单预览数据
+			processOrderPreviewData(data) {
+				console.log('处理订单预览数据:', data);
+				
+				// 完全使用服务器返回的数据，不依赖本地传递的参数
+				// 更新店铺分组商品数据
+				this.groupedOrderGoods = data.map(shop => ({
+					shopId: shop.shopId,
+					shopName: shop.shopName,
+					items: shop.items.map(item => ({
+						id: item.skuId,
+						name: item.spuName || item.skuName,
+						spec: item.specs ? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';') : item.skuName,
+						// 严格使用服务器返回的价格和数量
+						price: item.price,
+						quantity: item.quantity, // 优先使用服务器返回的数量
+						// 构造图片URL，支持spuMainImage和mainImage两种字段
+						image: (item.spuMainImage || item.mainImage) ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage || item.mainImage}` : ''
+					}))
+				}));
+				
+				// 计算商品总额 - 使用服务器返回的价格和数量计算
+				this.goodsTotal = this.calculateTotalPrice();
+				this.loading = false;
 			},
 			
 			// 获取默认地址
