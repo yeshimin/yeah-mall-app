@@ -169,7 +169,7 @@
 						<text class="quantity">1</text>
 					</view>
 				</view>
-				<view class="confirm-btn" @click="confirmSpec">确定</view>
+				<view class="confirm-btn" @click="confirmSpec">{{ scene === 'seckill' ? '秒杀' : '确定' }}</view>
 			</view>
 		</view>
 		
@@ -585,19 +585,10 @@ export default {
 				}
 			},
 			buyNow() {
-				// 检查是否在秒杀活动时间范围内
-				if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
-					uni.showToast({
-						title: '当前不在秒杀活动时间范围内',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 设置为购买模式并显示规格选择弹窗
-				this.purchaseMode = 'buy';
-				this.showSpec = true;
-			},
+						// 设置为购买模式并显示规格选择弹窗
+						this.purchaseMode = 'buy';
+						this.showSpec = true;
+					},
 			addToFavorites() {
 				// 检查用户是否已登录
 				const userId = getUserId()
@@ -919,29 +910,38 @@ export default {
 					}
 				},
 				confirmSpec() {
-				// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
-				if (this.scene === 'seckill') {
-					if (!this.selectedSku) {
-						uni.showToast({
-							title: '请选择商品规格',
-							icon: 'none'
-						});
-						return;
-					}
-				} else {
-					// 普通场景：检查是否所有规格都已选择
-					const allSpecsSelected = this.specs.every(spec => {
-						return this.selectedSpecs[spec.specId] !== undefined;
-					});
-					
-					if (!allSpecsSelected) {
-						uni.showToast({
-							title: '请选择完整的规格',
-							icon: 'none'
-						});
-						return;
-					}
-				}
+							// 检查是否在秒杀活动时间范围内
+							if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
+								uni.showToast({
+									title: '当前不在秒杀活动时间范围内',
+									icon: 'none'
+								});
+								return;
+							}
+							
+							// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
+							if (this.scene === 'seckill') {
+								if (!this.selectedSku) {
+									uni.showToast({
+										title: '请选择商品规格',
+										icon: 'none'
+									});
+									return;
+								}
+							} else {
+								// 普通场景：检查是否所有规格都已选择
+								const allSpecsSelected = this.specs.every(spec => {
+									return this.selectedSpecs[spec.specId] !== undefined;
+								});
+								
+								if (!allSpecsSelected) {
+									uni.showToast({
+										title: '请选择完整的规格',
+										icon: 'none'
+									});
+									return;
+								}
+							}
 				
 				// 获取当前选中的SKU信息
 				const currentSkuInfo = this.getCurrentSkuInfo();
