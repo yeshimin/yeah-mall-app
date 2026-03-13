@@ -288,6 +288,8 @@ export default {
 			// 秒杀活动时间
 			activityBeginTime: '',
 			activityEndTime: '',
+			// 秒杀活动ID
+			activityId: '',
 			// 自定义标题栏高度
 			navBarHeight: 0
 		}
@@ -970,40 +972,85 @@ export default {
 					// 秒杀场景下数量固定为1
 					const quantity = this.scene === 'seckill' ? 1 : this.selectedQuantity;
 					
-					// 秒杀场景：使用previewForSeckill接口
+					// 秒杀场景：先调用seckill接口抢占名额
 					if (this.scene === 'seckill') {
-						uni.showLoading({ title: '加载订单信息...' });
+						uni.showLoading({ title: '正在抢购...' });
+						// 构建请求数据
+						const seckillData = {
+							skuId: currentSkuInfo.id,
+							activityId: this.activityId || '' // 这里需要从活动信息中获取activityId
+						};
 						uni.request({
-							url: `${BASE_API}/app/order/previewForSeckill`,
+							url: `${BASE_API}/app/order/seckill`,
 							method: 'POST',
 							header: {
 								'Content-Type': 'application/json',
 								'Authorization': `Bearer ${this.getToken()}`
 							},
-							data: {
-								items: [{
-									skuId: currentSkuInfo.id,
-									quantity: quantity
-								}]
-							},
+							data: seckillData,
 							success: (res) => {
 								uni.hideLoading();
 								if (res.statusCode === 200 && res.data.code === 0) {
-									// 跳转到订单确认页面，并传递预览结果
-									uni.navigateTo({
-										url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}&orderPreview=${encodeURIComponent(JSON.stringify(res.data.data))}&scene=seckill`
+									const seckillResult = res.data.data;
+									if (seckillResult.success) {
+										// 抢购成功，直接跳转到订单确认页面
+										// 调用previewForSeckill接口获取订单预览信息
+										uni.showLoading({ title: '加载订单信息...' });
+											uni.request({
+										url: `${BASE_API}/app/order/previewForSeckill`,
+										method: 'POST',
+										header: {
+											'Content-Type': 'application/json',
+											'Authorization': `Bearer ${this.getToken()}`
+										},
+										data: {
+											items: [{
+												skuId: currentSkuInfo.id,
+												quantity: quantity
+											}]
+										},
+										success: (previewRes) => {
+											uni.hideLoading();
+											if (previewRes.statusCode === 200 && previewRes.data.code === 0) {
+												// 跳转到订单确认页面，并传递预览结果
+												uni.navigateTo({
+													url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}&orderPreview=${encodeURIComponent(JSON.stringify(previewRes.data.data))}&scene=seckill`
+												});
+											} else {
+												console.error('获取秒杀订单预览失败:', previewRes.data.message);
+												uni.showToast({
+													title: '获取订单信息失败，请重试',
+													icon: 'none'
+												});
+											}
+										},
+										fail: (previewErr) => {
+											uni.hideLoading();
+											console.error('请求秒杀订单预览失败:', previewErr);
+											uni.showToast({
+												title: '网络错误，请稍后重试',
+												icon: 'none'
+											});
+										}
 									});
+									} else {
+										// 抢购失败
+										uni.showToast({
+											title: seckillResult.message || '秒杀失败',
+											icon: 'none'
+										});
+									}
 								} else {
-									console.error('获取秒杀订单预览失败:', res.data.message);
+									console.error('秒杀接口请求失败:', res.data.message);
 									uni.showToast({
-										title: '获取订单信息失败，请重试',
+										title: '秒杀请求失败，请重试',
 										icon: 'none'
 									});
 								}
 							},
 							fail: (err) => {
 								uni.hideLoading();
-								console.error('请求秒杀订单预览失败:', err);
+								console.error('秒杀接口请求失败:', err);
 								uni.showToast({
 									title: '网络错误，请稍后重试',
 									icon: 'none'
@@ -1032,13 +1079,16 @@ export default {
 			const scene = options.scene;
 			this.scene = scene;
 			
-			// 接收秒杀活动时间
+			// 接收秒杀活动时间和ID
 				if (scene === 'seckill') {
 					// 解码URL编码的时间字符串
 					this.activityBeginTime = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : '';
 					this.activityEndTime = options.activityEndTime ? decodeURIComponent(options.activityEndTime) : '';
+					// 接收活动ID
+					this.activityId = options.activityId || '';
 					console.log('秒杀活动开始时间:', this.activityBeginTime);
 					console.log('秒杀活动结束时间:', this.activityEndTime);
+					console.log('秒杀活动ID:', this.activityId);
 					// 打印当前时间，用于调试
 					const now = new Date();
 					console.log('当前时间:', now);

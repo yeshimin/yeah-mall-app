@@ -412,56 +412,43 @@
 					scene: this.orderSource === 2 ? 2 : 1 // 添加订单场景，1:商品页下单，2:购物车下单
 				};
 				
-				// 秒杀场景使用seckill接口
+				// 秒杀场景使用submitForSeckill接口
 				if (this.scene === 'seckill') {
-					// 调用秒杀接口
+					// 构造秒杀场景的请求数据，scene设置为3
+					const seckillData = {
+						items: items,
+						addressId: this.selectedAddress.id,
+						scene: "3" // 秒杀场景固定为3
+					};
+					// 调用秒杀提交接口
 					uni.request({
-						url: `${BASE_API}/app/order/seckill`,
+						url: `${BASE_API}/app/order/submitForSeckill`,
 						method: 'POST',
 						header: {
 							'Content-Type': 'application/json',
 							'Authorization': `Bearer ${uni.getStorageSync('token')}`
 						},
-						data: data,
+						data: seckillData,
 						success: (res) => {
 							if (res.statusCode === 200 && res.data.code === 0) {
-								const seckillResult = res.data.data;
-								console.log('秒杀接口响应:', seckillResult);
-								
-								if (seckillResult.success) {
-									// 秒杀抢购成功，需要轮询查询结果
-									uni.hideLoading();
-									// 显示完整的秒杀成功提示
-									uni.showToast({
-										title: '秒杀抢购成功，等待业务处理',
-										icon: 'none',
-										duration: 2000
-									});
-									// 延迟1秒后开始轮询，让用户有时间看到提示
-									setTimeout(() => {
-										uni.showLoading({ title: '正在处理...' });
-										this.pollSeckillResult(seckillResult.skuId, 0);
-									}, 1000);
-								} else {
-									// 秒杀失败
-									uni.hideLoading();
-									uni.showToast({
-										title: seckillResult.message || '秒杀失败',
-										icon: 'none'
-									});
-								}
+								console.log('秒杀提交接口响应:', res.data);
+								// 秒杀提交成功，开始轮询结果
+								// 从商品数据中获取第一个SKU的ID用于轮询
+								const firstSkuId = items[0].skuId;
+								uni.showLoading({ title: '正在处理...' });
+								this.pollSeckillResult(firstSkuId, 0);
 							} else {
 								uni.hideLoading();
-								console.error('秒杀接口请求失败:', res.data.message);
+								console.error('秒杀提交接口请求失败:', res.data.message);
 								uni.showToast({
-									title: '秒杀请求失败，请重试',
+									title: res.data.message || '秒杀请求失败，请重试',
 									icon: 'none'
 								});
 							}
 						},
 						fail: (err) => {
 							uni.hideLoading();
-							console.error('秒杀接口请求失败:', err);
+							console.error('秒杀提交接口请求失败:', err);
 							uni.showToast({
 								title: '网络错误，请稍后重试',
 								icon: 'none'
