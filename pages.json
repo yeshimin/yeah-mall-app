@@ -139,6 +139,18 @@
 			"style": {
 				"navigationBarTitleText": "秒杀商品"
 			}
+		},
+		{
+			"path": "pages/coupons/list",
+			"style": {
+				"navigationBarTitleText": "我的优惠券"
+			}
+		},
+		{
+			"path": "pages/coupons/center",
+			"style": {
+				"navigationBarTitleText": "领券中心"
+			}
 		}
 	],
 	"globalStyle": {

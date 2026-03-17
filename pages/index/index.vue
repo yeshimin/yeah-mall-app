@@ -330,6 +330,11 @@ export default {
         url: `/pages/coupons/list`
       })
     },
+    goToCouponCenter() {
+      uni.navigateTo({
+        url: `/pages/coupons/center`
+      })
+    },
     goToNewArrivals() {
       uni.navigateTo({
         url: `/pages/newarrivals/list`
@@ -352,6 +357,14 @@ export default {
     },
     // 根据快捷入口类型和目标生成action方法名
     getActionForQuickLink(type, target) {
+      // 首先检查target是否为优惠券页面路径（领券中心）
+      if (target === '/pages/coupons/list') {
+        return 'goToCouponCenter';
+      }
+      // 检查target是否为秒杀页面路径
+      if (target === '/pages/seckill/list') {
+        return 'goToSeckill';
+      }
       // 根据类型和目标映射到对应的action方法
       switch (type) {
         case 1: // 秒杀活动
@@ -361,7 +374,7 @@ export default {
         case 3: // 新品
           return 'goToNewArrivals';
         case 4: // 优惠券
-          return 'goToCoupons';
+          return 'goToCouponCenter';
         case 5: // 会员
           return 'goToMember';
         case 6: // 积分

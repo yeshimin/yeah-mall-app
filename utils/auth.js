@@ -76,8 +76,9 @@ export function clearAuthInfo() {
 /**
  * 处理认证失败
  * @param {Function} callback 回调函数
+ * @param {string} redirect 登录后跳转的页面路径
  */
-export function handleAuthFailure(callback) {
+export function handleAuthFailure(callback, redirect) {
 	// 清除本地认证信息
 	clearAuthInfo()
 	
@@ -89,9 +90,15 @@ export function handleAuthFailure(callback) {
 	
 	// 跳转到登录页面
 	setTimeout(() => {
-		uni.navigateTo({
-			url: '/pages/login/index'
-		})
+		if (redirect) {
+			uni.navigateTo({
+				url: `/pages/login/index?redirect=${encodeURIComponent(redirect)}`
+			})
+		} else {
+			uni.navigateTo({
+				url: '/pages/login/index'
+			})
+		}
 	}, 1000)
 	
 	// 执行回调函数（如果提供）
@@ -105,8 +112,9 @@ export function handleAuthFailure(callback) {
  * @param {Object} options 请求选项
  * @param {Function} successCallback 成功回调
  * @param {Function} errorCallback 错误回调
+ * @param {string} redirect 登录后跳转的页面路径
  */
-export function authRequest(options, successCallback, errorCallback) {
+export function authRequest(options, successCallback, errorCallback, redirect) {
 	// 添加认证头
 	const token = getToken()
 	if (token) {
@@ -120,7 +128,7 @@ export function authRequest(options, successCallback, errorCallback) {
 		success: (res) => {
 			// 检查认证失败
 			if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
-				handleAuthFailure()
+				handleAuthFailure(null, redirect)
 				if (typeof errorCallback === 'function') {
 					errorCallback(res)
 				}
