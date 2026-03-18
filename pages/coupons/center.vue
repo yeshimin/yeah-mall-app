@@ -175,7 +175,7 @@ export default {
           'Content-Type': 'application/json'
         },
         data: {
-          couponId: couponId
+          id: couponId
         }
       }, (res) => {
         // 成功回调

@@ -170,7 +170,24 @@ export default {
     // 点击功能入口
     useFunction(index) {
       console.log('使用功能:', this.functions[index].name)
-      // 这里可以跳转到相应的功能页面
+      // 跳转到相应的功能页面
+      if (index === 0) {
+        // 优惠券
+        uni.navigateTo({
+          url: '/pages/coupons/list'
+        })
+      } else if (index === 1) {
+        // 积分
+        console.log('跳转到积分页面')
+      } else if (index === 2) {
+        // 收藏
+        console.log('跳转到收藏页面')
+      } else if (index === 3) {
+        // 地址
+        uni.navigateTo({
+          url: '/pages/address/list'
+        })
+      }
     },
     
     // 点击设置项
