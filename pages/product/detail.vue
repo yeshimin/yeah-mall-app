@@ -300,6 +300,37 @@ export default {
                     this.reviewSummary = data;
                 });
             },
+			// 处理富文本内容，添加内联样式
+			processRichText(html) {
+				if (!html) return '';
+				
+				// 处理图片标签，添加内联样式
+				html = html.replace(/<img/gi, '<img style="max-width:100%;height:auto;width:100%;display:block;"');
+				
+				// 处理段落、div、span等标签，添加内联样式
+				html = html.replace(/<p/gi, '<p style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<div/gi, '<div style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<span/gi, '<span style="max-width:100%;word-break:break-word;overflow-wrap:break-word;"');
+				
+				// 处理标题标签
+				html = html.replace(/<h1/gi, '<h1 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<h2/gi, '<h2 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<h3/gi, '<h3 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<h4/gi, '<h4 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<h5/gi, '<h5 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				html = html.replace(/<h6/gi, '<h6 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
+				
+				// 处理表格标签
+				html = html.replace(/<table/gi, '<table style="max-width:100%;width:100%;table-layout:fixed;"');
+				html = html.replace(/<td/gi, '<td style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"');
+				html = html.replace(/<th/gi, '<th style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"');
+				
+				// 处理代码块
+				html = html.replace(/<pre/gi, '<pre style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"');
+				html = html.replace(/<code/gi, '<code style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"');
+				
+				return html;
+			},
 				goBack() {
 					uni.navigateBack();
 				},
@@ -336,6 +367,11 @@ export default {
 					if (res.statusCode === 200 && res.data.code === 0) {
 						const data = res.data.data;
 						this.product = data.product;
+						
+						// 处理富文本内容，添加内联样式
+						if (this.product.detailDesc) {
+							this.product.detailDesc = this.processRichText(this.product.detailDesc);
+						}
 						
 						// 处理banner图片URL
 						this.banners = data.banners.map(item => {
@@ -1279,9 +1315,13 @@ export default {
 	}
 	
 	.detail-content {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
+		width: 100%;
+		padding: 0 20rpx;
+		box-sizing: border-box;
+	}
+	
+	.detail-content rich-text {
+		width: 100%;
 	}
 	
 	.detail-image {
