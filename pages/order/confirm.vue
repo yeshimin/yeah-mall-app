@@ -72,9 +72,17 @@
 				<text>运费</text>
 				<text>¥{{ shippingFee }}</text>
 			</view>
-			<view class="amount-item">
+			<view class="amount-item coupon-item" @click="selectCoupon">
 				<text>优惠券</text>
-				<text class="discount-price">-¥{{ coupon }}</text>
+				<view class="coupon-info">
+					<text class="discount-price" v-if="selectedCoupon">-¥{{ coupon }}</text>
+					<text class="discount-price" v-else>-¥{{ coupon }}</text>
+					<text class="coupon-name" v-if="selectedCoupon">{{ selectedCoupon.name }}</text>
+					<text class="select-coupon" v-else>选择优惠券</text>
+					<text class="iconfont arrow">
+						&#xe65f;
+					</text>
+				</view>
 			</view>
 			<view class="total-amount">
 				<text>合计:</text>
@@ -114,7 +122,10 @@
 			// 订单来源：1-商品详情页，2-购物车页面
 			orderSource: 1,
 			// 场景值：普通场景或秒杀场景
-			scene: ''
+			scene: '',
+			// 优惠券相关
+			selectedCoupon: null,
+			couponId: null
 		}
 	},
 		onLoad(options) {
@@ -187,6 +198,19 @@
 				// 清除临时存储的地址
 				uni.removeStorageSync('selectedAddress');
 				console.log('LocalStorage cleared');
+			}
+			
+			// 检查是否有选中的优惠券需要更新
+			const selectedCoupon = uni.getStorageSync('selectedCoupon');
+			console.log('Retrieved coupon from localStorage:', selectedCoupon);
+			if (selectedCoupon) {
+				this.selectedCoupon = selectedCoupon;
+				this.couponId = selectedCoupon.id;
+				this.coupon = selectedCoupon.amount || 0;
+				console.log('Selected coupon updated:', this.selectedCoupon);
+				// 清除临时存储的优惠券
+				uni.removeStorageSync('selectedCoupon');
+				console.log('Coupon localStorage cleared');
 			}
 		},
 		computed: {
@@ -371,6 +395,15 @@
 				});
 			},
 			
+			// 选择优惠券
+			selectCoupon() {
+				// 跳转到优惠券选择页面，传递订单金额和商品信息
+				uni.navigateTo({
+					url: '/pages/coupons/select',
+					eventChannel: this.getOpenerEventChannel()
+				});
+			},
+			
 			payOrder() {
 				// 支付订单逻辑
 				console.log("支付订单");
@@ -409,17 +442,19 @@
 				const data = {
 					items: items,
 					addressId: this.selectedAddress.id, // 添加地址ID
-					scene: this.orderSource === 2 ? 2 : 1 // 添加订单场景，1:商品页下单，2:购物车下单
+					scene: this.orderSource === 2 ? 2 : 1, // 添加订单场景，1:商品页下单，2:购物车下单
+					couponId: this.couponId // 添加优惠券ID
 				};
 				
 				// 秒杀场景使用submitForSeckill接口
 				if (this.scene === 'seckill') {
 					// 构造秒杀场景的请求数据，scene设置为3
-					const seckillData = {
-						items: items,
-						addressId: this.selectedAddress.id,
-						scene: "3" // 秒杀场景固定为3
-					};
+				const seckillData = {
+					items: items,
+					addressId: this.selectedAddress.id,
+					scene: "3", // 秒杀场景固定为3
+					couponId: this.couponId // 添加优惠券ID
+				};
 					// 调用秒杀提交接口
 					uni.request({
 						url: `${BASE_API}/app/order/submitForSeckill`,
@@ -895,13 +930,45 @@
 	}
 
 	.amount-item {
-		display: flex;
-		justify-content: space-between;
-		padding: 15rpx 0;
-		border-bottom: 1rpx solid #f5f5f5;
-		font-size: 28rpx;
-		color: #666;
-	}
+			display: flex;
+			justify-content: space-between;
+			padding: 15rpx 0;
+			border-bottom: 1rpx solid #f5f5f5;
+			font-size: 28rpx;
+			color: #666;
+		}
+		
+		.coupon-item {
+			cursor: pointer;
+		}
+		
+		.coupon-info {
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+		}
+		
+		.coupon-name {
+			margin: 0 10rpx;
+			color: #999;
+			font-size: 24rpx;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 200rpx;
+		}
+		
+		.select-coupon {
+			margin: 0 10rpx;
+			color: #4CAF50;
+			font-size: 24rpx;
+		}
+		
+		.coupon-info .arrow {
+			margin-left: 5rpx;
+			font-size: 24rpx;
+			color: #ccc;
+		}
 
 	.discount-price {
 		color: #4CAF50;
