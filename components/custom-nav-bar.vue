@@ -78,122 +78,119 @@
   </view>
 </template>
 
-<script>
-export default {
-  name: 'custom-nav-bar',
-  props: {
-    // 是否显示返回按钮
-    showBack: {
-      type: Boolean,
-      default: false
-    },
-    // 是否显示搜索框
-    showSearch: {
-      type: Boolean,
-      default: true
-    },
-    // 搜索框占位文本
-    searchPlaceholder: {
-      type: String,
-      default: '搜索商品'
-    },
-    // 标题文本（当不显示搜索框时使用）
-    title: {
-      type: String,
-      default: ''
-    },
-    // 是否透明背景
-    transparent: {
-      type: Boolean,
-      default: false
-    },
-    // 背景颜色
-    backgroundColor: {
-      type: String,
-      default: '#f8f8f8'
-    }
+<script setup>
+import { onMounted, ref } from 'vue'
+
+defineOptions({
+  name: 'custom-nav-bar'
+})
+
+defineProps({
+  showBack: {
+    type: Boolean,
+    default: false
   },
-  data() {
-    return {
-      // 状态栏信息
-      statusBarInfo: {
-        sysHeight: 0,             // 系统状态栏高度（px）
-        appHeight: 0,             // 应用状态栏高度（px）
-        sysBottom: 0,             // 系统状态栏底部位置（px）
-        appBottom: 0,             // 应用状态栏底部位置（px）
-        plusHeight: 0,            // 应用状态栏高度（px）
-        middleMaxWidth: 0,        // 中间内容最大宽度（px）
-        leftMaxWidth: 0,          // 左侧内容最大宽度（px）
-      }
-    }
+  showSearch: {
+    type: Boolean,
+    default: true
   },
-  methods: {
-    // 计算状态栏和胶囊按钮信息
-    calcStatusBarInfo() {
-      // 尝试使用微信小程序原生API
-      let systemInfo, menuButtonInfo;
-      
-      try {
-        // 优先使用微信小程序原生API
-        systemInfo = wx.getSystemInfoSync();
-        menuButtonInfo = wx.getMenuButtonBoundingClientRect();
-      } catch (e) {
-        // 如果失败，使用uni-app API
-        systemInfo = uni.getSystemInfoSync();
-        menuButtonInfo = uni.getMenuButtonBoundingClientRect();
-      }
-
-      // print systemInfo, menuButtonInfo
-      console.log('systemInfo:', systemInfo);
-      console.log('menuButtonInfo:', menuButtonInfo);
-      
-      // 系统状态栏高度：直接使用系统返回的值
-      const sysHeight = systemInfo.statusBarHeight;
-      
-      // 应用状态栏高度：基于胶囊按钮位置计算
-      // 核心公式：获取胶囊按钮垂直中心点，减去系统状态栏高度，再乘以 2
-      const appHeight = (((menuButtonInfo.bottom + menuButtonInfo.top) / 2) - sysHeight) * 2;
-      
-      // 计算位置信息
-      const sysBottom = systemInfo.screenTop + sysHeight;
-      const appBottom = sysBottom + appHeight;
-
-      // 自定义标题栏高度=系统状态栏高度+应用标题栏高度
-      const plusHeight = sysHeight + appHeight;
-      
-      const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2; // px
-
-      const leftMaxWidth = (systemInfo.screenWidth - middleMaxWidth) / 2; // px
-
-      this.statusBarInfo = {
-        sysHeight,             // 系统状态栏高度（px）
-        appHeight,             // 应用状态栏高度（px）
-        sysBottom,             // 系统状态栏底部位置（px）
-        appBottom,             // 应用状态栏底部位置（px）
-        plusHeight,            // 自定义标题栏高度=系统状态栏高度+应用标题栏高度
-        middleMaxWidth: middleMaxWidth - 16, // 中间内容最大宽度（px）
-        leftMaxWidth, // 左侧内容最大宽度（px）
-      };
-      
-      console.log('状态栏信息:', this.statusBarInfo);
-      
-      // 触发事件，将 plusHeight 值传递给父组件
-      this.$emit('height-calculated', { plusHeight });
-    },
-    // 处理搜索框点击
-    handleSearch() {
-      this.$emit('search', {});
-    },
-    // 处理返回按钮点击
-    handleBack() {
-      this.$emit('back');
-    }
+  searchPlaceholder: {
+    type: String,
+    default: '搜索商品'
   },
-  // 组件挂载时计算状态栏信息
-  mounted() {
-    this.calcStatusBarInfo();
+  title: {
+    type: String,
+    default: ''
+  },
+  transparent: {
+    type: Boolean,
+    default: false
+  },
+  backgroundColor: {
+    type: String,
+    default: '#f8f8f8'
   }
+})
+
+const emit = defineEmits(['height-calculated', 'search', 'back'])
+
+const statusBarInfo = ref({
+  sysHeight: 0,
+  appHeight: 0,
+  sysBottom: 0,
+  appBottom: 0,
+  plusHeight: 0,
+  middleMaxWidth: 0,
+  leftMaxWidth: 0
+})
+
+function calcStatusBarInfo() {
+  let systemInfo
+  let menuButtonInfo
+
+  try {
+    systemInfo = wx.getSystemInfoSync()
+    menuButtonInfo = wx.getMenuButtonBoundingClientRect()
+  } catch (error) {
+    systemInfo = uni.getSystemInfoSync()
+    menuButtonInfo = typeof uni.getMenuButtonBoundingClientRect === 'function'
+      ? uni.getMenuButtonBoundingClientRect()
+      : null
+  }
+
+  if (!menuButtonInfo) {
+    const sysHeight = systemInfo.statusBarHeight || 0
+    const appHeight = 44
+    const plusHeight = sysHeight + appHeight
+    const leftMaxWidth = Math.max((systemInfo.screenWidth || 375) * 0.2, 72)
+    const middleMaxWidth = (systemInfo.screenWidth || 375) - leftMaxWidth * 2
+
+    statusBarInfo.value = {
+      sysHeight,
+      appHeight,
+      sysBottom: sysHeight,
+      appBottom: plusHeight,
+      plusHeight,
+      middleMaxWidth,
+      leftMaxWidth
+    }
+
+    emit('height-calculated', { plusHeight })
+    return
+  }
+
+  const sysHeight = systemInfo.statusBarHeight || 0
+  const appHeight = (((menuButtonInfo.bottom + menuButtonInfo.top) / 2) - sysHeight) * 2
+  const sysBottom = (systemInfo.screenTop || 0) + sysHeight
+  const appBottom = sysBottom + appHeight
+  const plusHeight = sysHeight + appHeight
+  const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2
+  const leftMaxWidth = (systemInfo.screenWidth - middleMaxWidth) / 2
+
+  statusBarInfo.value = {
+    sysHeight,
+    appHeight,
+    sysBottom,
+    appBottom,
+    plusHeight,
+    middleMaxWidth: middleMaxWidth - 16,
+    leftMaxWidth
+  }
+
+  emit('height-calculated', { plusHeight })
 }
+
+function handleSearch() {
+  emit('search', {})
+}
+
+function handleBack() {
+  emit('back')
+}
+
+onMounted(() => {
+  calcStatusBarInfo()
+})
 </script>
 
 <style scoped>

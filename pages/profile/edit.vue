@@ -63,155 +63,131 @@
   </view>
 </template>
 
-<script>
-import { getToken, handleAuthFailure } from '../../utils/auth.js'
+<script setup>
+import { computed, reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { fetchUserDetail, updateProfile, uploadImage } from '../../utils/api.js'
-import { BASE_API } from '../../utils/config.js'
+import { handleAuthFailure } from '../../utils/auth.js'
+import { getStoragePreviewUrl } from '../../utils/config.js'
 
-export default {
-  name: 'EditProfile',
-  data() {
-    return {
-      formData: {
-        nickname: '',
-        gender: 0,
-        birthday: '',
-        avatarUrl: '../../static/logo.png',
-        avatar: ''
-      },
-      userInfo: {
-        mobile: ''
-      },
-      showPicker: false,
-      showMobile: false
-    }
-  },
-  computed: {
-    // 计算显示的手机号（脱敏或完整）
-    displayMobile() {
-      const mobile = this.userInfo.mobile
-      if (!mobile) return '未设置'
-      if (this.showMobile) return mobile
-      // 脱敏处理：保留前3位和后4位
-      return mobile.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-    }
-  },
-  onLoad() {
-    this.loadUserInfo()
-  },
-  methods: {
-    // 加载用户信息
-    loadUserInfo() {
-      fetchUserDetail()
-        .then(data => {
-          const avatarUrl = data.avatar ? `${BASE_API}/public/storage/preview?fileKey=${data.avatar}` : '../../static/logo.png'
-          
-          this.formData = {
-            nickname: data.nickname || '',
-            gender: data.gender || 0,
-            birthday: data.birthday || '',
-            avatarUrl: avatarUrl,
-            avatar: data.avatar || ''
-          }
-          
-          this.userInfo = {
-            mobile: data.mobile || ''
-          }
-        })
-        .catch(err => {
-          if (err && err.message === 'AUTH_401') {
-            handleAuthFailure()
-            return
-          }
-          console.error('获取用户信息失败', err)
-        })
-    },
-    
-    // 选择头像
-    chooseAvatar() {
-      uni.chooseImage({
-        count: 1,
-        sizeType: ['compressed'],
-        sourceType: ['album', 'camera'],
-        success: (res) => {
-          const tempFile = res.tempFiles[0]
-          this.formData.avatarUrl = res.tempFilePaths[0]
-          
-          // 选择图片后直接上传获取文件key
-          uni.showLoading({ title: '上传中...' })
-          uploadImage(tempFile.path)
-            .then(fileKey => {
-              uni.hideLoading()
-              this.formData.avatar = fileKey
-            })
-            .catch(err => {
-              uni.hideLoading()
-              uni.showToast({ title: '头像上传失败', icon: 'none' })
-              console.error('头像上传失败', err)
-            })
-        }
+const formData = reactive({
+  nickname: '',
+  gender: 0,
+  birthday: '',
+  avatarUrl: '../../static/logo.png',
+  avatar: ''
+})
+
+const userInfo = reactive({
+  mobile: ''
+})
+
+const showPicker = ref(false)
+const showMobile = ref(false)
+
+const displayMobile = computed(() => {
+  const mobile = userInfo.mobile
+  if (!mobile) return '未设置'
+  if (showMobile.value) return mobile
+  return mobile.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+})
+
+function loadUserInfo() {
+  fetchUserDetail()
+    .then((data) => {
+      Object.assign(formData, {
+        nickname: data.nickname || '',
+        gender: data.gender || 0,
+        birthday: data.birthday || '',
+        avatarUrl: getStoragePreviewUrl(data.avatar) || '../../static/logo.png',
+        avatar: data.avatar || ''
       })
-    },
-    
-    // 显示日期选择器
-    showDatePicker() {
-      this.showPicker = true
-    },
-    
-    // 日期选择变化
-    onDateChange(e) {
-      this.formData.birthday = e.detail.value
-      this.showPicker = false
-    },
-    
-    // 保存个人信息
-    saveProfile() {
-      if (!this.formData.nickname) {
-        uni.showToast({ title: '请输入昵称', icon: 'none' })
+      userInfo.mobile = data.mobile || ''
+    })
+    .catch((error) => {
+      if (error && error.message === 'AUTH_401') {
+        handleAuthFailure()
         return
       }
-
-      uni.showLoading({ title: '保存中...' })
-
-      // 构建更新数据
-      const updateData = {
-        nickname: this.formData.nickname,
-        gender: this.formData.gender,
-        birthday: this.formData.birthday
-      }
-      
-      // 如果有上传头像，添加avatar字段
-      if (this.formData.avatar) {
-        updateData.avatar = this.formData.avatar
-      }
-      
-      // 保存所有信息
-      updateProfile(updateData)
-        .then(() => {
-          uni.hideLoading()
-          uni.showToast({ title: '保存成功', icon: 'success' })
-          setTimeout(() => {
-            this.goBack()
-          }, 1000)
-        })
-        .catch(err => {
-          uni.hideLoading()
-          uni.showToast({ title: '保存失败', icon: 'none' })
-          console.error('保存失败', err)
-        })
-    },
-    
-    // 返回上一页
-    goBack() {
-      uni.navigateBack()
-    },
-    
-    // 切换手机号显示状态
-    toggleMobileVisibility() {
-      this.showMobile = !this.showMobile
-    }
-  }
+      console.error('获取用户信息失败', error)
+    })
 }
+
+function chooseAvatar() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      const tempFile = res.tempFiles[0]
+      formData.avatarUrl = res.tempFilePaths[0]
+      uni.showLoading({ title: '上传中...' })
+      uploadImage(tempFile.path)
+        .then((fileKey) => {
+          uni.hideLoading()
+          formData.avatar = fileKey
+        })
+        .catch((error) => {
+          uni.hideLoading()
+          uni.showToast({ title: '头像上传失败', icon: 'none' })
+          console.error('头像上传失败', error)
+        })
+    }
+  })
+}
+
+function showDatePicker() {
+  showPicker.value = true
+}
+
+function onDateChange(event) {
+  formData.birthday = event.detail.value
+  showPicker.value = false
+}
+
+function saveProfile() {
+  if (!formData.nickname) {
+    uni.showToast({ title: '请输入昵称', icon: 'none' })
+    return
+  }
+
+  uni.showLoading({ title: '保存中...' })
+  const updateData = {
+    nickname: formData.nickname,
+    gender: formData.gender,
+    birthday: formData.birthday
+  }
+
+  if (formData.avatar) {
+    updateData.avatar = formData.avatar
+  }
+
+  updateProfile(updateData)
+    .then(() => {
+      uni.hideLoading()
+      uni.showToast({ title: '保存成功', icon: 'success' })
+      setTimeout(() => {
+        goBack()
+      }, 1000)
+    })
+    .catch((error) => {
+      uni.hideLoading()
+      uni.showToast({ title: '保存失败', icon: 'none' })
+      console.error('保存失败', error)
+    })
+}
+
+function goBack() {
+  uni.navigateBack()
+}
+
+function toggleMobileVisibility() {
+  showMobile.value = !showMobile.value
+}
+
+onLoad(() => {
+  loadUserInfo()
+})
 </script>
 
 <style scoped>

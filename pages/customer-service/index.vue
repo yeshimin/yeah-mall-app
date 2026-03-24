@@ -117,684 +117,610 @@
 	</view>
 </template>
 
-<script>
-	import wsManager from '../../utils/websocket.js';
-import { getToken } from '../../utils/auth.js';
-import { BASE_API } from '../../utils/config.js';
-		export default {
-		data() {
-					return {
-						// 默认头像（Base64编码，避免网络请求）
-						defaultAvatar50: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-						defaultAvatar60: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-						defaultAvatar80: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==',
-						shopInfo: {
-							name: '店铺客服',
-							avatar: '',
-							description: '专业的客服团队，为您提供优质服务',
-							serviceTime: '09:00-21:00',
-							rating: '4.9',
-							shopId: '1', // 店铺ID
-							merchantId: '1' // 商家ID
-						},
-						userInfo: {
-							avatar: '',
-							userId: '1', // 用户ID
-							nickname: ''
-						},
-						merchantInfo: {
-							nickname: '',
-							avatar: ''
-						},
-						messages: [
-							{
-								content: '您好！欢迎咨询，有什么可以帮助您的吗？',
-								time: '10:01',
-								timestamp: new Date().setHours(10, 1, 0, 0), // 添加时间戳
-								type: 'service'
-							},
-							{
-								content: '我们的商品支持7天无理由退换，请您放心购买。',
-								time: '10:02',
-								timestamp: new Date().setHours(10, 2, 0, 0), // 添加时间戳
-								type: 'service'
-							}
-						],
-						userMessages: [],
-						inputMessage: '',
-						selectedImage: null, // 选中的图片
-						showQuickQuestions: false, // 关闭常见问题
-						quickQuestions: [
-							'商品什么时候发货？',
-							'支持7天无理由退换吗？',
-							'商品质量有保障吗？',
-							'可以优惠吗？'
-						],
-						showShopInfoPopup: false,
-						isInputFocused: false,
-						// 会话信息
-						conversationInfo: null, // 会话信息
-						conversationId: null, // 会话ID
-						// 分页相关数据
-						currentPage: 1, // 当前页码
-						hasMore: true, // 是否有更多数据
-						loadingMore: false, // 是否正在加载更多
-						// 滚动相关
-						scrollToView: '', // 滚动到指定元素的ID
-					};
-			},
-			computed: {
-				// 合并并排序消息
-				sortedMessages() {
-					// 复制所有消息
-					const allMessages = [...this.messages, ...this.userMessages];
-					// 按时间戳排序
-					allMessages.sort((a, b) => {
-						return (a.timestamp || 0) - (b.timestamp || 0);
-					});
-					return allMessages;
-				}
-			},
-		methods: {
-			// 发送消息
-				sendMessage() {
-					// 检查是否有选中的图片
-					if (this.selectedImage) {
-						this.sendImageMessage();
-					} else if (this.inputMessage.trim()) {
-						this.sendTextMessage();
-					}
-				},
+<script setup>
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import wsManager from '../../utils/websocket.js'
+import { getToken, getUserId, handleAuthFailure } from '../../utils/auth.js'
+import { BASE_API, STORAGE_UPLOAD_URL, getStoragePreviewUrl } from '../../utils/config.js'
 
-				// 发送文本消息
-				sendTextMessage() {
-					// 确保会话ID存在
-					if (!this.conversationId) {
-						console.error('发送文本消息失败：会话ID为null');
-						return;
-					}
-					
-					const content = this.inputMessage.trim();
-					const now = new Date();
-					const newMessage = {
-						content: content,
-						time: this.getCurrentTime(),
-						timestamp: now.getTime(), // 添加时间戳
-						type: 'user' // 用户消息
-					};
+const defaultAvatar50 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
+const defaultAvatar60 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
+const defaultAvatar80 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
 
-					// 添加到用户消息列表
-					this.userMessages.push(newMessage);
-					this.inputMessage = '';
+const shopInfo = reactive({
+  name: '店铺客服',
+  avatar: '',
+  description: '专业的客服团队，为您提供优质服务',
+  serviceTime: '09:00-21:00',
+  rating: '4.9',
+  shopId: '1',
+  merchantId: '1'
+})
 
-					// 构造WebSocket消息格式
-					const wsMessage = {
-						category: 'biz-handle',
-						command: 'cs-chat.mem',
-						subCmd: 'msg.mem2mch',
-						payload: {
-							conversationId: this.conversationId,
-							content: content,
-							type: 1 // 文本消息
-						}
-					};
+const userInfo = reactive({
+  avatar: '',
+  userId: getUserId() || '1',
+  nickname: ''
+})
 
-					// 发送WebSocket消息
-					console.log('发送文本消息:', wsMessage);
-					const sendResult = wsManager.send(wsMessage);
-					if (!sendResult) {
-						uni.showToast({
-							title: '发送失败，请检查网络连接',
-							icon: 'none'
-						});
-					}
+const merchantInfo = reactive({
+  nickname: '',
+  avatar: ''
+})
 
-					this.$nextTick(() => {
-						this.scrollToBottom();
-					});
-				},
+const messages = ref([
+  {
+    content: '您好！欢迎咨询，有什么可以帮助您的吗？',
+    time: '10:01',
+    timestamp: new Date().setHours(10, 1, 0, 0),
+    type: 'service'
+  },
+  {
+    content: '我们的商品支持7天无理由退换，请您放心购买。',
+    time: '10:02',
+    timestamp: new Date().setHours(10, 2, 0, 0),
+    type: 'service'
+  }
+])
+const userMessages = ref([])
+const inputMessage = ref('')
+const selectedImage = ref(null)
+const showQuickQuestions = ref(false)
+const quickQuestions = [
+  '商品什么时候发货？',
+  '支持7天无理由退换吗？',
+  '商品质量有保障吗？',
+  '可以优惠吗？'
+]
+const showShopInfoPopup = ref(false)
+const isInputFocused = ref(false)
+const conversationInfo = ref(null)
+const conversationId = ref(null)
+const currentPage = ref(1)
+const hasMore = ref(true)
+const loadingMore = ref(false)
+const scrollToView = ref('')
 
-				// 发送图片消息
-			sendImageMessage() {
-				if (!this.selectedImage) return;
+const sortedMessages = computed(() => {
+  return [...messages.value, ...userMessages.value].sort((a, b) => {
+    return (a.timestamp || 0) - (b.timestamp || 0)
+  })
+})
 
-				// 确保会话ID存在
-				if (!this.conversationId) {
-					this.initConversation().then(() => {
-						this.doSendImageMessage();
-					}).catch(() => {
-						uni.showToast({
-							title: '初始化会话失败，无法发送消息',
-							icon: 'none'
-						});
-					});
-				} else {
-					this.doSendImageMessage();
-				}
-			},
+function request(options) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      ...options,
+      success: resolve,
+      fail: reject
+    })
+  })
+}
 
-			// 执行发送图片消息的实际操作
-			doSendImageMessage() {
-				// 上传图片
-				uni.showLoading({ title: '上传中...' });
-				uni.uploadFile({
-					url: 'http://localhost:8080/app/storage/upload',
-					filePath: this.selectedImage,
-					name: 'file',
-					header: {
-						'Authorization': `Bearer ${getToken()}`
-					},
-					success: (uploadRes) => {
-						uni.hideLoading();
-						if (uploadRes.statusCode === 200) {
-							const response = JSON.parse(uploadRes.data);
-							if (response.code === 0) {
-								const fileKey = response.data.fileKey;
-								
-								// 添加到用户消息列表
-								const now = new Date();
-								const newMessage = {
-									content: '[图片]',
-									time: this.getCurrentTime(),
-									timestamp: now.getTime(), // 添加时间戳
-									imageUrl: `${BASE_API}/public/storage/preview?fileKey=${fileKey}`,
-									type: 'user' // 用户消息
-								};
-								this.userMessages.push(newMessage);
-								this.selectedImage = null;
-								
-								// 构造WebSocket消息格式
-								const wsMessage = {
-									category: 'biz-handle',
-									command: 'cs-chat.mem',
-									subCmd: 'msg.mem2mch',
-									payload: {
-										conversationId: this.conversationId,
-										content: fileKey,
-										type: 2 // 图片消息
-									}
-								};
-								
-								// 发送WebSocket消息
-								console.log('发送图片消息:', wsMessage);
-								const sendResult = wsManager.send(wsMessage);
-								if (!sendResult) {
-									uni.showToast({
-										title: '发送失败，请检查网络连接',
-										icon: 'none'
-									});
-								}
-								
-								this.$nextTick(() => {
-									this.scrollToBottom();
-								});
-							} else {
-								uni.showToast({
-									title: '上传失败: ' + (response.message || '未知错误'),
-									icon: 'none'
-								});
-							}
-						} else {
-							uni.showToast({
-								title: '上传失败: ' + uploadRes.statusCode,
-								icon: 'none'
-							});
-						}
-					},
-					fail: (error) => {
-						uni.hideLoading();
-						uni.showToast({
-							title: '上传失败: ' + error.errMsg,
-							icon: 'none'
-						});
-					}
-				});
-			},
+function uploadFile(options) {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      ...options,
+      success: resolve,
+      fail: reject
+    })
+  })
+}
 
-			// 发送快捷问题
-			sendQuickQuestion(question) {
-				// 确保会话ID存在
-				if (!this.conversationId) {
-					this.initConversation().then(() => {
-						this.doSendQuickQuestion(question);
-					}).catch(() => {
-						uni.showToast({
-							title: '初始化会话失败，无法发送消息',
-							icon: 'none'
-						});
-					});
-				} else {
-					this.doSendQuickQuestion(question);
-				}
-			},
+function buildAuthHeader(includeContentType = false) {
+  const header = {}
+  if (includeContentType) {
+    header['Content-Type'] = 'application/json'
+  }
 
-			// 执行发送快捷问题的实际操作
-			doSendQuickQuestion(question) {
-				const now = new Date();
-				const newMessage = {
-					content: question,
-					time: this.getCurrentTime(),
-					timestamp: now.getTime(), // 添加时间戳
-					type: 'user' // 用户消息
-				};
+  const token = getToken()
+  if (token) {
+    header.Authorization = `Bearer ${token}`
+  }
 
-				this.userMessages.push(newMessage);
-				this.showQuickQuestions = false;
+  return header
+}
 
-				// 构造WebSocket消息格式
-				const wsMessage = {
-					category: 'biz-handle',
-					command: 'cs-chat.mem',
-					subCmd: 'msg.mem2mch',
-					payload: {
-						conversationId: this.conversationId,
-						content: question,
-						type: 1 // 文本消息
-					}
-				};
+function ensureAuthenticated() {
+  if (getToken()) {
+    return true
+  }
 
-				// 发送WebSocket消息
-				console.log('发送快捷问题:', wsMessage);
-				const sendResult = wsManager.send(wsMessage);
-				if (!sendResult) {
-					uni.showToast({
-						title: '发送失败，请检查网络连接',
-						icon: 'none'
-					});
-				}
+  handleAuthFailure()
+  return false
+}
 
-				this.$nextTick(() => {
-					this.scrollToBottom();
-				});
-			},
+function getCurrentTime() {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
 
-			// 选择图片
-				chooseImage() {
-					uni.chooseImage({
-						count: 1,
-						sizeType: ['compressed'],
-						sourceType: ['album', 'camera'],
-						success: (res) => {
-							// 保存选中的图片
-							this.selectedImage = res.tempFilePaths[0];
-							// 清空输入框，因为现在要发送图片
-							this.inputMessage = '';
-						},
-						fail: (error) => {
-							console.error('选择图片失败', error);
-						}
-					});
-				},
+function scrollToBottom() {
+  setTimeout(() => {
+    scrollToView.value = 'last-message'
+    nextTick(() => {
+      setTimeout(() => {
+        scrollToView.value = ''
+      }, 100)
+    })
+  }, 800)
+}
 
-			// 显示店铺信息
-			showShopInfo() {
-				this.showShopInfoPopup = true;
-			},
+function previewImage(imageUrl) {
+  uni.previewImage({
+    urls: [imageUrl]
+  })
+}
 
-			// 关闭店铺信息弹窗
-			closeShopInfoPopup() {
-				this.showShopInfoPopup = false;
-			},
+function formatMessageTime(createTime) {
+  let normalized = createTime
+  if (typeof normalized === 'string' && normalized.includes(' ')) {
+    normalized = normalized.replace(' ', 'T')
+  }
 
-			// 输入框聚焦
-			onInputFocus() {
-				this.isInputFocused = true;
-				this.showQuickQuestions = false;
-				this.$nextTick(() => {
-					this.scrollToBottom();
-				});
-			},
+  const date = new Date(normalized)
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
 
-			// 输入框失焦
-			onInputBlur() {
-				this.isInputFocused = false;
-			},
+function sendWsMessage(payload) {
+  const result = wsManager.send(payload)
+  if (!result) {
+    uni.showToast({
+      title: '发送失败，请检查网络连接',
+      icon: 'none'
+    })
+  }
+  return result
+}
 
-			// 滚动到底部
-			scrollToBottom() {
-				console.log('开始执行滚动到底部操作');
-				// 使用setTimeout确保DOM完全更新后执行
-				setTimeout(() => {
-					// 微信小程序中使用scroll-into-view属性
-					this.scrollToView = 'last-message';
-					console.log('执行滚动操作，scrollToView: last-message');
-					
-					// 为了避免重复滚动问题，在下次DOM更新后清空scrollToView
-					this.$nextTick(() => {
-						setTimeout(() => {
-							this.scrollToView = '';
-						}, 100);
-					});
-				}, 800); // 增加延迟时间，确保DOM完全更新
-			},
+function sendMessage() {
+  if (selectedImage.value) {
+    sendImageMessage()
+  } else if (inputMessage.value.trim()) {
+    sendTextMessage()
+  }
+}
 
-			// 获取当前时间
-			getCurrentTime() {
-				const now = new Date();
-				const hours = String(now.getHours()).padStart(2, '0');
-				const minutes = String(now.getMinutes()).padStart(2, '0');
-				return `${hours}:${minutes}`;
-			},
-			
-			// 预览图片
-			previewImage(imageUrl) {
-				uni.previewImage({
-					urls: [imageUrl],
-					success: (res) => {
-						console.log('预览图片成功', res);
-					},
-					fail: (error) => {
-						console.error('预览图片失败', error);
-					}
-				});
-			},
+function sendTextMessage() {
+  if (!conversationId.value) {
+    console.error('发送文本消息失败：会话ID为空')
+    return
+  }
 
-			// 格式化消息时间
-			formatMessageTime(createTime) {
-				// 处理iOS下的日期格式问题
-				let date;
-				if (typeof createTime === 'string' && createTime.includes(' ')) {
-					// 将 'yyyy-MM-dd HH:mm:ss' 格式转换为 'yyyy-MM-ddTHH:mm:ss' 格式
-					createTime = createTime.replace(' ', 'T');
-				}
-				date = new Date(createTime);
-				const hours = String(date.getHours()).padStart(2, '0');
-				const minutes = String(date.getMinutes()).padStart(2, '0');
-				return `${hours}:${minutes}`;
-			},
+  const content = inputMessage.value.trim()
+  const now = new Date()
+  userMessages.value.push({
+    content,
+    time: getCurrentTime(),
+    timestamp: now.getTime(),
+    type: 'user'
+  })
+  inputMessage.value = ''
 
-			// 加载历史消息
-			loadHistoryMessages(isLoadMore = false) {
-				if (!this.conversationId) {
-					console.error('加载历史消息失败: 会话ID为空');
-					return;
-				}
-				
-				// 如果是加载更多，检查是否正在加载或没有更多数据
-				if (isLoadMore) {
-					if (this.loadingMore || !this.hasMore) {
-						return;
-					}
-					this.loadingMore = true;
-				} else {
-					// 重置分页数据
-					this.currentPage = 1;
-					this.hasMore = true;
-					// 清空现有消息
-					this.messages = [];
-					this.userMessages = [];
-					uni.showLoading({ title: '加载历史消息...' });
-				}
-				
-				const page = isLoadMore ? this.currentPage + 1 : 1;
-				console.log('开始加载历史消息，会话ID:', this.conversationId, '页码:', page, '是否加载更多:', isLoadMore);
-				
-				uni.request({
-					url: `${BASE_API}/app/csConversation/messages`,
-					method: 'GET',
-					header: {
-						'Authorization': `Bearer ${getToken()}`
-					},
-					data: {
-						conversationId: this.conversationId,
-						current: page,
-						size: 20
-					},
-					success: (res) => {
-						if (!isLoadMore) {
-							uni.hideLoading();
-						} else {
-							this.loadingMore = false;
-						}
-						if (res.statusCode === 200 && res.data.code === 0) {
-							const historyMessages = res.data.data.records;
-							console.log('加载历史消息成功:', historyMessages.length, '条');
-							
-							// 检查是否有更多数据
-							if (historyMessages.length < 20) {
-								this.hasMore = false;
-							}
-							
-							// 更新当前页码
-							this.currentPage = page;
-							
-							// 处理历史消息，转换为页面显示格式
-							// 注意：响应数据是按时间倒序排列的，需要反转顺序
-							historyMessages.reverse().forEach(msg => {
-								// 转换消息格式
-								const message = {
-									content: msg.msgContent,
-									time: this.formatMessageTime(msg.createTime),
-									timestamp: new Date(msg.createTime).getTime(),
-									type: msg.msgDirection === 1 ? 'user' : 'service', // 1: 买家发送，2: 商家发送
-									imageUrl: msg.msgType === 2 ? `${BASE_API}/public/storage/preview?fileKey=${msg.msgContent}` : null // 如果是图片消息，使用preview接口加载
-								};
-								
-								// 添加到消息列表
-								if (msg.msgDirection === 1) {
-									this.userMessages.unshift(message); // 买家发送的消息添加到用户消息列表
-								} else {
-									this.messages.unshift(message); // 商家发送的消息添加到商家消息列表
-								}
-							});
-							
-							// 如果是首次加载，滚动到底部
-							if (!isLoadMore) {
-								console.log('历史消息加载完成，准备滚动到底部');
-								// 确保DOM完全更新后执行滚动
-								this.$nextTick(() => {
-									console.log('DOM更新完成，准备执行滚动');
-									// 再等待一段时间，确保所有消息都已渲染
-									setTimeout(() => {
-										console.log('执行滚动到底部');
-										this.scrollToBottom();
-									}, 500); // 增加延迟时间，确保所有消息都已渲染
-								});
-							}
-						} else {
-							console.error('加载历史消息失败:', res.data.message);
-							if (isLoadMore) {
-								this.loadingMore = false;
-							} else {
-								uni.hideLoading();
-							}
-						}
-					},
-					fail: (error) => {
-						if (isLoadMore) {
-							this.loadingMore = false;
-						} else {
-							uni.hideLoading();
-						}
-						console.error('请求历史消息失败:', error);
-					}
-				});
-			},
+  sendWsMessage({
+    category: 'biz-handle',
+    command: 'cs-chat.mem',
+    subCmd: 'msg.mem2mch',
+    payload: {
+      conversationId: conversationId.value,
+      content,
+      type: 1
+    }
+  })
 
-			// 滚动事件处理
-			onScroll(event) {
-				// 当滚动到距离顶部50px以内时加载更多数据，增加触发区域
-				// 确保不在加载中且还有更多数据
-				if (event.detail.scrollTop <= 50 && !this.loadingMore && this.hasMore) {
-					this.loadHistoryMessages(true);
-				}
-			},
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
 
-			// 初始化会话
-			initConversation() {
-				return new Promise((resolve, reject) => {
-					uni.showLoading({ title: '初始化会话...' });
-					uni.request({
-						url: `${BASE_API}/app/csConversation/init`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${getToken()}`
-						},
-						data: {
-							shopId: this.shopInfo.shopId
-						},
-						success: (res) => {
-							uni.hideLoading();
-							if (res.statusCode === 200 && res.data.code === 0) {
-								const conversationData = res.data.data;
-								this.conversationInfo = conversationData;
-								// 只有当conversationId为空时才更新它，否则保持现有值
-								if (!this.conversationId) {
-									this.conversationId = conversationData.id;
-								}
-								console.log('会话初始化成功:', conversationData);
-								
-								// 更新店铺信息
-								this.shopInfo = {
-									...this.shopInfo,
-									name: conversationData.shopName || '店铺客服',
-									avatar: conversationData.shopLogo ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.shopLogo}` : '',
-									merchantId: conversationData.mchId || this.shopInfo.merchantId
-								};
-								
-								// 更新用户信息
-								this.userInfo = {
-									...this.userInfo,
-									avatar: conversationData.memberAvatar ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.memberAvatar}` : '',
-									userId: conversationData.memberId || this.userInfo.userId,
-									nickname: conversationData.memberNickname || ''
-								};
-								
-								// 保存商家信息
-								this.merchantInfo = {
-									nickname: conversationData.mchNickname || '',
-									avatar: conversationData.mchAvatar ? `${BASE_API}/public/storage/preview?fileKey=${conversationData.mchAvatar}` : ''
-								};
-								
-								// 确保会话ID已经设置
-								if (this.conversationId) {
-									// 加载历史消息
-									this.loadHistoryMessages();
-								} else {
-									console.error('会话初始化成功但会话ID为空');
-								}
-								resolve(conversationData);
-							} else {
-								console.error('初始化会话失败:', res.data.message);
-								uni.showToast({
-									title: '初始化会话失败，请重试',
-									icon: 'none'
-								});
-								reject(new Error('初始化会话失败'));
-							}
-						},
-						fail: (error) => {
-							uni.hideLoading();
-							console.error('请求初始化会话失败:', error);
-							uni.showToast({
-								title: '网络错误，请检查网络连接',
-								icon: 'none'
-							});
-							reject(error);
-						}
-					});
-				});
-			}
-		},
-		onLoad(options) {
-				// 接收从商品详情页面传递过来的参数
-				if (options && options.shopId) {
-					this.shopInfo.shopId = options.shopId;
-				}
-				if (options && options.mchId) {
-					this.shopInfo.merchantId = options.mchId;
-				}
-				if (options && options.conversationId) {
-					// 如果已经从商品详情页面传递了会话ID，直接使用
-					this.conversationId = options.conversationId;
-					console.log('客服聊天页面 - 接收会话ID:', this.conversationId);
-					// 仍然需要初始化会话以获取店铺信息、买家信息和商家信息
-					this.initConversation().then(() => {
-						// 初始化会话完成后滚动到底部
-						this.$nextTick(() => {
-							this.scrollToBottom();
-						});
-					});
-				} else {
-					// 否则初始化会话，获取会话ID
-					this.initConversation().then(() => {
-						// 初始化会话完成后滚动到底部
-						this.$nextTick(() => {
-							this.scrollToBottom();
-						});
-					});
-				}
-			},
-			mounted() {
-			// 页面加载后尝试滚动到底部
-			this.$nextTick(() => {
-				this.scrollToBottom();
-			});
-			
-			// 再延迟一段时间后再次尝试滚动，确保所有消息都已加载完成
-			setTimeout(() => {
-				this.scrollToBottom();
-			}, 1000);
-			
-			// 注册WebSocket消息处理器
-			wsManager.on('biz-handle', 'cs-chat.mch', (message) => {
-				console.log('收到商家消息:', message);
-				// 处理商家发送的消息
-				if (message.subCmd === 'msg.mch2mem') {
-					const payload = message.payload;
-					
-					// 验证消息是否满足条件
-					// 检查是否包含会话ID，并且会话ID与当前会话ID匹配
-					const hasValidConversationId = this.conversationId && payload.conversationId == this.conversationId;
-					
-					// 检查是否包含必要的验证字段
-					const hasValidationFields = payload.shopId && payload.from && payload.to;
-					
-					// 验证消息有效性
-					let isValidMessage = false;
-					if (hasValidationFields) {
-						// 使用松散相等运算符自动处理类型转换
-						isValidMessage = payload.shopId == this.shopInfo.shopId && 
-										  payload.from == this.shopInfo.merchantId && 
-										  payload.to == this.userInfo.userId;
-					} else if (hasValidConversationId) {
-						// 如果没有验证字段，但会话ID匹配，也认为是有效消息
-						isValidMessage = true;
-					}
-					
-					if (isValidMessage) {
-						let content = payload.content;
-						let imageUrl = null;
-						
-						// 如果是图片消息，需要处理图片显示
-						if (payload.type === 2) {
-							content = '[图片]';
-							// 使用preview接口加载图片
-							imageUrl = `${BASE_API}/public/storage/preview?fileKey=${payload.content}`;
-						}
-						
-						// 添加到消息列表
-						const now = new Date();
-						const newMessage = {
-							content: content,
-							time: this.getCurrentTime(),
-							timestamp: now.getTime(), // 添加时间戳
-							imageUrl: imageUrl,
-							type: 'service' // 商家消息
-						};
-						this.messages.push(newMessage);
-						
-						this.$nextTick(() => {
-							this.scrollToBottom();
-						});
-					} else {
-						console.log('收到无效消息，忽略:', message);
-					}
-				}
-			});
-		},
-	};
+async function sendImageMessage() {
+  if (!selectedImage.value) {
+    return
+  }
+
+  if (!conversationId.value) {
+    try {
+      await initConversation()
+    } catch (error) {
+      uni.showToast({
+        title: '初始化会话失败，无法发送消息',
+        icon: 'none'
+      })
+      return
+    }
+  }
+
+  doSendImageMessage()
+}
+
+async function doSendImageMessage() {
+  if (!ensureAuthenticated()) {
+    return
+  }
+
+  uni.showLoading({ title: '上传中...' })
+  try {
+    const uploadRes = await uploadFile({
+      url: STORAGE_UPLOAD_URL,
+      filePath: selectedImage.value,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    })
+
+    uni.hideLoading()
+    if (uploadRes.statusCode !== 200) {
+      uni.showToast({
+        title: `上传失败: ${uploadRes.statusCode}`,
+        icon: 'none'
+      })
+      return
+    }
+
+    const response = JSON.parse(uploadRes.data)
+    if (response.code !== 0) {
+      uni.showToast({
+        title: `上传失败: ${response.message || '未知错误'}`,
+        icon: 'none'
+      })
+      return
+    }
+
+    const fileKey = response.data.fileKey
+    const now = new Date()
+    userMessages.value.push({
+      content: '[图片]',
+      time: getCurrentTime(),
+      timestamp: now.getTime(),
+      imageUrl: getStoragePreviewUrl(fileKey),
+      type: 'user'
+    })
+    selectedImage.value = null
+
+    sendWsMessage({
+      category: 'biz-handle',
+      command: 'cs-chat.mem',
+      subCmd: 'msg.mem2mch',
+      payload: {
+        conversationId: conversationId.value,
+        content: fileKey,
+        type: 2
+      }
+    })
+
+    nextTick(() => {
+      scrollToBottom()
+    })
+  } catch (error) {
+    uni.hideLoading()
+    uni.showToast({
+      title: `上传失败: ${error.errMsg || '未知错误'}`,
+      icon: 'none'
+    })
+  }
+}
+
+async function sendQuickQuestion(question) {
+  if (!conversationId.value) {
+    try {
+      await initConversation()
+    } catch (error) {
+      uni.showToast({
+        title: '初始化会话失败，无法发送消息',
+        icon: 'none'
+      })
+      return
+    }
+  }
+
+  doSendQuickQuestion(question)
+}
+
+function doSendQuickQuestion(question) {
+  const now = new Date()
+  userMessages.value.push({
+    content: question,
+    time: getCurrentTime(),
+    timestamp: now.getTime(),
+    type: 'user'
+  })
+  showQuickQuestions.value = false
+
+  sendWsMessage({
+    category: 'biz-handle',
+    command: 'cs-chat.mem',
+    subCmd: 'msg.mem2mch',
+    payload: {
+      conversationId: conversationId.value,
+      content: question,
+      type: 1
+    }
+  })
+
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+function chooseImage() {
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      selectedImage.value = res.tempFilePaths[0]
+      inputMessage.value = ''
+    },
+    fail: (error) => {
+      console.error('选择图片失败', error)
+    }
+  })
+}
+
+function showShopInfo() {
+  showShopInfoPopup.value = true
+}
+
+function closeShopInfoPopup() {
+  showShopInfoPopup.value = false
+}
+
+function onInputFocus() {
+  isInputFocused.value = true
+  showQuickQuestions.value = false
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+function onInputBlur() {
+  isInputFocused.value = false
+}
+
+async function loadHistoryMessages(isLoadMore = false) {
+  if (!conversationId.value) {
+    console.error('加载历史消息失败: 会话ID为空')
+    return
+  }
+
+  if (isLoadMore) {
+    if (loadingMore.value || !hasMore.value) {
+      return
+    }
+    loadingMore.value = true
+  } else {
+    currentPage.value = 1
+    hasMore.value = true
+    messages.value = []
+    userMessages.value = []
+    uni.showLoading({ title: '加载历史消息...' })
+  }
+
+  const page = isLoadMore ? currentPage.value + 1 : 1
+  try {
+    const res = await request({
+      url: `${BASE_API}/app/csConversation/messages`,
+      method: 'GET',
+      header: buildAuthHeader(),
+      data: {
+        conversationId: conversationId.value,
+        current: page,
+        size: 20
+      }
+    })
+
+    if (!isLoadMore) {
+      uni.hideLoading()
+    } else {
+      loadingMore.value = false
+    }
+
+    if (res.statusCode !== 200 || res.data.code !== 0) {
+      console.error('加载历史消息失败:', res.data && res.data.message)
+      return
+    }
+
+    const historyMessages = res.data.data.records || []
+    hasMore.value = historyMessages.length >= 20
+    currentPage.value = page
+
+    historyMessages.reverse().forEach((msg) => {
+      const message = {
+        content: msg.msgType === 2 ? '[图片]' : msg.msgContent,
+        time: formatMessageTime(msg.createTime),
+        timestamp: new Date(msg.createTime).getTime(),
+        type: msg.msgDirection === 1 ? 'user' : 'service',
+        imageUrl: msg.msgType === 2 ? getStoragePreviewUrl(msg.msgContent) : null
+      }
+
+      if (msg.msgDirection === 1) {
+        userMessages.value.push(message)
+      } else {
+        messages.value.push(message)
+      }
+    })
+
+    if (!isLoadMore) {
+      nextTick(() => {
+        setTimeout(() => {
+          scrollToBottom()
+        }, 500)
+      })
+    }
+  } catch (error) {
+    if (isLoadMore) {
+      loadingMore.value = false
+    } else {
+      uni.hideLoading()
+    }
+    console.error('请求历史消息失败:', error)
+  }
+}
+
+function onScroll(event) {
+  if (event.detail.scrollTop <= 50 && !loadingMore.value && hasMore.value) {
+    loadHistoryMessages(true)
+  }
+}
+
+async function initConversation() {
+  if (!ensureAuthenticated()) {
+    throw new Error('未登录')
+  }
+
+  uni.showLoading({ title: '初始化会话...' })
+  try {
+    const res = await request({
+      url: `${BASE_API}/app/csConversation/init`,
+      method: 'POST',
+      header: buildAuthHeader(true),
+      data: {
+        shopId: shopInfo.shopId
+      }
+    })
+
+    uni.hideLoading()
+    if (res.statusCode !== 200 || res.data.code !== 0) {
+      console.error('初始化会话失败:', res.data && res.data.message)
+      uni.showToast({
+        title: '初始化会话失败，请重试',
+        icon: 'none'
+      })
+      const error = new Error('初始化会话失败')
+      error.handled = true
+      throw error
+    }
+
+    const conversationData = res.data.data
+    conversationInfo.value = conversationData
+    if (!conversationId.value) {
+      conversationId.value = conversationData.id
+    }
+
+    Object.assign(shopInfo, {
+      ...shopInfo,
+      name: conversationData.shopName || '店铺客服',
+      avatar: getStoragePreviewUrl(conversationData.shopLogo),
+      merchantId: conversationData.mchId || shopInfo.merchantId
+    })
+
+    Object.assign(userInfo, {
+      ...userInfo,
+      avatar: getStoragePreviewUrl(conversationData.memberAvatar),
+      userId: conversationData.memberId || userInfo.userId,
+      nickname: conversationData.memberNickname || ''
+    })
+
+    Object.assign(merchantInfo, {
+      nickname: conversationData.mchNickname || '',
+      avatar: getStoragePreviewUrl(conversationData.mchAvatar)
+    })
+
+    if (conversationId.value) {
+      await loadHistoryMessages()
+    }
+
+    return conversationData
+  } catch (error) {
+    uni.hideLoading()
+    console.error('请求初始化会话失败:', error)
+    if (!error.handled && error.message !== '未登录') {
+      uni.showToast({
+        title: '网络错误，请检查网络连接',
+        icon: 'none'
+      })
+    }
+    throw error
+  }
+}
+
+function handleMerchantMessage(message) {
+  if (message.subCmd !== 'msg.mch2mem') {
+    return
+  }
+
+  const payload = message.payload || {}
+  const hasValidConversationId = conversationId.value && payload.conversationId == conversationId.value
+  const hasValidationFields = payload.shopId && payload.from && payload.to
+
+  let isValidMessage = false
+  if (hasValidationFields) {
+    isValidMessage = payload.shopId == shopInfo.shopId &&
+      payload.from == shopInfo.merchantId &&
+      payload.to == userInfo.userId
+  } else if (hasValidConversationId) {
+    isValidMessage = true
+  }
+
+  if (!isValidMessage) {
+    return
+  }
+
+  messages.value.push({
+    content: payload.type === 2 ? '[图片]' : payload.content,
+    time: getCurrentTime(),
+    timestamp: Date.now(),
+    imageUrl: payload.type === 2 ? getStoragePreviewUrl(payload.content) : null,
+    type: 'service'
+  })
+
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+onLoad((options = {}) => {
+  if (!ensureAuthenticated()) {
+    return
+  }
+
+  if (options.shopId) {
+    shopInfo.shopId = options.shopId
+  }
+  if (options.mchId) {
+    shopInfo.merchantId = options.mchId
+  }
+  if (options.conversationId) {
+    conversationId.value = options.conversationId
+  }
+
+  initConversation()
+    .then(() => {
+      nextTick(() => {
+        scrollToBottom()
+      })
+    })
+    .catch(() => {})
+})
+
+onMounted(() => {
+  if (!getToken()) {
+    return
+  }
+
+  if (getToken() && !wsManager.getConnectionStatus()) {
+    wsManager.init()
+  }
+
+  nextTick(() => {
+    scrollToBottom()
+  })
+  setTimeout(() => {
+    scrollToBottom()
+  }, 1000)
+
+  wsManager.on('biz-handle', 'cs-chat.mch', handleMerchantMessage)
+})
+
+onUnmounted(() => {
+  wsManager.off('biz-handle', 'cs-chat.mch')
+})
 </script>
 
 <style scoped>

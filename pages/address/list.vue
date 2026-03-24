@@ -39,7 +39,7 @@
 						<view class="action-btn default-btn" @click.stop="setDefaultAddress(address.id)" v-if="!address.isDefault">
 							<text>设为默认</text>
 						</view>
-						<view class="action-btn delete-btn" @click.stop="deleteAddress(address.id)">
+						<view class="action-btn delete-btn" @click.stop="handleDeleteAddress(address.id)">
 							<text>删除</text>
 						</view>
 					</view>
@@ -55,139 +55,131 @@
 	</view>
 </template>
 
-<script>
-	import { queryAddressList, deleteAddress, updateAddress } from '../../utils/api.js';
-	
-	export default {
-		data() {
-			return {
-				addressList: [],
-				loading: false,
-				// 标记是否从订单页进入
-				fromOrder: false
-			};
-		},
-		onLoad(options) {
-			// 检查是否从订单页进入
-			this.fromOrder = options.fromOrder === 'true';
-			// 加载地址列表
-			this.fetchAddressList();
-		},
-		onShow() {
-			// 每次页面显示时刷新地址列表
-			this.fetchAddressList();
-		},
-		methods: {
-			// 加载地址列表
-			fetchAddressList() {
-				this.loading = true;
-				queryAddressList()
-					.then(data => {
-						console.log('地址列表:', data);
-						this.addressList = data;
-					})
-					.catch(error => {
-						console.error('获取地址列表失败:', error);
-						uni.showToast({
-							title: '获取地址列表失败',
-							icon: 'none'
-						});
-					})
-					.finally(() => {
-						this.loading = false;
-					});
-			},
-			
-			// 选择地址
-			selectAddress(address) {
-				console.log('selectAddress called, fromOrder:', this.fromOrder);
-				// 不管是否从订单页进入，都存储选中的地址
-				const selectedAddress = {
-					id: address.id,
-					name: address.name,
-					phone: address.contact,
-					address: address.fullAddress,
-					provinceCode: address.provinceCode,
-					cityCode: address.cityCode,
-					districtCode: address.districtCode,
-					isDefault: address.isDefault
-				};
-				// 存储到本地
-				uni.setStorageSync('selectedAddress', selectedAddress);
-				console.log('Address stored to localStorage:', selectedAddress);
-				// 返回上一页
-				uni.navigateBack();
-			},
-			
-			// 跳转到新增地址页面
-			goToAddAddress() {
-				uni.navigateTo({
-					url: '/pages/address/edit'
-				});
-			},
-			
-			// 跳转到编辑地址页面
-			goToEditAddress(id) {
-				uni.navigateTo({
-					url: `/pages/address/edit?id=${id}`
-				});
-			},
-			
-			// 设置默认地址
-			setDefaultAddress(id) {
-				// 找到要设置的地址
-				const address = this.addressList.find(item => item.id === id);
-				if (address) {
-					// 设置为默认地址
-					address.isDefault = true;
-					updateAddress(address)
-						.then(() => {
-							uni.showToast({
-								title: '设置默认地址成功',
-								icon: 'success'
-							});
-							// 重新加载地址列表
-							this.fetchAddressList();
-						})
-						.catch(error => {
-							console.error('设置默认地址失败:', error);
-							uni.showToast({
-								title: error.message || '设置默认地址失败',
-								icon: 'none'
-							});
-						});
-				}
-			},
-			
-			// 删除地址
-			deleteAddress(id) {
-				uni.showModal({
-					title: '确认删除',
-					content: '确定要删除这个地址吗？',
-					success: (res) => {
-						if (res.confirm) {
-							deleteAddress(id)
-								.then(() => {
-									uni.showToast({
-										title: '删除成功',
-										icon: 'success'
-									});
-									// 重新加载地址列表
-									this.fetchAddressList();
-								})
-								.catch(error => {
-									console.error('删除地址失败:', error);
-									uni.showToast({
-										title: error.message || '删除地址失败',
-										icon: 'none'
-									});
-								});
-						}
-					}
-				});
-			}
-		}
-	};
+<script setup>
+import { ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import {
+  queryAddressList,
+  deleteAddress as deleteAddressApi,
+  updateAddress as updateAddressApi
+} from '../../utils/api.js'
+
+const addressList = ref([])
+const loading = ref(false)
+const fromOrder = ref(false)
+
+function fetchAddressList() {
+  loading.value = true
+  queryAddressList()
+    .then((data) => {
+      addressList.value = data
+    })
+    .catch((error) => {
+      console.error('获取地址列表失败:', error)
+      uni.showToast({
+        title: '获取地址列表失败',
+        icon: 'none'
+      })
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+function selectAddress(address) {
+  if (!fromOrder.value) {
+    goToEditAddress(address.id)
+    return
+  }
+
+  uni.setStorageSync('selectedAddress', {
+    id: address.id,
+    name: address.name,
+    phone: address.contact,
+    address: address.fullAddress,
+    provinceCode: address.provinceCode,
+    cityCode: address.cityCode,
+    districtCode: address.districtCode,
+    isDefault: address.isDefault
+  })
+
+  uni.navigateBack()
+}
+
+function goToAddAddress() {
+  uni.navigateTo({
+    url: '/pages/address/edit'
+  })
+}
+
+function goToEditAddress(id) {
+  uni.navigateTo({
+    url: `/pages/address/edit?id=${id}`
+  })
+}
+
+function setDefaultAddress(id) {
+  const address = addressList.value.find((item) => item.id === id)
+  if (!address) {
+    return
+  }
+
+  updateAddressApi({
+    ...address,
+    isDefault: true
+  })
+    .then(() => {
+      uni.showToast({
+        title: '设置默认地址成功',
+        icon: 'success'
+      })
+      fetchAddressList()
+    })
+    .catch((error) => {
+      console.error('设置默认地址失败:', error)
+      uni.showToast({
+        title: error.message || '设置默认地址失败',
+        icon: 'none'
+      })
+    })
+}
+
+function handleDeleteAddress(id) {
+  uni.showModal({
+    title: '确认删除',
+    content: '确定要删除这个地址吗？',
+    success: (res) => {
+      if (!res.confirm) {
+        return
+      }
+
+      deleteAddressApi(id)
+        .then(() => {
+          uni.showToast({
+            title: '删除成功',
+            icon: 'success'
+          })
+          fetchAddressList()
+        })
+        .catch((error) => {
+          console.error('删除地址失败:', error)
+          uni.showToast({
+            title: error.message || '删除地址失败',
+            icon: 'none'
+          })
+        })
+    }
+  })
+}
+
+onLoad((options = {}) => {
+  fromOrder.value = options.fromOrder === 'true'
+  fetchAddressList()
+})
+
+onShow(() => {
+  fetchAddressList()
+})
 </script>
 
 <style scoped>

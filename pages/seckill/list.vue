@@ -56,171 +56,96 @@
   </view>
 </template>
 
-<script>
-import { BASE_API } from '@/utils/config.js'
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { authRequest } from '@/utils/auth.js'
 
-export default {
-  data() {
-    return {
-      // 秒杀活动数据
-      seckillActivities: [],
-      // 加载状态
-      loading: false
-    }
-  },
-  methods: {
-    // 处理图片加载
-    handleImageLoad() {
-      // 可以在这里添加图片加载完成后的处理
-    },
+const seckillActivities = ref([])
+const loading = ref(false)
 
-    // 处理图片加载失败
-    handleImageError(e) {
-      console.log('图片加载失败:', e)
-      // 可以在这里设置默认图片
-    },
+function handleImageLoad() {}
 
-    // 跳转到商品详情页面
-    goToProductDetail(productId) {
-      console.log('跳转到商品详情:', productId)
-      console.log('准备执行uni.navigateTo')
-      const url = `/pages/product/detail?productId=${productId}&scene=seckill`
-      console.log('跳转URL:', url)
-      
-      try {
-        uni.navigateTo({
-          url: url,
-          success: function(res) {
-            console.log('跳转成功:', res)
-          },
-          fail: function(err) {
-            console.log('跳转失败:', err)
-            console.log('错误代码:', err.errCode)
-            console.log('错误信息:', err.errMsg)
-          }
-        })
-      } catch (e) {
-        console.log('跳转时发生异常:', e)
-      }
-    },
-
-    // 获取秒杀活动列表
-    fetchSeckillActivities() {
-      if (this.loading) return
-
-      this.loading = true
-
-      // 构建API请求URL
-      const url = `${BASE_API}/app/seckill/queryActivity`
-
-      // 使用带认证的请求
-      authRequest({
-        url: url,
-        method: 'GET',
-        header: {
-          'Content-Type': 'application/json'
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          const responseData = res.data.data
-          
-          // 处理活动数据
-          const activities = responseData.records.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            coverImage: item.coverImage ? `${BASE_API}/public/storage/preview?fileKey=${item.coverImage}` : '',
-            applyBeginTime: item.applyBeginTime,
-            applyEndTime: item.applyEndTime,
-            activityBeginTime: item.activityBeginTime,
-            activityEndTime: item.activityEndTime,
-            status: item.status
-          }))
-
-          this.seckillActivities = activities
-        } else {
-          console.error('获取秒杀活动失败:', res.data.message)
-        }
-        this.loading = false
-      }, (err) => {
-        // 错误回调
-        console.error('请求秒杀活动失败:', err)
-        this.loading = false
-      })
-    },
-
-
-
-
-    
-
-    
-    // 跳转到秒杀商品列表页面
-    goToActivityDetail(activity) {
-      console.log('活动被点击:', activity)
-      console.log('活动状态:', activity.status)
-      
-      // 检查活动状态
-      if (activity.status === '6') {
-        // 活动已结束，显示提示
-        uni.showToast({
-          title: '活动已结束',
-          icon: 'none',
-          duration: 2000
-        })
-        return
-      } else if (activity.status !== '5') {
-        // 活动未开始，显示提示
-        uni.showToast({
-          title: '活动尚未开始',
-          icon: 'none',
-          duration: 2000
-        })
-        return
-      }
-      
-      console.log('开始跳转...')
-      try {
-        uni.navigateTo({
-          url: `/pages/seckill/product-list?activityId=${activity.id}&activityName=${encodeURIComponent(activity.name)}&activityDescription=${encodeURIComponent(activity.description)}&activityStatus=${activity.status}&activityBeginTime=${encodeURIComponent(activity.activityBeginTime)}&activityEndTime=${encodeURIComponent(activity.activityEndTime)}&coverImage=${encodeURIComponent(activity.coverImage)}`,
-          success: function(res) {
-            console.log('跳转成功:', res)
-          },
-          fail: function(err) {
-            console.log('跳转失败:', err)
-            console.log('错误代码:', err.errCode)
-            console.log('错误信息:', err.errMsg)
-          }
-        })
-      } catch (e) {
-        console.log('跳转时发生异常:', e)
-      }
-    },
-    
-    // 获取活动状态文本
-    getActivityStatusText(status) {
-      const statusMap = {
-        '1': '新建',
-        '2': '发布',
-        '3': '开始报名',
-        '4': '结束报名',
-        '5': '开始活动',
-        '6': '结束活动'
-      }
-      return statusMap[status] || '未知状态'
-    }
-  },
-
-  // 页面加载时获取数据
-  mounted() {
-    console.log('页面加载，开始获取数据')
-    this.fetchSeckillActivities()
-    console.log('活动数据:', this.seckillActivities)
-    console.log('活动数量:', this.seckillActivities.length)
-  }
+function handleImageError(error) {
+  void error
 }
+
+function fetchSeckillActivities() {
+  if (loading.value) {
+    return
+  }
+
+  loading.value = true
+  authRequest({
+    url: `${BASE_API}/app/seckill/queryActivity`,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json'
+    }
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      const responseData = res.data.data || {}
+      seckillActivities.value = (responseData.records || []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        description: item.description,
+        coverImage: getStoragePreviewUrl(item.coverImage),
+        applyBeginTime: item.applyBeginTime,
+        applyEndTime: item.applyEndTime,
+        activityBeginTime: item.activityBeginTime,
+        activityEndTime: item.activityEndTime,
+        status: item.status
+      }))
+    } else {
+      console.error('获取秒杀活动失败:', res.data && res.data.message)
+    }
+    loading.value = false
+  }, (error) => {
+    console.error('请求秒杀活动失败:', error)
+    loading.value = false
+  })
+}
+
+function goToActivityDetail(activity) {
+  if (activity.status === '6') {
+    uni.showToast({
+      title: '活动已结束',
+      icon: 'none',
+      duration: 2000
+    })
+    return
+  }
+
+  if (activity.status !== '5') {
+    uni.showToast({
+      title: '活动尚未开始',
+      icon: 'none',
+      duration: 2000
+    })
+    return
+  }
+
+  uni.navigateTo({
+    url: `/pages/seckill/product-list?activityId=${activity.id}&activityName=${encodeURIComponent(activity.name)}&activityDescription=${encodeURIComponent(activity.description)}&activityStatus=${activity.status}&activityBeginTime=${encodeURIComponent(activity.activityBeginTime)}&activityEndTime=${encodeURIComponent(activity.activityEndTime)}&coverImage=${encodeURIComponent(activity.coverImage)}`
+  })
+}
+
+function getActivityStatusText(status) {
+  const statusMap = {
+    '1': '新建',
+    '2': '发布',
+    '3': '开始报名',
+    '4': '结束报名',
+    '5': '开始活动',
+    '6': '结束活动'
+  }
+  return statusMap[status] || '未知状态'
+}
+
+onLoad(() => {
+  fetchSeckillActivities()
+})
 </script>
 
 <style scoped>

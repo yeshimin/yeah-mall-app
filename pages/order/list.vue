@@ -134,820 +134,665 @@
 	</view>
 </template>
 
-<script>
-	import { fetchOrderList, fetchOrderCounts, fetchPaymentInfo, confirmReceive, cancelOrder, applyRefund } from '../../utils/api.js';
-	import { BASE_API } from '../../utils/config.js';
-	
-	export default {
-		data() {
-			return {
-				// 订单状态筛选Tab
-				statusTabs: [
-					{ label: '全部', value: 0 },
-					{ label: '待付款', value: 1 },
-					{ label: '待发货', value: 2 },
-					{ label: '待收货', value: 3 },
-					{ label: '退款/售后', value: 4 },
-					{ label: '评价', value: 5 }
-				],
-				// 评价Tab的子Tab
-				reviewSubTabs: [
-					{ label: '待评价', value: 0 },
-					{ label: '已评价', value: 1 }
-				],
-				// 当前激活的Tab
-				activeTab: 0,
-				// 当前激活的评价子Tab
-				activeReviewSubTab: 0,
-				// 滚动位置
-				scrollLeft: 0,
-				// 订单数据
-				orders: [],
-				// 加载状态
-				loading: false,
-				// 下拉刷新状态
-				refreshing: false,
-				// 分页信息
-				pageInfo: {
-					current: 1,
-					size: 10,
-					total: 0,
-					pages: 0
-				},
-				// 订单状态与文本映射 - 根据新的OrderStatusEnum
-				statusMap: {
-					'1': '待付款',    // WAIT_PAY
-					'2': '待发货',    // WAIT_SHIP
-					'3': '待收货',    // WAIT_RECEIVE
-					'4': '交易成功',  // COMPLETED
-					'5': '交易关闭',  // CLOSED
-					'6': '退款',      // REFUND
-					'7': '售后'       // AFTER_SALE
-				},
-				// 退款状态映射
-				refundStatusMap: {
-					'0': '无',
-					'1': '申请中',
-					'2': '处理中',
-					'3': '退款成功',
-					'4': '已拒绝'
-				},
-				// 售后状态映射
-				afterSaleStatusMap: {
-					'0': '无',
-					'1': '申请中',
-					'2': '处理中',
-					'3': '售后完成',
-					'4': '已驳回'
-				}
-			};
-		},
-		onLoad(options) {
-			// 如果从其他页面跳转过来并指定了订单状态，则切换到对应Tab
-			if (options.status) {
-				this.activeTab = parseInt(options.status);
-			}
-			// 获取订单数据
-			this.fetchOrders();
-			// 延迟执行滚动，确保DOM已经渲染完成
-			this.$nextTick(() => {
-				setTimeout(() => {
-					this.scrollToActiveTab();
-				}, 100);
-			});
-		},
-		methods: {
-			// 跳转到店铺首页
-			goToShop() {
-				uni.switchTab({
-					url: '/pages/index/index'
-				});
-			},
-			
-			// 跳转到订单详情
-		goToDetail(orderId, orderNo) {
-			uni.navigateTo({
-				url: `/pages/order/detail?orderId=${orderId}`
-			});
-		},
-			
-			// 获取时间标签（根据订单状态显示不同标签）
-			getTimeLabel(order) {
-				// 订单状态 1: 待付款 -> 显示"创建时间"
-				// 订单状态 2: 待发货 -> 显示"支付时间"
-				// 其他状态 -> 显示"创建时间"
-				if (order.orderStatus === 1) {
-					return '创建时间';
-				} else if (order.orderStatus === 2) {
-					return '支付时间';
-				} else {
-					return '创建时间';
-				}
-			},
-			
-			// 获取订单时间（根据订单状态显示不同时间）
-			getOrderTime(order) {
-				// 订单状态 1: 待付款 -> 显示创建时间
-				// 订单状态 2: 待发货 -> 显示支付成功时间
-				if (order.orderStatus === 1) {
-					// 待付款状态，显示创建时间
-					return this.formatTime(order.createTime);
-				} else if (order.orderStatus === 2) {
-					// 待发货状态，显示支付成功时间
-					// 如果有支付成功时间则显示，否则显示创建时间
-					if (order.paySuccessTime) {
-						return this.formatTime(order.paySuccessTime);
-					} else {
-						return this.formatTime(order.createTime);
-					}
-				} else {
-					// 其他状态默认显示创建时间
-					return this.formatTime(order.createTime);
-				}
-			},
-			
-			// 格式化时间
-			formatTime(timeStr) {
-				if (!timeStr) return '';
-				// 处理 iOS 不支持的日期格式
-				let formattedTimeStr = timeStr;
-				// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 "yyyy/MM/dd HH:mm:ss" 格式，iOS 支持
-				if (timeStr.includes(' ') && !timeStr.includes('T')) {
-					formattedTimeStr = timeStr.replace(/-/g, '/');
-				}
-				// 将时间字符串转换为Date对象
-				const date = new Date(formattedTimeStr);
-				// 格式化为 yyyy-MM-dd HH:mm:ss 格式
-				const year = date.getFullYear();
-				const month = String(date.getMonth() + 1).padStart(2, '0');
-				const day = String(date.getDate()).padStart(2, '0');
-				const hours = String(date.getHours()).padStart(2, '0');
-				const minutes = String(date.getMinutes()).padStart(2, '0');
-				const seconds = String(date.getSeconds()).padStart(2, '0');
-				return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-			},
-			
-			// 切换订单状态Tab
-			switchTab(value) {
-				this.activeTab = value;
-				// 如果切换到评价Tab，默认选中待评价
-				if (value === 5) {
-					this.activeReviewSubTab = 0;
-				}
-				// 重置分页信息并重新获取数据
-				this.fetchOrders(true);
-				// 计算滚动位置，让当前选中的Tab居中显示
-				this.$nextTick(() => {
-					this.scrollToActiveTab();
-				});
-			},
-			
-			// 切换评价子Tab
-			switchReviewSubTab(value) {
-				this.activeReviewSubTab = value;
-				// 重置分页信息并重新获取数据
-				this.fetchOrders(true);
-			},
-			
-			// 滚动到当前选中的Tab
-			scrollToActiveTab() {
-				const query = uni.createSelectorQuery().in(this);
-				query.select('.status-tabs').boundingClientRect((containerRect) => {
-					query.selectAll('.tab-item').boundingClientRect((tabRects) => {
-						if (containerRect && tabRects && tabRects[this.activeTab]) {
-							const activeTabRect = tabRects[this.activeTab];
-							const containerWidth = containerRect.width;
-							const activeTabWidth = activeTabRect.width;
-							const activeTabLeft = activeTabRect.left - containerRect.left;
-							
-							// 计算目标滚动位置，让当前Tab居中
-							const targetScrollLeft = activeTabLeft - (containerWidth - activeTabWidth) / 2;
-							
-							this.scrollLeft = Math.max(0, targetScrollLeft);
-						}
-					}).exec();
-				}).exec();
-			},
-			
-			// 获取订单数据
-			async fetchOrders(isRefresh = false) {
-				if (isRefresh) {
-					this.pageInfo.current = 1;
-					this.orders = [];
-				}
-				
-				this.loading = true;
-				try {
-					// 构建conditions参数
-					let conditions = '';
-					if (this.activeTab === 5) {
-						// 评价Tab，添加isReviewed条件
-						const isReviewedValue = this.activeReviewSubTab;
-						conditions = `isReviewed:eq:${isReviewedValue}`;
-					}
-					
-					// 调用真实接口获取订单数据
-					const response = await fetchOrderList(this.activeTab, this.pageInfo.current, this.pageInfo.size, conditions);
-					
-					// 更新分页信息
-					this.pageInfo = {
-						current: response.current,
-						size: response.size,
-						total: response.total,
-						pages: response.pages
-					};
-					
-					// 处理订单数据，添加模拟的商品信息和店铺信息
-					const processedOrders = this.processOrderData(response.records);
-					
-					// 如果是第一页，直接替换数据；否则追加数据
-					if (this.pageInfo.current === 1) {
-						this.orders = processedOrders;
-					} else {
-						this.orders = [...this.orders, ...processedOrders];
-					}
-					
-				} catch (error) {
-					console.error('获取订单列表失败:', error);
-					
-					// 如果接口调用失败，使用模拟数据
-					if (error.message === 'AUTH_401') {
-						// 认证失败，不需要显示错误提示，会自动跳转登录
-						return;
-					}
-					
-					// 其他错误，显示错误提示并使用模拟数据
-					uni.showToast({
-						title: '获取订单失败，使用模拟数据',
-						icon: 'none'
-					});
-					
-					// 使用模拟数据
-					this.orders = this.generateMockOrders();
-					this.pageInfo = {
-						current: 1,
-						size: 10,
-						total: this.orders.length,
-						pages: 1
-					};
-				} finally {
-					this.loading = false;
-					if (isRefresh) {
-						this.refreshing = false;
-					}
-				}
-			},
-			
-			// 下拉刷新
-			onRefresh() {
-				this.refreshing = true;
-				this.fetchOrders(true);
-			},
-			
-			// 加载更多
-			loadMore() {
-				if (this.loading || this.pageInfo.current >= this.pageInfo.pages) {
-					return;
-				}
-				this.pageInfo.current++;
-				this.fetchOrders();
-			},
-			
-			// 处理订单数据，根据新的数据结构处理商品信息
-		processOrderData(orderRecords) {
-			return orderRecords.map(order => {
-				// 根据订单状态和退款、售后状态确定显示文本
-				let statusText = this.statusMap[order.orderStatus] || '未知状态';
-				
-				// 处理退款/售后状态的显示
-				if (order.refundStatus && order.refundStatus !== '0') {
-					statusText = this.refundStatusMap[order.refundStatus] || '退款中';
-				} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
-					statusText = this.afterSaleStatusMap[order.afterSaleStatus] || '售后中';
-				} else if (order.orderStatus === '4' && !order.isReviewed) {
-					statusText = '待评价';
-				} else if (order.orderStatus === '4' && order.isReviewed) {
-					statusText = '已完成';
-				}
-				
-				// 处理商品信息，根据新的数据结构
-				const processedGoods = order.items ? order.items.map(item => ({
-					id: item.spuId,
-					spuId: item.spuId,
-					skuId: item.skuId,
-					name: item.spuName,
-					spec: item.specs && item.specs.length > 0 
-						? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';')
-						: item.skuName || '',
-					price: parseFloat(item.price),
-					quantity: parseInt(item.quantity),
-					image: item.spuMainImage && item.spuMainImage.trim() !== '' 
-						? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}`
-						: 'https://via.placeholder.com/100'
-				})) : [];
-				
-				// 计算总数量
-				const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0);
-				
-				// 从items数组中重新计算商品总价
-				const calculatedTotalPrice = processedGoods.reduce((total, item) => total + (item.price * item.quantity), 0);
-				
-				return {
-						id: order.orderId,
-						orderNo: order.orderNo,
-						shopId: order.shopId,
-						shopName: order.shopName || `店铺${order.shopId}`,
-						orderStatus: parseInt(order.orderStatus),
-						statusText: statusText,
-						totalPrice: calculatedTotalPrice, // 使用计算得出的价格
-						totalQuantity: totalQuantity,
-						shippingFee: parseFloat(order.shippingFee || 0),
-						createTime: order.createTime,
-						paySuccessTime: order.paySuccessTime, // 支付成功时间
-						refundStatus: order.refundStatus,
-						afterSaleStatus: order.afterSaleStatus,
-						isReviewed: order.isReviewed,
-						goods: processedGoods
-					};
-			});
-		},
-			
-			// 生成模拟订单数据，使用新的数据结构
-			generateMockOrders() {
-				const mockOrders = [
-					// 待付款订单
-					{
-						id: 1,
-						shopId: 1,
-						shopName: '时尚精品店',
-						orderStatus: 1,
-						statusText: '待付款',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 10.00,
-						createTime: '2025-12-22 14:30:00',
-						items: [
-							{
-								spuId: 101,
-								spuName: '时尚连衣裙',
-								spuMainImage: 'dress001',
-								skuId: 1001,
-								skuName: '红色-M',
-								specs: [
-									{ specName: '颜色', optName: '红色' },
-									{ specName: '尺码', optName: 'M' }
-								],
-								price: 99.50,
-								quantity: 2
-							}
-						]
-					},
-					{
-						id: 2,
-						shopId: 2,
-						shopName: '数码商城',
-						orderStatus: 1,
-						statusText: '待付款',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 0.00,
-						createTime: '2025-12-22 10:15:00',
-						items: [
-							{
-								spuId: 201,
-								spuName: '智能手机',
-								spuMainImage: 'phone001',
-								skuId: 2001,
-								skuName: '黑色-256GB',
-								specs: [
-									{ specName: '颜色', optName: '黑色' },
-									{ specName: '内存', optName: '256GB' }
-								],
-								price: 2999.00,
-								quantity: 2
-							}
-						]
-					},
-					// 待发货订单
-					{
-						id: 3,
-						shopId: 3,
-						shopName: '家居生活馆',
-						orderStatus: 2,
-						statusText: '待发货',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 0.00,
-						createTime: '2025-12-21 16:45:00',
-						paySuccessTime: '2025-12-21 17:00:00', // 支付成功时间
-						items: [
-							{
-								spuId: 301,
-								spuName: '舒适枕头',
-								spuMainImage: 'pillow001',
-								skuId: 3001,
-								skuName: '记忆棉-单个装',
-								specs: [
-									{ specName: '材质', optName: '记忆棉' },
-									{ specName: '规格', optName: '单个装' }
-								],
-								price: 299.00,
-								quantity: 2
-							}
-						]
-					},
-					// 待收货订单
-					{
-						id: 4,
-						shopId: 4,
-						shopName: '运动户外店',
-						orderStatus: 3,
-						statusText: '待收货',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 15.00,
-						createTime: '2025-12-20 09:30:00',
-						items: [
-							{
-								spuId: 401,
-								spuName: '运动鞋',
-								spuMainImage: 'shoes001',
-								skuId: 4001,
-								skuName: '白色-42码',
-								specs: [
-									{ specName: '颜色', optName: '白色' },
-									{ specName: '尺码', optName: '42码' }
-								],
-								price: 399.00,
-								quantity: 1
-							},
-							{
-								spuId: 402,
-								spuName: '运动袜',
-								spuMainImage: 'socks001',
-								skuId: 4002,
-								skuName: '黑色-均码',
-								specs: [
-									{ specName: '颜色', optName: '黑色' },
-									{ specName: '尺码', optName: '均码' }
-								],
-								price: 29.00,
-								quantity: 2
-							}
-						]
-					},
-					// 待评价订单
-					{
-						id: 5,
-						shopId: 5,
-						shopName: '美妆护肤店',
-						orderStatus: 4,
-						statusText: '待评价',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 0.00,
-						createTime: '2025-12-19 14:20:00',
-						isReviewed: false,
-						items: [
-							{
-								spuId: 501,
-								spuName: '护肤套装',
-								spuMainImage: 'skincare001',
-								skuId: 5001,
-								skuName: '补水-套装',
-								specs: [
-									{ specName: '功效', optName: '补水' },
-									{ specName: '规格', optName: '套装' }
-								],
-								price: 258.00,
-								quantity: 1
-							}
-						]
-					},
-					// 已评价订单
-					{
-						id: 6,
-						shopId: 6,
-						shopName: '电子产品店',
-						orderStatus: 4,
-						statusText: '已完成',
-						refundStatus: '0',
-						afterSaleStatus: '0',
-						shippingFee: 0.00,
-						createTime: '2025-12-18 10:30:00',
-						isReviewed: true,
-						items: [
-							{
-								spuId: 601,
-								spuName: '无线耳机',
-								spuMainImage: 'earphone001',
-								skuId: 6001,
-								skuName: '黑色-标准版',
-								specs: [
-									{ specName: '颜色', optName: '黑色' },
-									{ specName: '版本', optName: '标准版' }
-								],
-								price: 399.00,
-								quantity: 1
-							}
-						]
-					}
-				];
-				
-				// 根据当前选中的Tab过滤订单
-				let filteredOrders = mockOrders;
-				if (this.activeTab === 1) {
-					filteredOrders = mockOrders.filter(order => order.orderStatus === 1);
-				} else if (this.activeTab === 2) {
-					filteredOrders = mockOrders.filter(order => order.orderStatus === 2);
-				} else if (this.activeTab === 3) {
-					filteredOrders = mockOrders.filter(order => order.orderStatus === 3);
-				} else if (this.activeTab === 5) {
-					// 根据评价子Tab过滤订单
-					if (this.activeReviewSubTab === 0) {
-						// 待评价
-						filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && !order.isReviewed);
-					} else {
-						// 已评价
-						filteredOrders = mockOrders.filter(order => order.orderStatus === 4 && order.isReviewed);
-					}
-				}
-				
-				return this.processOrderData(filteredOrders);
-			},
-			
-			// 获取订单操作按钮
-			getOrderActions(status) {
-				const actions = [];
-				
-				switch (status) {
-					case 1: // 待付款 (WAIT_PAY)
-						actions.push(
-							{ label: '取消订单', value: 'cancel', type: 'default' },
-							{ label: '付款', value: 'pay', type: 'primary' }
-						);
-						break;
-					case 2: // 待发货 (WAIT_SHIP)
-					actions.push(
-						{ label: '提醒发货', value: 'remind', type: 'default' },
-						{ label: '退款', value: 'refund', type: 'primary' }
-					);
-					break;
-					case 3: // 待收货 (WAIT_RECEIVE)
-						actions.push(
-							{ label: '查看物流', value: 'logistics', type: 'default' },
-							{ label: '确认收货', value: 'confirm', type: 'primary' }
-						);
-						break;
-					case 4: // 交易成功 (COMPLETED)
-						actions.push(
-							{ label: '删除订单', value: 'delete', type: 'default' },
-							{ label: '去评价', value: 'comment', type: 'primary' },
-							{ label: '再次购买', value: 'rebuy', type: 'default' }
-						);
-						break;
-					case 5: // 交易关闭 (CLOSED)
-					// 暂时不添加删除订单和再次购买按钮
-					break;
-					case 6: // 退款 (REFUND)
-					// 暂时不添加退款详情按钮
-					break;
-					case 7: // 售后 (AFTER_SALE)
-						actions.push(
-							{ label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
-						);
-						break;
-				}
-				
-				return actions;
-			},
-			
-			// 生成随机字符串函数
-			generateNonceStr(length = 32) {
-				const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-				let result = '';
-				for (let i = 0; i < length; i++) {
-					result += chars.charAt(Math.floor(Math.random() * chars.length));
-				}
-				return result;
-			},
-			
-			// 处理订单操作
-			handleOrderAction(action, order) {
-				switch (action) {
-					case 'pay':
-						// 去付款 - 集成微信支付
-						uni.showLoading({
-							title: '加载支付信息中...'
-						});
-						
-						// 调用接口获取支付信息
-						fetchPaymentInfo(order.id).then(paymentData => {
-							uni.hideLoading();
-							
-							// 转换支付参数为uni.requestPayment所需格式
-							const payParams = {
-								provider: 'wxpay',
-								// 微信小程序支付必需参数
-								timeStamp: paymentData.timestamp, // 秒级时间戳
-								nonceStr: paymentData.nonceStr, // 随机字符串
-								package: paymentData.packageStr, // 预支付交易会话标识
-								signType: paymentData.signType, // 签名类型
-								paySign: paymentData.paySign // 签名
-							};
-					
-							// 打印支付参数
-							console.log('微信支付请求参数:', payParams);
-					
-							// 调用微信支付
-							uni.requestPayment({
-								...payParams,
-								success: (res) => {
-							// 支付成功处理
-							console.log('支付成功', res);
-							uni.showToast({
-								title: '支付成功',
-								icon: 'success'
-							});
-							// 跳转到支付结果页面，传递支付成功状态
-							uni.navigateTo({
-								url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=success`
-							});
-						},
-						fail: (err) => {
-							// 支付失败处理
-							console.log('支付失败', err);
-							if (err.errMsg === 'requestPayment:fail cancel') {
-								// 用户取消支付
-								uni.navigateTo({
-									url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=cancel`
-								});
-							} else {
-								// 支付失败，启动轮询
-								uni.navigateTo({
-									url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=fail`
-								});
-							}
-						}
-							});
-						}).catch(err => {
-							uni.hideLoading();
-							console.error('获取支付信息失败:', err);
-							uni.showToast({
-								title: '获取支付信息失败，请稍后重试',
-								icon: 'none'
-							});
-						});
-						break;
-					case 'cancel':
-				// 取消订单
-				uni.showModal({
-					title: '取消订单',
-					content: '确定要取消该订单吗？',
-					confirmText: '确定',
-					cancelText: '取消',
-					success: (res) => {
-						if (res.confirm) {
-							// 调用取消订单接口
-							uni.showLoading({
-								title: '处理中...'
-							});
-							cancelOrder(order.id)
-								.then(() => {
-									uni.hideLoading();
-									uni.showToast({
-										title: '订单已取消',
-										icon: 'success'
-									});
-									// 重新获取订单列表
-									this.fetchOrders();
-								})
-								.catch(error => {
-									uni.hideLoading();
-									console.error('取消订单失败:', error);
-									uni.showToast({
-										title: error.message || '取消订单失败',
-										icon: 'none'
-									});
-								});
-						}
-					}
-				});
-				break;
-					case 'remind':
-						// 提醒发货
-						uni.showToast({
-							title: '已提醒商家发货',
-							icon: 'success'
-						});
-						break;
-					case 'refund':
-						// 导航到退款申请页面
-						uni.navigateTo({
-							url: `/pages/order/refund-apply?orderId=${order.id}`
-						});
-						break;
-					case 'confirm':
-				// 确认收货
-				uni.showModal({
-					title: '确认收货',
-					content: '请确认您已收到商品',
-					confirmText: '确认收货',
-					cancelText: '取消',
-					success: (res) => {
-						if (res.confirm) {
-							// 调用确认收货接口
-							uni.showLoading({
-								title: '处理中...'
-							});
-							confirmReceive(order.id)
-								.then(() => {
-									uni.hideLoading();
-									uni.showToast({
-										title: '已确认收货',
-										icon: 'success'
-									});
-									// 重新获取订单列表
-									this.fetchOrders();
-								})
-								.catch(error => {
-									uni.hideLoading();
-									console.error('确认收货失败:', error);
-									uni.showToast({
-										title: error.message || '确认收货失败',
-										icon: 'none'
-									});
-								});
-						}
-					}
-				});
-				break;
-					case 'delete':
-						// 删除订单
-						uni.showModal({
-							title: '删除订单',
-							content: '确定要删除该订单吗？',
-							confirmText: '确定',
-							cancelText: '取消',
-							success: (res) => {
-								if (res.confirm) {
-									// 这里应该调用删除订单接口
-									uni.showToast({
-										title: '订单已删除',
-										icon: 'success'
-									});
-									// 重新获取订单列表
-									this.fetchOrders();
-								}
-							}
-						});
-						break;
-					case 'rebuy':
-						// 再次购买
-						uni.showToast({
-							title: '再次购买功能开发中',
-							icon: 'none'
-						});
-						break;
-					
-					case 'refundDetail':
-						// 退款详情
-						uni.navigateTo({
-							url: `/pages/order/refund-detail?id=${order.id}`
-						});
-						break;
-					case 'afterSaleDetail':
-						// 售后详情
-						uni.navigateTo({
-							url: `/pages/order/after-sale-detail?id=${order.id}`
-						});
-						break;
-					case 'logistics':
-					// 查看物流
-					uni.navigateTo({
-						url: `/pages/order/logistics?orderId=${order.id}`
-					});
-					break;
-					case 'comment':
-						// 去评价
-						console.log('Navigating to review page', order.id);
-						uni.navigateTo({
-							url: `/pages/order/review?orderId=${order.id}`
-						});
-						break;
-					case 'viewReview':
-						// 查看评价
-						console.log('Viewing review for order', order.id);
-						uni.navigateTo({
-							url: `/pages/order/review-detail?orderId=${order.id}`
-						});
-						break;
-					default:
-						break;
-				}
-			}
-		}
-	};
+<script setup>
+import { getCurrentInstance, nextTick, reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { cancelOrder, confirmReceive, fetchOrderList, fetchPaymentInfo } from '../../utils/api.js'
+import { getStoragePreviewUrl } from '../../utils/config.js'
+
+const instance = getCurrentInstance()
+
+const statusTabs = [
+  { label: '全部', value: 0 },
+  { label: '待付款', value: 1 },
+  { label: '待发货', value: 2 },
+  { label: '待收货', value: 3 },
+  { label: '退款/售后', value: 4 },
+  { label: '评价', value: 5 }
+]
+
+const reviewSubTabs = [
+  { label: '待评价', value: 0 },
+  { label: '已评价', value: 1 }
+]
+
+const statusMap = {
+  1: '待付款',
+  2: '待发货',
+  3: '待收货',
+  4: '交易成功',
+  5: '交易关闭',
+  6: '退款',
+  7: '售后'
+}
+
+const refundStatusMap = {
+  0: '无',
+  1: '申请中',
+  2: '处理中',
+  3: '退款成功',
+  4: '已拒绝'
+}
+
+const afterSaleStatusMap = {
+  0: '无',
+  1: '申请中',
+  2: '处理中',
+  3: '售后完成',
+  4: '已驳回'
+}
+
+const activeTab = ref(0)
+const activeReviewSubTab = ref(0)
+const scrollLeft = ref(0)
+const orders = ref([])
+const loading = ref(false)
+const refreshing = ref(false)
+
+const pageInfo = reactive({
+  current: 1,
+  size: 10,
+  total: 0,
+  pages: 0
+})
+
+function goToShop() {
+  uni.switchTab({
+    url: '/pages/index/index'
+  })
+}
+
+function goToDetail(orderId) {
+  uni.navigateTo({
+    url: `/pages/order/detail?orderId=${orderId}`
+  })
+}
+
+function getTimeLabel(order) {
+  if (order.orderStatus === 1) {
+    return '创建时间'
+  }
+
+  if (order.orderStatus === 2) {
+    return '支付时间'
+  }
+
+  return '创建时间'
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) {
+    return ''
+  }
+
+  let formattedTimeStr = timeStr
+  if (timeStr.includes(' ') && !timeStr.includes('T')) {
+    formattedTimeStr = timeStr.replace(/-/g, '/')
+  }
+
+  const date = new Date(formattedTimeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+function getOrderTime(order) {
+  if (order.orderStatus === 1) {
+    return formatTime(order.createTime)
+  }
+
+  if (order.orderStatus === 2) {
+    return formatTime(order.paySuccessTime || order.createTime)
+  }
+
+  return formatTime(order.createTime)
+}
+
+function scrollToActiveTab() {
+  const query = uni.createSelectorQuery().in(instance?.proxy)
+  query.select('.status-tabs').boundingClientRect((containerRect) => {
+    query.selectAll('.tab-item').boundingClientRect((tabRects) => {
+      if (!containerRect || !tabRects || !tabRects[activeTab.value]) {
+        return
+      }
+
+      const activeTabRect = tabRects[activeTab.value]
+      const targetScrollLeft = activeTabRect.left - containerRect.left - (containerRect.width - activeTabRect.width) / 2
+      scrollLeft.value = Math.max(0, targetScrollLeft)
+    }).exec()
+  }).exec()
+}
+
+function switchTab(value) {
+  activeTab.value = value
+  if (value === 5) {
+    activeReviewSubTab.value = 0
+  }
+  fetchOrders(true)
+  nextTick(() => {
+    setTimeout(() => {
+      scrollToActiveTab()
+    }, 100)
+  })
+}
+
+function switchReviewSubTab(value) {
+  activeReviewSubTab.value = value
+  fetchOrders(true)
+}
+
+function processOrderData(orderRecords = []) {
+  return orderRecords.map((order) => {
+    const orderStatus = Number(order.orderStatus)
+    const refundStatus = Number(order.refundStatus || 0)
+    const afterSaleStatus = Number(order.afterSaleStatus || 0)
+
+    let statusText = statusMap[orderStatus] || '未知状态'
+    if (refundStatus !== 0) {
+      statusText = refundStatusMap[refundStatus] || '退款中'
+    } else if (afterSaleStatus !== 0) {
+      statusText = afterSaleStatusMap[afterSaleStatus] || '售后中'
+    } else if (orderStatus === 4 && !order.isReviewed) {
+      statusText = '待评价'
+    } else if (orderStatus === 4 && order.isReviewed) {
+      statusText = '已完成'
+    }
+
+    const processedGoods = (order.items || []).map((item) => ({
+      id: item.spuId,
+      spuId: item.spuId,
+      skuId: item.skuId,
+      name: item.spuName,
+      spec: item.specs && item.specs.length > 0
+        ? item.specs.map((spec) => `${spec.specName}:${spec.optName}`).join(';')
+        : item.skuName || '',
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity, 10),
+      image: getStoragePreviewUrl(item.spuMainImage) || '/static/logo.png'
+    }))
+
+    const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0)
+    const totalPrice = processedGoods.reduce((total, item) => total + item.price * item.quantity, 0)
+
+    return {
+      id: order.orderId || order.id,
+      orderNo: order.orderNo || '',
+      shopId: order.shopId,
+      shopName: order.shopName || `店铺${order.shopId}`,
+      orderStatus,
+      statusText,
+      totalPrice: totalPrice.toFixed(2),
+      totalQuantity,
+      shippingFee: parseFloat(order.shippingFee || 0),
+      createTime: order.createTime,
+      paySuccessTime: order.paySuccessTime,
+      refundStatus,
+      afterSaleStatus,
+      isReviewed: !!order.isReviewed,
+      goods: processedGoods
+    }
+  })
+}
+
+function generateMockOrders() {
+  const mockOrders = [
+    {
+      id: 1,
+      orderNo: 'MOCK20260324001',
+      shopId: 1,
+      shopName: '时尚精品店',
+      orderStatus: 1,
+      refundStatus: 0,
+      afterSaleStatus: 0,
+      shippingFee: 10,
+      createTime: '2026-03-24 10:00:00',
+      items: [
+        {
+          spuId: 101,
+          spuName: '时尚连衣裙',
+          spuMainImage: '',
+          skuId: 1001,
+          skuName: '红色-M',
+          specs: [
+            { specName: '颜色', optName: '红色' },
+            { specName: '尺码', optName: 'M' }
+          ],
+          price: 99.5,
+          quantity: 2
+        }
+      ]
+    },
+    {
+      id: 2,
+      orderNo: 'MOCK20260324002',
+      shopId: 2,
+      shopName: '家居生活馆',
+      orderStatus: 2,
+      refundStatus: 0,
+      afterSaleStatus: 0,
+      shippingFee: 0,
+      createTime: '2026-03-23 09:30:00',
+      paySuccessTime: '2026-03-23 09:45:00',
+      items: [
+        {
+          spuId: 201,
+          spuName: '舒适枕头',
+          spuMainImage: '',
+          skuId: 2001,
+          skuName: '记忆棉-单个装',
+          specs: [
+            { specName: '材质', optName: '记忆棉' },
+            { specName: '规格', optName: '单个装' }
+          ],
+          price: 299,
+          quantity: 1
+        }
+      ]
+    },
+    {
+      id: 3,
+      orderNo: 'MOCK20260324003',
+      shopId: 3,
+      shopName: '运动户外店',
+      orderStatus: 3,
+      refundStatus: 0,
+      afterSaleStatus: 0,
+      shippingFee: 15,
+      createTime: '2026-03-22 12:20:00',
+      items: [
+        {
+          spuId: 301,
+          spuName: '运动鞋',
+          spuMainImage: '',
+          skuId: 3001,
+          skuName: '白色-42码',
+          specs: [
+            { specName: '颜色', optName: '白色' },
+            { specName: '尺码', optName: '42码' }
+          ],
+          price: 399,
+          quantity: 1
+        }
+      ]
+    },
+    {
+      id: 4,
+      orderNo: 'MOCK20260324004',
+      shopId: 4,
+      shopName: '美妆护肤店',
+      orderStatus: 4,
+      refundStatus: 0,
+      afterSaleStatus: 0,
+      shippingFee: 0,
+      createTime: '2026-03-21 14:10:00',
+      isReviewed: false,
+      items: [
+        {
+          spuId: 401,
+          spuName: '护肤套装',
+          spuMainImage: '',
+          skuId: 4001,
+          skuName: '补水-套装',
+          specs: [
+            { specName: '功效', optName: '补水' },
+            { specName: '规格', optName: '套装' }
+          ],
+          price: 258,
+          quantity: 1
+        }
+      ]
+    },
+    {
+      id: 5,
+      orderNo: 'MOCK20260324005',
+      shopId: 5,
+      shopName: '电子产品店',
+      orderStatus: 4,
+      refundStatus: 0,
+      afterSaleStatus: 0,
+      shippingFee: 0,
+      createTime: '2026-03-20 08:30:00',
+      isReviewed: true,
+      items: [
+        {
+          spuId: 501,
+          spuName: '无线耳机',
+          spuMainImage: '',
+          skuId: 5001,
+          skuName: '黑色-标准版',
+          specs: [
+            { specName: '颜色', optName: '黑色' },
+            { specName: '版本', optName: '标准版' }
+          ],
+          price: 399,
+          quantity: 1
+        }
+      ]
+    }
+  ]
+
+  let filteredOrders = mockOrders
+  if (activeTab.value === 1) {
+    filteredOrders = mockOrders.filter((order) => order.orderStatus === 1)
+  } else if (activeTab.value === 2) {
+    filteredOrders = mockOrders.filter((order) => order.orderStatus === 2)
+  } else if (activeTab.value === 3) {
+    filteredOrders = mockOrders.filter((order) => order.orderStatus === 3)
+  } else if (activeTab.value === 5) {
+    filteredOrders = mockOrders.filter((order) => order.orderStatus === 4 && (activeReviewSubTab.value === 1 ? order.isReviewed : !order.isReviewed))
+  }
+
+  return processOrderData(filteredOrders)
+}
+
+async function fetchOrders(isRefresh = false) {
+  if (isRefresh) {
+    pageInfo.current = 1
+    orders.value = []
+  }
+
+  loading.value = true
+  try {
+    let conditions = ''
+    if (activeTab.value === 5) {
+      conditions = `isReviewed:eq:${activeReviewSubTab.value}`
+    }
+
+    const response = await fetchOrderList(activeTab.value, pageInfo.current, pageInfo.size, conditions)
+
+    pageInfo.current = response.current
+    pageInfo.size = response.size
+    pageInfo.total = response.total
+    pageInfo.pages = response.pages
+
+    const processedOrders = processOrderData(response.records)
+    if (pageInfo.current === 1) {
+      orders.value = processedOrders
+    } else {
+      orders.value = [...orders.value, ...processedOrders]
+    }
+  } catch (error) {
+    console.error('获取订单列表失败:', error)
+
+    if (error.message === 'AUTH_401') {
+      return
+    }
+
+    uni.showToast({
+      title: '获取订单失败，使用模拟数据',
+      icon: 'none'
+    })
+
+    orders.value = generateMockOrders()
+    pageInfo.current = 1
+    pageInfo.size = 10
+    pageInfo.total = orders.value.length
+    pageInfo.pages = 1
+  } finally {
+    loading.value = false
+    if (isRefresh) {
+      refreshing.value = false
+    }
+  }
+}
+
+function onRefresh() {
+  refreshing.value = true
+  fetchOrders(true)
+}
+
+function loadMore() {
+  if (loading.value || pageInfo.current >= pageInfo.pages) {
+    return
+  }
+
+  pageInfo.current += 1
+  fetchOrders()
+}
+
+function getOrderActions(status) {
+  const actions = []
+
+  switch (Number(status)) {
+    case 1:
+      actions.push(
+        { label: '取消订单', value: 'cancel', type: 'default' },
+        { label: '付款', value: 'pay', type: 'primary' }
+      )
+      break
+    case 2:
+      actions.push(
+        { label: '提醒发货', value: 'remind', type: 'default' },
+        { label: '退款', value: 'refund', type: 'primary' }
+      )
+      break
+    case 3:
+      actions.push(
+        { label: '查看物流', value: 'logistics', type: 'default' },
+        { label: '确认收货', value: 'confirm', type: 'primary' }
+      )
+      break
+    case 4:
+      actions.push(
+        { label: '删除订单', value: 'delete', type: 'default' },
+        { label: '去评价', value: 'comment', type: 'primary' },
+        { label: '再次购买', value: 'rebuy', type: 'default' }
+      )
+      break
+    case 7:
+      actions.push(
+        { label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
+      )
+      break
+    default:
+      break
+  }
+
+  return actions
+}
+
+function navigateToPayResult(order, payResultType) {
+  uni.navigateTo({
+    url: `/pages/order/pay-result?orderId=${order.id}&orderNo=${order.orderNo}&payResultType=${payResultType}`
+  })
+}
+
+function startPayment(paymentData, order) {
+  const payParams = {
+    provider: 'wxpay',
+    timeStamp: paymentData.timestamp,
+    nonceStr: paymentData.nonceStr,
+    package: paymentData.packageStr,
+    signType: paymentData.signType,
+    paySign: paymentData.paySign
+  }
+
+  uni.requestPayment({
+    ...payParams,
+    success: () => {
+      uni.showToast({
+        title: '支付成功',
+        icon: 'success'
+      })
+      navigateToPayResult(order, 'success')
+    },
+    fail: (error) => {
+      navigateToPayResult(order, error.errMsg === 'requestPayment:fail cancel' ? 'cancel' : 'fail')
+    }
+  })
+}
+
+function refreshCurrentOrders() {
+  fetchOrders(true)
+}
+
+function handleOrderAction(action, order) {
+  switch (action) {
+    case 'pay':
+      uni.showLoading({
+        title: '加载支付信息中...'
+      })
+      fetchPaymentInfo(order.id)
+        .then((paymentData) => {
+          uni.hideLoading()
+          startPayment(paymentData, order)
+        })
+        .catch((error) => {
+          uni.hideLoading()
+          console.error('获取支付信息失败:', error)
+          uni.showToast({
+            title: '获取支付信息失败，请稍后重试',
+            icon: 'none'
+          })
+        })
+      break
+    case 'cancel':
+      uni.showModal({
+        title: '取消订单',
+        content: '确定要取消该订单吗？',
+        confirmText: '确定',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+
+          uni.showLoading({
+            title: '处理中...'
+          })
+          cancelOrder(order.id)
+            .then(() => {
+              uni.hideLoading()
+              uni.showToast({
+                title: '订单已取消',
+                icon: 'success'
+              })
+              refreshCurrentOrders()
+            })
+            .catch((error) => {
+              uni.hideLoading()
+              console.error('取消订单失败:', error)
+              uni.showToast({
+                title: error.message || '取消订单失败',
+                icon: 'none'
+              })
+            })
+        }
+      })
+      break
+    case 'remind':
+      uni.showToast({
+        title: '已提醒商家发货',
+        icon: 'success'
+      })
+      break
+    case 'refund':
+      uni.navigateTo({
+        url: `/pages/order/refund-apply?orderId=${order.id}`
+      })
+      break
+    case 'confirm':
+      uni.showModal({
+        title: '确认收货',
+        content: '请确认您已收到商品',
+        confirmText: '确认收货',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+
+          uni.showLoading({
+            title: '处理中...'
+          })
+          confirmReceive(order.id)
+            .then(() => {
+              uni.hideLoading()
+              uni.showToast({
+                title: '已确认收货',
+                icon: 'success'
+              })
+              refreshCurrentOrders()
+            })
+            .catch((error) => {
+              uni.hideLoading()
+              console.error('确认收货失败:', error)
+              uni.showToast({
+                title: error.message || '确认收货失败',
+                icon: 'none'
+              })
+            })
+        }
+      })
+      break
+    case 'delete':
+      uni.showModal({
+        title: '删除订单',
+        content: '确定要删除该订单吗？',
+        confirmText: '确定',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+
+          uni.showToast({
+            title: '订单已删除',
+            icon: 'success'
+          })
+          refreshCurrentOrders()
+        }
+      })
+      break
+    case 'rebuy':
+      uni.showToast({
+        title: '再次购买功能开发中',
+        icon: 'none'
+      })
+      break
+    case 'refundDetail':
+    case 'afterSaleDetail':
+      uni.navigateTo({
+        url: `/pages/order/detail?orderId=${order.id}`
+      })
+      break
+    case 'logistics':
+      uni.navigateTo({
+        url: `/pages/order/logistics?orderId=${order.id}`
+      })
+      break
+    case 'comment':
+      uni.navigateTo({
+        url: `/pages/order/review?orderId=${order.id}`
+      })
+      break
+    case 'viewReview':
+      uni.navigateTo({
+        url: `/pages/order/review-detail?orderId=${order.id}`
+      })
+      break
+    default:
+      break
+  }
+}
+
+onLoad((options = {}) => {
+  if (options.status) {
+    activeTab.value = parseInt(options.status, 10)
+  }
+
+  fetchOrders()
+  nextTick(() => {
+    setTimeout(() => {
+      scrollToActiveTab()
+    }, 100)
+  })
+})
 </script>
 
 <style scoped>

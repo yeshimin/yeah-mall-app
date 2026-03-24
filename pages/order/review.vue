@@ -4,7 +4,7 @@
 		<view class="goods-reviews" v-if="order && order.shopProducts">
 			<view class="goods-review-item" v-for="(item, index) in order.shopProducts" :key="index">
 				<view class="goods-info">
-					<image class="goods-image" :src="item.spuMainImage ? getImageUrl(item.spuMainImage) : 'https://via.placeholder.com/100'" mode="aspectFill"></image>
+					<image class="goods-image" :src="item.spuMainImage ? getImageUrl(item.spuMainImage) : '/static/logo.png'" mode="aspectFill"></image>
 					<view class="goods-details">
 						<text class="goods-name">{{ item.spuName }}</text>
 						<text class="goods-spec" v-if="item.specs">{{ getSpecString(item.specs) }}</text>
@@ -145,288 +145,198 @@
 	</view>
 </template>
 
-<script>
-	import { fetchOrderDetail, submitReview, uploadImage } from '@/utils/api.js';
-	import { BASE_API } from '@/utils/config.js';
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { fetchOrderDetail, submitReview, uploadImage } from '@/utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
 
-	export default {
-		data() {
-			return {
-				orderId: '',
-				order: null,
-				form: {
-					descriptionRating: 5,
-					deliveryRating: 5,
-					serviceRating: 5,
-					isAnonymous: false,
-					items: []
-				}
-			};
-		},
-		onLoad(options) {
-			if (options.orderId) {
-				this.orderId = options.orderId;
-				this.loadOrderDetail();
-			} else {
-				uni.showToast({
-					title: '订单参数错误',
-					icon: 'none'
-				});
-				setTimeout(() => uni.navigateBack(), 1500);
-			}
-		},
-		methods: {
-			getImageUrl(path) {
-			if (!path) return '';
-			if (path.startsWith('http')) return path;
-			// 使用预览 API 加载展示商品图片
-			return `${BASE_API}/public/storage/preview?fileKey=${path}`;
-		},
-			getSpecString(specs) {
-				if (!specs || !specs.length) return '';
-				return specs.map(s => `${s.specName}:${s.optName}`).join('; ');
-			},
-			// 获取图片显示路径
-		getImageSrc(img) {
-			// 始终返回原始路径，因为：
-			// 1. 对于刚选择的图片，它是本地临时路径
-			// 2. 对于已上传的图片，我们仍然在表单中保留本地临时路径
-			// 3. 提交评价时会将本地路径替换为fileKey
-			// 注意：用户上传的图片不要使用预览 API
-			return img;
-		},
-			loadOrderDetail() {
-				uni.showLoading({ title: '加载中...' });
-				fetchOrderDetail(this.orderId).then(data => {
-					this.order = data;
-					this.initGoodsReviews();
-					uni.hideLoading();
-				}).catch(err => {
-					uni.hideLoading();
-					// 如果接口失败，使用mock数据兜底（因为fetchOrderDetail真实接口可能还未完全实现返回items）
-					console.error('获取订单详情失败', err);
-				    // 模拟数据用于演示
-				    this.order = {
-				        items: [
-				            {
-				                spuId: '1',
-				                skuId: '1',
-				                spuName: '商品加载失败演示',
-				                spuMainImage: '',
-				                specs: [{specName:'演示', optName:'规格'}]
-				            },
-				            {
-				                spuId: '2',
-				                skuId: '2',
-				                spuName: '第二个商品演示',
-				                spuMainImage: '',
-				                specs: [{specName:'颜色', optName:'红色'}]
-				            }
-				        ]
-				    };
-					this.initGoodsReviews();
-				});
-			},
-			initGoodsReviews() {
-				if (this.order && this.order.shopProducts) {
-					this.form.items = this.order.shopProducts.map(item => ({
-						orderItemId: item.orderItemId || item.id || '',
-						overallRating: 5, // 默认好评
-						content: '',
-						images: []
-					}));
-				}
-			},
-			setRate(field, value) {
-				this.form[field] = value;
-			},
-			getRateText(rate) {
-				const texts = ['非常差', '差', '一般', '好', '非常好'];
-				return texts[rate - 1] || '';
-			},
-			chooseImage() {
-				uni.chooseImage({
-					count: 6 - this.form.images.length,
-					sizeType: ['compressed'],
-					sourceType: ['album', 'camera'],
-					success: (res) => {
-						// 实际开发中这里需要上传图片到服务器，这里仅做本地预览模拟
-						this.form.images = [...this.form.images, ...res.tempFilePaths];
-					}
-				});
-			},
-			setGoodsRate(index, value) {
-				if (this.form.items[index]) {
-					this.form.items[index].overallRating = value;
-				}
-			},
-			chooseGoodsImage(index) {
-				if (!this.form.items[index]) return;
-				
-				uni.chooseImage({
-					count: 6 - this.form.items[index].images.length,
-					sizeType: ['compressed'],
-					sourceType: ['album', 'camera'],
-					success: (res) => {
-						if (!this.form.items[index]) return;
-						
-						// 立即添加本地图片作为预览
-						const tempImages = [...this.form.items[index].images, ...res.tempFilePaths];
-						this.form.items[index].images = tempImages;
-						
-						// 后台异步上传图片
-						this.uploadImagesInBackground(index, res.tempFilePaths);
-					}
-				});
-			},
-			// 后台异步上传图片
-		uploadImagesInBackground(index, tempFilePaths) {
-			// 初始化 uploadedImages 对象
-			if (!this.uploadedImages) {
-				this.uploadedImages = {};
-			}
-			if (!this.uploadedImages[index]) {
-				this.uploadedImages[index] = {};
-			}
-			
-			// 为每张图片创建上传任务
-			const uploadPromises = tempFilePaths.map(async (tempFilePath, imgIndex) => {
-				try {
-					const uploadResult = await uploadImage(tempFilePath);
-					// 上传成功后，存储对应关系：本地路径 -> fileKey
-					// 注意：我们不替换表单中的本地路径，只在提交时使用fileKey
-					this.uploadedImages[index][tempFilePath] = uploadResult;
-					return true;
-				} catch (error) {
-					console.error('上传图片失败', error);
-					// 上传失败时，从表单中移除该图片
-					if (this.form.items[index]) {
-						const imgIndex = this.form.items[index].images.indexOf(tempFilePath);
-						if (imgIndex > -1) {
-							this.form.items[index].images.splice(imgIndex, 1);
-						}
-					}
-					return false;
-				}
-			});
-			
-			// 等待所有上传任务完成
-			Promise.all(uploadPromises).then(results => {
-				const allSuccess = results.every(result => result);
-				const someSuccess = results.some(result => result);
-				
-				if (allSuccess) {
-					uni.showToast({
-						title: '图片上传成功',
-						icon: 'success'
-					});
-				} else if (someSuccess) {
-					uni.showToast({
-						title: '部分图片上传失败',
-						icon: 'none'
-					});
-				} else {
-					uni.showToast({
-						title: '图片上传失败',
-						icon: 'none'
-					});
-				}
-			});
-		},
-			deleteGoodsImage(index, imgIndex) {
-				if (this.form.items[index]) {
-					// 获取要删除的图片路径
-					const imgToDelete = this.form.items[index].images[imgIndex];
-					// 删除表单中的图片
-					this.form.items[index].images.splice(imgIndex, 1);
-					// 删除uploadedImages中的对应记录
-					if (this.uploadedImages && this.uploadedImages[index] && this.uploadedImages[index][imgToDelete]) {
-						delete this.uploadedImages[index][imgToDelete];
-					}
-				}
-			},
-			toggleAnonymous(e) {
-				this.form.isAnonymous = e.detail.value.length > 0;
-			},
-			submit() {
-				// 检查是否所有商品都已评价
-				const hasEmptyReview = this.form.items.some(item => {
-					return item.overallRating < 3 && !item.content;
-				});
-				
-				if (hasEmptyReview) {
-					uni.showToast({
-						title: '请为所有商品填写评价内容',
-						icon: 'none'
-					});
-					return;
-				}
+const orderId = ref('')
+const order = ref(null)
+const uploadedImages = reactive({})
+const form = reactive({
+  descriptionRating: 5,
+  deliveryRating: 5,
+  serviceRating: 5,
+  isAnonymous: false,
+  items: []
+})
 
-				uni.showLoading({ title: '提交中...' });
-				
-				// 构建提交数据，将本地图片路径替换为fileKey
-			const submitItems = this.form.items.map((item, index) => {
-				// 转换图片路径为fileKey
-				const processedImages = item.images.map(img => {
-					// 检查是否有对应的fileKey
-					if (this.uploadedImages && this.uploadedImages[index] && this.uploadedImages[index][img]) {
-						return this.uploadedImages[index][img];
-					} else {
-						// 如果没有对应的fileKey，可能是已经上传成功的fileKey
-						// 注意：这种情况不应该发生，因为我们只在上传成功后才存储对应关系
-						// 但为了保险起见，我们仍然返回原始值
-						return img;
-					}
-				});
-				
-				return {
-					...item,
-					images: processedImages
-				};
-			});
-				
-				const submitData = {
-					orderId: this.orderId,
-					descriptionRating: this.form.descriptionRating,
-					deliveryRating: this.form.deliveryRating,
-					serviceRating: this.form.serviceRating,
-					isAnonymous: this.form.isAnonymous,
-					items: submitItems
-				};
+function getImageUrl(path) {
+  return getStoragePreviewUrl(path)
+}
 
-				submitReview(submitData).then(() => {
-					uni.hideLoading();
-					uni.showToast({
-						title: '评价成功',
-						icon: 'success'
-					});
-					setTimeout(() => {
-						uni.navigateBack();
-                        // 触发上一页刷新（如果支持）
-                        const pages = getCurrentPages();
-                        const prevPage = pages[pages.length - 2];
-                        if (prevPage && prevPage.$vm) {
-                            if (prevPage.$vm.fetchOrders) {
-                                // 列表页刷新
-                                prevPage.$vm.fetchOrders(true);
-                            } else if (prevPage.$vm.fetchOrderDetail && prevPage.$vm.orderInfo) {
-                                // 详情页刷新
-                                prevPage.$vm.fetchOrderDetail(prevPage.$vm.orderInfo.orderId || prevPage.$vm.orderInfo.orderNo);
-                            }
-                        }
-					}, 1500);
-				}).catch(err => {
-					uni.hideLoading();
-					// 显示API返回的错误消息
-					const errorMessage = err.message || '评价失败';
-					uni.showToast({
-						title: errorMessage,
-						icon: 'none'
-					});
-				});
-			}
-		}
-	}
+function getSpecString(specs) {
+  if (!specs || !specs.length) return ''
+  return specs.map((spec) => `${spec.specName}:${spec.optName}`).join('; ')
+}
+
+function getImageSrc(img) {
+  return img
+}
+
+function loadOrderDetail() {
+  uni.showLoading({ title: '加载中...' })
+  fetchOrderDetail(orderId.value)
+    .then((data) => {
+      order.value = data
+      initGoodsReviews()
+      uni.hideLoading()
+    })
+    .catch((error) => {
+      uni.hideLoading()
+      console.error('获取订单详情失败', error)
+      uni.showToast({
+        title: '获取订单详情失败',
+        icon: 'none'
+      })
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+    })
+}
+
+function initGoodsReviews() {
+  form.items = ((order.value && order.value.shopProducts) || []).map((item) => ({
+    orderItemId: item.orderItemId || item.id || '',
+    overallRating: 5,
+    content: '',
+    images: []
+  }))
+}
+
+function setRate(field, value) {
+  form[field] = value
+}
+
+function setGoodsRate(index, value) {
+  if (form.items[index]) {
+    form.items[index].overallRating = value
+  }
+}
+
+function chooseGoodsImage(index) {
+  if (!form.items[index]) return
+
+  uni.chooseImage({
+    count: 6 - form.items[index].images.length,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: (res) => {
+      if (!form.items[index]) return
+      form.items[index].images = [...form.items[index].images, ...res.tempFilePaths]
+      uploadImagesInBackground(index, res.tempFilePaths)
+    }
+  })
+}
+
+function uploadImagesInBackground(index, tempFilePaths) {
+  if (!uploadedImages[index]) {
+    uploadedImages[index] = {}
+  }
+
+  const uploadPromises = tempFilePaths.map(async (tempFilePath) => {
+    try {
+      const uploadResult = await uploadImage(tempFilePath)
+      uploadedImages[index][tempFilePath] = uploadResult
+      return true
+    } catch (error) {
+      console.error('上传图片失败', error)
+      if (form.items[index]) {
+        const currentIndex = form.items[index].images.indexOf(tempFilePath)
+        if (currentIndex > -1) {
+          form.items[index].images.splice(currentIndex, 1)
+        }
+      }
+      return false
+    }
+  })
+
+  Promise.all(uploadPromises).then((results) => {
+    const allSuccess = results.every(Boolean)
+    const someSuccess = results.some(Boolean)
+
+    if (allSuccess) {
+      uni.showToast({ title: '图片上传成功', icon: 'success' })
+    } else if (someSuccess) {
+      uni.showToast({ title: '部分图片上传失败', icon: 'none' })
+    } else {
+      uni.showToast({ title: '图片上传失败', icon: 'none' })
+    }
+  })
+}
+
+function deleteGoodsImage(index, imgIndex) {
+  if (!form.items[index]) {
+    return
+  }
+
+  const imageToDelete = form.items[index].images[imgIndex]
+  form.items[index].images.splice(imgIndex, 1)
+  if (uploadedImages[index] && uploadedImages[index][imageToDelete]) {
+    delete uploadedImages[index][imageToDelete]
+  }
+}
+
+function toggleAnonymous(event) {
+  form.isAnonymous = event.detail.value.length > 0
+}
+
+function submit() {
+  const hasEmptyReview = form.items.some((item) => item.overallRating < 3 && !item.content)
+  if (hasEmptyReview) {
+    uni.showToast({
+      title: '请为所有商品填写评价内容',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.showLoading({ title: '提交中...' })
+  const submitItems = form.items.map((item, index) => ({
+    ...item,
+    images: item.images.map((img) => uploadedImages[index]?.[img] || img)
+  }))
+
+  submitReview({
+    orderId: orderId.value,
+    descriptionRating: form.descriptionRating,
+    deliveryRating: form.deliveryRating,
+    serviceRating: form.serviceRating,
+    isAnonymous: form.isAnonymous,
+    items: submitItems
+  })
+    .then(() => {
+      uni.hideLoading()
+      uni.showToast({
+        title: '评价成功',
+        icon: 'success'
+      })
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+    })
+    .catch((error) => {
+      uni.hideLoading()
+      uni.showToast({
+        title: error.message || '评价失败',
+        icon: 'none'
+      })
+    })
+}
+
+onLoad((options = {}) => {
+  if (options.orderId) {
+    orderId.value = options.orderId
+    loadOrderDetail()
+  } else {
+    uni.showToast({
+      title: '订单参数错误',
+      icon: 'none'
+    })
+    setTimeout(() => uni.navigateBack(), 1500)
+  }
+})
 </script>
 
 <style scoped>

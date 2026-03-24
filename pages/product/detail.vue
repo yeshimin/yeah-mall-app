@@ -50,7 +50,7 @@
                 <view class="review-list">
                     <view class="review-item" v-for="(item, index) in reviewSummary.topReviews" :key="index">
                         <view class="rp-user">
-                            <image :src="item.userAvatar || 'https://via.placeholder.com/40'" class="rp-avatar"></image>
+                            <image :src="item.userAvatar || '/static/logo.png'" class="rp-avatar"></image>
                             <text class="rp-name">{{ item.userName }}</text>
                             <text class="rp-time">{{ item.createTime }}</text>
                         </view>
@@ -143,7 +143,7 @@
 							@click="selectSku(sku)"
 						>
 							<view class="sku-image-container">
-								<image class="sku-image" :src="sku.mainImage || 'https://via.placeholder.com/60'"
+								<image class="sku-image" :src="sku.mainImage || '/static/logo.png'"
 								     style="width: 40px; height: 40px; border-radius: 4px;"></image>
 							</view>
 							<view class="sku-info">
@@ -221,7 +221,7 @@
 							@click="selectSku(sku)"
 						>
 							<view class="sku-image-container">
-								<image class="sku-image" :src="sku.mainImage || 'https://via.placeholder.com/60'"
+								<image class="sku-image" :src="sku.mainImage || '/static/logo.png'"
 								     style="width: 40px; height: 40px; border-radius: 4px;"></image>
 							</view>
 							<view class="sku-info">
@@ -253,900 +253,679 @@
 	</view>
 </template>
 
-<script>
-	import { getUserId, handleAuthFailure, authRequest, getToken } from '@/utils/auth.js'
-	import { fetchReviewSummary } from '@/utils/api.js'
-    import { BASE_API } from '@/utils/config.js'
-	import customNavBar from '../../components/custom-nav-bar.vue'
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import CustomNavBar from '../../components/custom-nav-bar.vue'
+import { fetchReviewSummary } from '@/utils/api.js'
+import { authRequest, getToken, getUserId, handleAuthFailure } from '@/utils/auth.js'
+import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 
-export default {
-	components: {
-		'custom-nav-bar': customNavBar
-	},
-	data() {
-		return {
-			showSpec: false,
-			showCartPopup: false,
-			purchaseMode: 'cart', // 'cart' 表示加入购物车，'buy' 表示立即购买
-			product: {},
-			banners: [],
-			specs: [], // 商品规格数据
-			skuOptIds: [], // SKU配置的选项ID
-			skus: [], // SKU数据，包含库存和价格信息
-			selectedSpecs: {}, // 选中的规格
-			selectedSku: null, // 选中的SKU（秒杀场景）
-			isCollected: false, // 收藏状态
-			selectedQuantity: 1,
-			stock: 100, // 示例库存
-			reviewSummary: { // 评价概览数据
-				totalCount: 0,
-				goodRate: 100,
-				topReviews: []
-			},
-			shop: {}, // 店铺信息
-			scene: '', // 场景值
-			// 秒杀活动时间
-			activityBeginTime: '',
-			activityEndTime: '',
-			// 秒杀活动ID
-			activityId: '',
-			// 自定义标题栏高度
-			navBarHeight: 0
-		}
-	},
-	methods: {
-            loadReviewSummary(productId) {
-                fetchReviewSummary(productId).then(data => {
-                    this.reviewSummary = data;
-                });
-            },
-			// 处理富文本内容，添加内联样式
-			processRichText(html) {
-				if (!html) return '';
-				
-				// 处理图片标签，添加内联样式
-				html = html.replace(/<img/gi, '<img style="max-width:100%;height:auto;width:100%;display:block;"');
-				
-				// 处理段落、div、span等标签，添加内联样式
-				html = html.replace(/<p/gi, '<p style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<div/gi, '<div style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<span/gi, '<span style="max-width:100%;word-break:break-word;overflow-wrap:break-word;"');
-				
-				// 处理标题标签
-				html = html.replace(/<h1/gi, '<h1 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<h2/gi, '<h2 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<h3/gi, '<h3 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<h4/gi, '<h4 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<h5/gi, '<h5 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				html = html.replace(/<h6/gi, '<h6 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"');
-				
-				// 处理表格标签
-				html = html.replace(/<table/gi, '<table style="max-width:100%;width:100%;table-layout:fixed;"');
-				html = html.replace(/<td/gi, '<td style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"');
-				html = html.replace(/<th/gi, '<th style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"');
-				
-				// 处理代码块
-				html = html.replace(/<pre/gi, '<pre style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"');
-				html = html.replace(/<code/gi, '<code style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"');
-				
-				return html;
-			},
-				goBack() {
-					uni.navigateBack();
-				},
-				// 处理自定义标题栏高度计算完成事件
-				handleNavBarHeightCalculated(e) {
-					this.navBarHeight = e.plusHeight;
-				},
-				getToken() {
-					return getToken();
-				},
-				fetchProductDetail(productId, scene) {
-			const baseApi = BASE_API;
-			console.log('detail.productId: ' + productId)
-			console.log('detail.scene: ' + scene)
-			// 获取token
-			const token = this.getToken();
-			
-			// 根据场景值决定使用哪个接口
-			let url = '';
-			if (scene === 'seckill') {
-				url = `${baseApi}/app/seckill/queryProductDetail?id=${productId}`;
-			} else {
-				url = `${baseApi}/app/product/detail?id=${productId}`;
-			}
-			
-			uni.request({
-				url: url,
-				method: 'GET',
-				header: {
-					'Authorization': token ? `Bearer ${token}` : '',
-					'Content-Type': 'application/json'
-				},
-				success: (res) => {
-					if (res.statusCode === 200 && res.data.code === 0) {
-						const data = res.data.data;
-						this.product = data.product;
-						
-						// 处理富文本内容，添加内联样式
-						if (this.product.detailDesc) {
-							this.product.detailDesc = this.processRichText(this.product.detailDesc);
-						}
-						
-						// 处理banner图片URL
-						this.banners = data.banners.map(item => {
-							const baseApi = BASE_API;
-							return item && item.trim() !== '' ? (() => {
-								return `${baseApi}/public/storage/preview?fileKey=${item}`;
-							})() : '';
-						});
-						
-						// 处理规格数据
-						this.specs = data.specs || [];
-						// 保存skuOptIds用于灰化处理
-						this.skuOptIds = data.skuOptIds || [];
-						// 保存skus数据用于获取库存和价格
-							this.skus = (data.skus || []).map(sku => {
-								// 处理SKU的mainImage，确保使用正确的URL格式
-								if (sku.mainImage && sku.mainImage.trim() !== '') {
-									sku.mainImage = `${BASE_API}/public/storage/preview?fileKey=${sku.mainImage}`;
-								}
-								return sku;
-							});
-						// 保存店铺信息
-						this.shop = data.shop || {};
-						// 初始化选中规格
-						this.initSelectedSpecs();
-						
-						// 获取商品详情后检查收藏状态
-						this.$nextTick(() => {
-							this.checkCollectStatus();
-						});
-					} else {
-						console.error('获取商品详情失败:', res.data.message);
-					}
-				},
-				fail: (err) => {
-					console.error('请求商品详情失败:', err);
-				}
-			});
-			},
-			goToStore() {
-				// 跳转到店铺页面
-				uni.showToast({
-					title: '跳转到店铺',
-					icon: 'none'
-				});
-			},
-			contactService() {
-					// 跳转到客服聊天页面，传递店铺ID和商家ID
-					const shopId = this.shop.shopId || '1';
-					const mchId = this.shop.mchId || '1';
-					
-					// 调用初始化会话接口获取会话ID
-					uni.showLoading({ title: '初始化会话...' });
-					uni.request({
-						url: `${BASE_API}/app/csConversation/init`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${getToken()}`
-						},
-						data: {
-							shopId: shopId
-						},
-						success: (res) => {
-							uni.hideLoading();
-							if (res.statusCode === 200 && res.data.code === 0) {
-								const conversationId = res.data.data.id;
-								console.log('会话初始化成功:', conversationId);
-								// 跳转到客服聊天页面，传递会话ID、店铺ID和商家ID
-								uni.navigateTo({
-									url: `/pages/customer-service/index?shopId=${shopId}&mchId=${mchId}&conversationId=${conversationId}`
-								});
-							} else {
-								console.error('初始化会话失败:', res.data.message);
-								uni.showToast({
-									title: '初始化会话失败，请重试',
-									icon: 'none'
-								});
-							}
-						},
-						fail: (error) => {
-							uni.hideLoading();
-							console.error('请求初始化会话失败:', error);
-							uni.showToast({
-								title: '网络错误，请检查网络连接',
-								icon: 'none'
-							});
-						}
-					});
-				},
-				showSpecPopup() {
-				this.showSpec = true;
-			},
-			closeSpecPopup() {
-				this.showSpec = false;
-			},
-			closeCartPopup() {
-				this.showCartPopup = false;
-			},
-			addToCart() {
-				// 检查是否在秒杀活动时间范围内
-				if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
-					uni.showToast({
-						title: '当前不在秒杀活动时间范围内',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 设置为购物车模式并显示购物车弹窗
-				this.purchaseMode = 'cart';
-				this.showCartPopup = true;
-			},
-			confirmAddToCart() {
-				// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
-				if (this.scene === 'seckill') {
-					if (!this.selectedSku) {
-						uni.showToast({
-							title: '请选择商品规格',
-							icon: 'none'
-						});
-						return;
-					}
-				} else {
-					// 普通场景：检查是否所有规格都已选择
-					const allSpecsSelected = this.specs.every(spec => {
-						return this.selectedSpecs[spec.specId] !== undefined;
-					});
-					
-					if (!allSpecsSelected) {
-						uni.showToast({
-							title: '请选择完整的规格',
-							icon: 'none'
-						});
-						return;
-					}
-				}
-				
-				// 获取当前选中的SKU信息
-				const currentSkuInfo = this.getCurrentSkuInfo();
-				
-				// 检查是否有有效的SKU ID
-				if (!currentSkuInfo.id) {
-					uni.showToast({
-						title: '未找到有效的商品规格',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 检查库存
-				if (this.selectedQuantity > currentSkuInfo.stock) {
-					uni.showToast({
-						title: '购买数量超过库存',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 根据purchaseMode决定调用哪个接口
-				if (this.purchaseMode === 'buy') {
-					// 秒杀场景下数量固定为1
-					const quantity = this.scene === 'seckill' ? 1 : this.selectedQuantity;
-					// 调用立即购买接口
-					const requestData = {
-						url: `${BASE_API}/app/order/submit`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json'
-						},
-						data: {
-							items: [{
-								skuId: currentSkuInfo.id,
-								quantity: quantity
-							}]
-						}
-					};
-					
-					authRequest(
-						requestData,
-						(res) => {
-							if (res.data.code === 0) {
-								uni.showToast({
-									title: '订单提交成功',
-									icon: 'success'
-								});
-								// 关闭购物车弹窗
-								this.closeCartPopup();
-								// 可以跳转到订单确认页面
-								// uni.navigateTo({
-								//   url: '/pages/order/confirm'
-								// });
-							} else {
-								uni.showToast({
-									title: res.data.message || '订单提交失败',
-									icon: 'none'
-								});
-							}
-						},
-						(err) => {
-							uni.showToast({
-								title: '请求失败，请稍后重试',
-								icon: 'none'
-							});
-							console.error('立即购买请求失败:', err);
-						}
-					);
-				} else {
-					// 调用加入购物车接口
-					const requestData = {
-						url: `${BASE_API}/app/cartItem/create`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json'
-						},
-						data: {
-							skuId: currentSkuInfo.id,
-							quantity: this.selectedQuantity
-						}
-					};
-					
-					authRequest(
-						requestData,
-						(res) => {
-							if (res.data.code === 0) {
-								uni.showToast({
-									title: '已添加到购物车',
-									icon: 'success'
-								});
-								// 关闭购物车弹窗
-								this.closeCartPopup();
-							} else {
-								uni.showToast({
-									title: res.data.message || '添加购物车失败',
-									icon: 'none'
-								});
-							}
-						},
-						(err) => {
-							uni.showToast({
-								title: '请求失败，请稍后重试',
-								icon: 'none'
-							});
-							console.error('加入购物车请求失败:', err);
-						}
-					);
-				}
-			},
-			buyNow() {
-						// 设置为购买模式并显示规格选择弹窗
-						this.purchaseMode = 'buy';
-						this.showSpec = true;
-					},
-			addToFavorites() {
-				// 检查用户是否已登录
-				const userId = getUserId()
-				if (!userId) {
-					// 未登录，跳转到登录页面
-					handleAuthFailure()
-					return
-				}
-				
-				// 切换收藏状态
-				if (this.isCollected) {
-					// 取消收藏
-					this.cancelCollect()
-				} else {
-					// 添加收藏
-					this.addCollect()
-				}
-			},
-			// 添加收藏
-			addCollect() {
-				const userId = getUserId()
-				if (!userId) {
-					handleAuthFailure()
-					return
-				}
-				
-				// 调用添加收藏的API
-				authRequest({
-					url: `${BASE_API}/app/productFavorites/add`,
-					method: 'POST',
-					header: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						id: this.product.id
-					}
-				}, (res) => {
-					if (res.data.code === 0) {
-						// 根据响应中的success字段判断操作是否成功
-						if (res.data.data.success) {
-							this.isCollected = true
-							uni.showToast({
-								title: '收藏成功',
-								icon: 'success'
-							})
-						}
-						// 如果success为false，表示已收藏或收藏失败，不提示
-					} else if (res.data.code === 401) {
-						// 认证失败，跳转到登录页面
-						handleAuthFailure()
-					} else {
-						uni.showToast({
-							title: res.data.message || '收藏失败',
-							icon: 'none'
-						})
-					}
-				}, (err) => {
-					console.error('收藏失败', err)
-					uni.showToast({
-						title: '收藏失败',
-						icon: 'none'
-					})
-				})
-			},
-			// 取消收藏
-			cancelCollect() {
-				const userId = getUserId()
-				if (!userId) {
-					handleAuthFailure()
-					return
-				}
-				
-				// 调用取消收藏的API
-				authRequest({
-					url: `${BASE_API}/app/productFavorites/remove`,
-					method: 'POST',
-					header: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						"id": this.product.id
-					}
-				}, (res) => {
-					if (res.data.code === 0) {
-						// 根据响应中的success字段判断操作是否成功
-						if (res.data.data.success) {
-							this.isCollected = false
-							uni.showToast({
-								title: '已取消收藏',
-								icon: 'success'
-							})
-						}
-						// 如果success为false，表示未收藏或取消失败，不提示
-					} else if (res.data.code === 401) {
-						// 认证失败，跳转到登录页面
-						handleAuthFailure()
-					} else {
-						uni.showToast({
-							title: res.data.message || '取消收藏失败',
-							icon: 'none'
-						})
-					}
-				}, (err) => {
-					console.error('取消收藏失败', err)
-					uni.showToast({
-						title: '取消收藏失败',
-						icon: 'none'
-					})
-				})
-			},
-			// 检查是否已收藏
-			checkCollectStatus() {
-				const userId = getUserId();
-				if (!userId) return;
+const showSpec = ref(false)
+const showCartPopup = ref(false)
+const purchaseMode = ref('cart')
+const product = ref({})
+const banners = ref([])
+const specs = ref([])
+const skuOptIds = ref([])
+const skus = ref([])
+const selectedSpecs = reactive({})
+const selectedSku = ref(null)
+const isCollected = ref(false)
+const selectedQuantity = ref(1)
+const reviewSummary = reactive({
+  totalCount: 0,
+  goodRate: 100,
+  topReviews: []
+})
+const shop = ref({})
+const scene = ref('')
+const activityBeginTime = ref('')
+const activityEndTime = ref('')
+const activityId = ref('')
+const navBarHeight = ref(0)
 
-				authRequest({
-					url: `${BASE_API}/app/productFavorites/status?spuId=${this.product.id}`,
-					method: 'GET'
-				}, (res) => {
-					if (res.statusCode === 200 && res.data.code === 0) {
-						this.isCollected = res.data.data.result;
-					} else if (res.statusCode === 401) {
-						handleAuthFailure();
-					} else {
-						console.error('检查收藏状态失败:', res.data.message);
-					}
-				},
-					(err) => {
-						console.error('检查收藏状态请求失败:', err);
-					}
-				);
-			},
-			// 初始化选中规格
-			initSelectedSpecs() {
-				const selectedSpecs = {};
-				this.specs.forEach(spec => {
-					if (spec.opts && spec.opts.length > 0) {
-						// 默认选中第一个选项
-						selectedSpecs[spec.specId] = spec.opts[0].optId;
-					}
-				});
-				this.selectedSpecs = selectedSpecs;
-			},
-			// 选择规格选项
-			selectSpecOption(specId, optId) {
-				// 允许选择任何选项，包括灰化选项
-				// 如果点击已选中的选项，则取消选择
-				if (this.selectedSpecs[specId] === optId) {
-					delete this.selectedSpecs[specId];
-				} else {
-					// 使用 Vue.set 或 this.$set 确保响应式更新
-					this.$set(this.selectedSpecs, specId, optId);
-				}
-			},
-			// 选择SKU（秒杀场景）
-			selectSku(sku) {
-				this.selectedSku = sku;
-				// 选择SKU后，更新弹窗顶部的价格和库存信息
-				this.$forceUpdate();
-			},
-			
-			// 检查当前时间是否在秒杀活动时间范围内
-			isWithinActivityTime() {
-				if (this.scene !== 'seckill') {
-					return true;
-				}
-				
-				if (!this.activityBeginTime || !this.activityEndTime) {
-					return true;
-				}
-				
-				const now = new Date();
-				console.log('isWithinActivityTime - 当前时间:', now);
-				
-				// 解析活动时间
-				const beginTime = new Date(this.activityBeginTime);
-				const endTime = new Date(this.activityEndTime);
-				console.log('isWithinActivityTime - 开始时间:', beginTime);
-				console.log('isWithinActivityTime - 结束时间:', endTime);
-				
-				// 检查时间解析是否成功
-				if (isNaN(beginTime.getTime()) || isNaN(endTime.getTime())) {
-					console.error('时间解析失败:', this.activityBeginTime, this.activityEndTime);
-					return true; // 时间解析失败时默认允许购买
-				}
-				
-				const result = now >= beginTime && now <= endTime;
-				console.log('isWithinActivityTime - 结果:', result);
-				return result;
-			},
-			// 获取当前选中的规格描述
-			getSelectedSpecDesc() {
-				const selectedSpecs = [];
-				this.specs.forEach(spec => {
-					const selectedOptId = this.selectedSpecs[spec.specId];
-					if (selectedOptId) {
-						const selectedOpt = spec.opts.find(opt => opt.optId === selectedOptId);
-						if (selectedOpt) {
-							selectedSpecs.push(`${spec.specName}:${selectedOpt.optName}`);
-						}
-					}
-				});
-				return selectedSpecs.join(' ');
-			},
-			// 判断规格选项是否应该灰化
-			isOptionDisabled(optId) {
-				// 如果skuOptIds为空，或者该选项在skuOptIds中，则不禁用
-				return this.skuOptIds.length > 0 && !this.skuOptIds.includes(optId);
-			},
-			// 获取当前选中规格组合的SKU信息
-			getCurrentSkuInfo() {
-				// 秒杀场景下直接返回选中的SKU信息
-				if (this.scene === 'seckill') {
-					if (this.selectedSku) {
-						return {
-							id: this.selectedSku.id,
-							price: this.selectedSku.price,
-							stock: this.selectedSku.stock
-						};
-					} else {
-						// 秒杀场景下未选择SKU时，返回空信息
-						return {
-							id: null,
-							price: null,
-							stock: 0
-						};
-					}
-				}
-				
-				// 普通场景下通过规格组合查找SKU
-				// 获取所有选中的选项ID
-				const selectedOptIds = Object.values(this.selectedSpecs).filter(id => id);
-				
-				// 检查skus数组是否存在且为数组
-				if (!Array.isArray(this.skus)) {
-					return {
-						id: null,
-						price: null,
-						stock: 0
-					};
-				}
-				
-				// 将选中的选项ID转换为字符串数组并排序，用于与specCode比较
-				const selectedOptIdsSorted = selectedOptIds.map(id => id.toString()).sort();
-				
-				// 在skus数组中查找匹配的SKU
-				const matchedSku = this.skus.find(sku => {
-					// 检查sku是否有specCode属性
-					if (!sku.specCode) {
-						return false;
-					}
-					// 将sku的specCode用'-'拆分并排序
-					const skuOptIdsSorted = sku.specCode.split('-').sort();
-					// 检查选中的选项是否完全匹配sku的specCode（顺序无关）
-					return selectedOptIdsSorted.length === skuOptIdsSorted.length && 
-						   selectedOptIdsSorted.every(id => skuOptIdsSorted.includes(id));
-				});
-				
-				// 如果找到了匹配的SKU，返回其库存、价格和ID信息
-				if (matchedSku) {
-					return {
-						id: matchedSku.id,
-						price: matchedSku.price,
-						stock: matchedSku.stock
-					};
-				}
-				
-				// 如果没有找到匹配的SKU，返回空信息
-				return {
-					id: null,
-					price: null,
-					stock: 0
-				};
-			},
-			
-			// 检查指定规格选项是否应该被禁用（级联置灰）
-			isOptionDisabled(specId, optId) {
-				// 创建一个临时的选中状态，包含当前选中项和要检查的选项
-				const tempSelectedSpecs = { ...this.selectedSpecs };
-				tempSelectedSpecs[specId] = optId;
-				
-				// 获取当前临时选中的所有选项ID
-				const selectedOptIds = Object.values(tempSelectedSpecs).filter(id => id);
-				
-				// 检查skus数组是否存在且为数组
-				if (!Array.isArray(this.skus)) {
-					return true; // 如果没有skus数据，则禁用所有选项
-				}
-				
-				// 将选中的选项ID转换为字符串数组并排序
-				const selectedOptIdsSorted = selectedOptIds.map(id => id.toString()).sort();
-				
-				// 检查是否存在任何SKU包含当前选中的所有选项
-				const hasMatchingSku = this.skus.some(sku => {
-					// 检查sku是否有specCode属性
-					if (!sku.specCode) {
-						return false;
-					}
-					// 将sku的specCode用'-'拆分并排序
-					const skuOptIdsSorted = sku.specCode.split('-').sort();
-					// 检查选中的选项是否都被包含在sku的specCode中
-					return selectedOptIdsSorted.every(id => skuOptIdsSorted.includes(id));
-				});
-				
-				// 如果没有匹配的SKU，则禁用该选项
-				return !hasMatchingSku;
-			},
-				decreaseQuantity() {
-					// 减少数量逻辑
-					if (this.selectedQuantity > 1) {
-						this.selectedQuantity--;
-					}
-				},
-				increaseQuantity() {
-					// 增加数量逻辑，受限于当前SKU的库存
-					const currentStock = this.getCurrentSkuInfo().stock;
-					if (this.selectedQuantity < currentStock) {
-						this.selectedQuantity++;
-					}
-				},
-				confirmSpec() {
-							// 检查是否在秒杀活动时间范围内
-							if (this.scene === 'seckill' && !this.isWithinActivityTime()) {
-								uni.showToast({
-									title: '当前不在秒杀活动时间范围内',
-									icon: 'none'
-								});
-								return;
-							}
-							
-							// 检查是否选择了SKU（秒杀场景）或规格（普通场景）
-							if (this.scene === 'seckill') {
-								if (!this.selectedSku) {
-									uni.showToast({
-										title: '请选择商品规格',
-										icon: 'none'
-									});
-									return;
-								}
-							} else {
-								// 普通场景：检查是否所有规格都已选择
-								const allSpecsSelected = this.specs.every(spec => {
-									return this.selectedSpecs[spec.specId] !== undefined;
-								});
-								
-								if (!allSpecsSelected) {
-									uni.showToast({
-										title: '请选择完整的规格',
-										icon: 'none'
-									});
-									return;
-								}
-							}
-				
-				// 获取当前选中的SKU信息
-				const currentSkuInfo = this.getCurrentSkuInfo();
-				
-				// 检查是否有有效的SKU ID
-				if (!currentSkuInfo.id) {
-					uni.showToast({
-						title: '未找到有效的商品规格',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 检查库存
-				if (this.selectedQuantity > currentSkuInfo.stock) {
-					uni.showToast({
-						title: '购买数量超过库存',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 确认规格选择
-				this.closeSpecPopup();
-				
-				// 如果是购买模式，则跳转到下单页面
-				if (this.purchaseMode === 'buy') {
-					// 秒杀场景下数量固定为1
-					const quantity = this.scene === 'seckill' ? 1 : this.selectedQuantity;
-					
-					// 秒杀场景：先调用seckill接口抢占名额
-					if (this.scene === 'seckill') {
-						uni.showLoading({ title: '正在抢购...' });
-						// 构建请求数据
-						const seckillData = {
-							skuId: currentSkuInfo.id,
-							activityId: this.activityId || '' // 这里需要从活动信息中获取activityId
-						};
-						uni.request({
-							url: `${BASE_API}/app/order/seckill`,
-							method: 'POST',
-							header: {
-								'Content-Type': 'application/json',
-								'Authorization': `Bearer ${this.getToken()}`
-							},
-							data: seckillData,
-							success: (res) => {
-								uni.hideLoading();
-								if (res.statusCode === 200 && res.data.code === 0) {
-									const seckillResult = res.data.data;
-									if (seckillResult.success) {
-										// 抢购成功，直接跳转到订单确认页面
-										// 调用previewForSeckill接口获取订单预览信息
-										uni.showLoading({ title: '加载订单信息...' });
-											uni.request({
-										url: `${BASE_API}/app/order/previewForSeckill`,
-										method: 'POST',
-										header: {
-											'Content-Type': 'application/json',
-											'Authorization': `Bearer ${this.getToken()}`
-										},
-										data: {
-											items: [{
-												skuId: currentSkuInfo.id,
-												quantity: quantity
-											}]
-										},
-										success: (previewRes) => {
-											uni.hideLoading();
-											if (previewRes.statusCode === 200 && previewRes.data.code === 0) {
-												// 跳转到订单确认页面，并传递预览结果
-												uni.navigateTo({
-													url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}&orderPreview=${encodeURIComponent(JSON.stringify(previewRes.data.data))}&scene=seckill`
-												});
-											} else {
-												console.error('获取秒杀订单预览失败:', previewRes.data.message);
-												uni.showToast({
-													title: '获取订单信息失败，请重试',
-													icon: 'none'
-												});
-											}
-										},
-										fail: (previewErr) => {
-											uni.hideLoading();
-											console.error('请求秒杀订单预览失败:', previewErr);
-											uni.showToast({
-												title: '网络错误，请稍后重试',
-												icon: 'none'
-											});
-										}
-									});
-									} else {
-										// 抢购失败
-										uni.showToast({
-											title: seckillResult.message || '秒杀失败',
-											icon: 'none'
-										});
-									}
-								} else {
-									console.error('秒杀接口请求失败:', res.data.message);
-									uni.showToast({
-										title: '秒杀请求失败，请重试',
-										icon: 'none'
-									});
-								}
-							},
-							fail: (err) => {
-								uni.hideLoading();
-								console.error('秒杀接口请求失败:', err);
-								uni.showToast({
-									title: '网络错误，请稍后重试',
-									icon: 'none'
-								});
-							}
-						});
-					} else {
-						// 普通场景：直接跳转到订单确认页面
-						uni.navigateTo({
-							url: `/pages/order/confirm?skuId=${currentSkuInfo.id}&quantity=${quantity}`
-						});
-					}
-				} else {
-					uni.showToast({
-						title: '已选择规格',
-						icon: 'success'
-					});
-				}
-			}
-		},
-	// 在页面加载时获取商品详情
-	onLoad(options) {
-			console.log(options);
-			// 从路由参数中获取商品ID和场景值
-			const productId = options.productId;
-			const scene = options.scene;
-			this.scene = scene;
-			
-			// 接收秒杀活动时间和ID
-				if (scene === 'seckill') {
-					// 解码URL编码的时间字符串
-					this.activityBeginTime = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : '';
-					this.activityEndTime = options.activityEndTime ? decodeURIComponent(options.activityEndTime) : '';
-					// 接收活动ID
-					this.activityId = options.activityId || '';
-					console.log('秒杀活动开始时间:', this.activityBeginTime);
-					console.log('秒杀活动结束时间:', this.activityEndTime);
-					console.log('秒杀活动ID:', this.activityId);
-					// 打印当前时间，用于调试
-					const now = new Date();
-					console.log('当前时间:', now);
-					// 解析活动时间并打印，用于调试
-					const beginTime = new Date(this.activityBeginTime);
-					const endTime = new Date(this.activityEndTime);
-					console.log('解析后的开始时间:', beginTime);
-					console.log('解析后的结束时间:', endTime);
-					// 打印时间比较结果，用于调试
-					console.log('是否在活动时间范围内:', now >= beginTime && now <= endTime);
-				}
-			
-			this.fetchProductDetail(productId, scene);
-
-			// 获取商品详情后检查收藏状态
-			this.$nextTick(() => {
-				if (this.product.id) {
-					this.checkCollectStatus();
-				}
-			});
-		}
+function request(options) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      ...options,
+      success: resolve,
+      fail: reject
+    })
+  })
 }
+
+function buildAuthHeader() {
+  const header = {
+    'Content-Type': 'application/json'
+  }
+  const token = getToken()
+
+  if (token) {
+    header.Authorization = `Bearer ${token}`
+  }
+
+  return header
+}
+
+function processRichText(html) {
+  if (!html) return ''
+
+  html = html.replace(/<img/gi, '<img style="max-width:100%;height:auto;width:100%;display:block;"')
+  html = html.replace(/<p/gi, '<p style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<div/gi, '<div style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<span/gi, '<span style="max-width:100%;word-break:break-word;overflow-wrap:break-word;"')
+  html = html.replace(/<h1/gi, '<h1 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<h2/gi, '<h2 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<h3/gi, '<h3 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<h4/gi, '<h4 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<h5/gi, '<h5 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<h6/gi, '<h6 style="max-width:100%;word-break:break-word;overflow-wrap:break-word;line-height:1.5;"')
+  html = html.replace(/<table/gi, '<table style="max-width:100%;width:100%;table-layout:fixed;"')
+  html = html.replace(/<td/gi, '<td style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"')
+  html = html.replace(/<th/gi, '<th style="word-break:break-word;overflow-wrap:break-word;padding:8px;font-size:12px;"')
+  html = html.replace(/<pre/gi, '<pre style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"')
+  html = html.replace(/<code/gi, '<code style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"')
+
+  return html
+}
+
+function goBack() {
+  uni.navigateBack()
+}
+
+function handleNavBarHeightCalculated(event) {
+  navBarHeight.value = event.plusHeight
+}
+
+async function loadReviewSummary(productId) {
+  try {
+    const data = await fetchReviewSummary(productId)
+    reviewSummary.totalCount = data.totalCount || 0
+    reviewSummary.goodRate = data.goodRate || 0
+    reviewSummary.topReviews = data.topReviews || []
+  } catch (error) {
+    console.error('获取商品评价概览失败:', error)
+  }
+}
+
+function initSelectedSpecs() {
+  Object.keys(selectedSpecs).forEach((key) => {
+    delete selectedSpecs[key]
+  })
+
+  specs.value.forEach((spec) => {
+    if (spec.opts && spec.opts.length > 0) {
+      selectedSpecs[spec.specId] = spec.opts[0].optId
+    }
+  })
+}
+
+async function fetchProductDetail(productId, sceneValue) {
+  const url = sceneValue === 'seckill'
+    ? `${BASE_API}/app/seckill/queryProductDetail?id=${productId}`
+    : `${BASE_API}/app/product/detail?id=${productId}`
+
+  try {
+    const res = await request({
+      url,
+      method: 'GET',
+      header: buildAuthHeader()
+    })
+
+    if (res.statusCode !== 200 || res.data.code !== 0) {
+      console.error('获取商品详情失败:', res.data && res.data.message)
+      return
+    }
+
+    const data = res.data.data || {}
+    product.value = data.product || {}
+
+    if (product.value.detailDesc) {
+      product.value.detailDesc = processRichText(product.value.detailDesc)
+    }
+
+    banners.value = (data.banners || []).map((item) => getStoragePreviewUrl(item)).filter(Boolean)
+    specs.value = data.specs || []
+    skuOptIds.value = data.skuOptIds || []
+    skus.value = (data.skus || []).map((sku) => ({
+      ...sku,
+      mainImage: getStoragePreviewUrl(sku.mainImage)
+    }))
+    shop.value = data.shop || {}
+    selectedSku.value = null
+    selectedQuantity.value = 1
+
+    initSelectedSpecs()
+
+    if (product.value.id) {
+      checkCollectStatus()
+      loadReviewSummary(product.value.id)
+    }
+  } catch (error) {
+    console.error('请求商品详情失败:', error)
+  }
+}
+
+function goToStore() {
+  if (shop.value && shop.value.shopId) {
+    uni.navigateTo({
+      url: `/pages/shop/detail?shopId=${shop.value.shopId}&shopName=${encodeURIComponent(shop.value.shopName || '店铺')}`
+    })
+    return
+  }
+
+  uni.showToast({
+    title: '暂无店铺信息',
+    icon: 'none'
+  })
+}
+
+async function contactService() {
+  const token = getToken()
+  if (!token) {
+    handleAuthFailure()
+    return
+  }
+
+  const shopId = shop.value.shopId || '1'
+  const mchId = shop.value.mchId || '1'
+
+  uni.showLoading({ title: '初始化会话...' })
+  try {
+    const res = await request({
+      url: `${BASE_API}/app/csConversation/init`,
+      method: 'POST',
+      header: buildAuthHeader(),
+      data: {
+        shopId
+      }
+    })
+
+    uni.hideLoading()
+    if (res.statusCode === 200 && res.data.code === 0) {
+      const conversationId = res.data.data.id
+      uni.navigateTo({
+        url: `/pages/customer-service/index?shopId=${shopId}&mchId=${mchId}&conversationId=${conversationId}`
+      })
+      return
+    }
+
+    console.error('初始化会话失败:', res.data && res.data.message)
+    uni.showToast({
+      title: '初始化会话失败，请重试',
+      icon: 'none'
+    })
+  } catch (error) {
+    uni.hideLoading()
+    console.error('请求初始化会话失败:', error)
+    uni.showToast({
+      title: '网络错误，请检查网络连接',
+      icon: 'none'
+    })
+  }
+}
+
+function closeSpecPopup() {
+  showSpec.value = false
+}
+
+function closeCartPopup() {
+  showCartPopup.value = false
+}
+
+function hasCompleteSpecSelection() {
+  if (scene.value === 'seckill') {
+    return !!selectedSku.value
+  }
+
+  return specs.value.every((spec) => selectedSpecs[spec.specId] !== undefined)
+}
+
+function validateCurrentSelection() {
+  if (scene.value === 'seckill' && !isWithinActivityTime()) {
+    uni.showToast({
+      title: '当前不在秒杀活动时间范围内',
+      icon: 'none'
+    })
+    return false
+  }
+
+  if (!hasCompleteSpecSelection()) {
+    uni.showToast({
+      title: scene.value === 'seckill' ? '请选择商品规格' : '请选择完整的规格',
+      icon: 'none'
+    })
+    return false
+  }
+
+  const currentSkuInfo = getCurrentSkuInfo()
+  if (!currentSkuInfo.id) {
+    uni.showToast({
+      title: '未找到有效的商品规格',
+      icon: 'none'
+    })
+    return false
+  }
+
+  if (scene.value !== 'seckill' && selectedQuantity.value > currentSkuInfo.stock) {
+    uni.showToast({
+      title: '购买数量超过库存',
+      icon: 'none'
+    })
+    return false
+  }
+
+  return true
+}
+
+function addToCart() {
+  if (scene.value === 'seckill' && !isWithinActivityTime()) {
+    uni.showToast({
+      title: '当前不在秒杀活动时间范围内',
+      icon: 'none'
+    })
+    return
+  }
+
+  purchaseMode.value = 'cart'
+  showCartPopup.value = true
+}
+
+function navigateToOrderConfirm(skuId, quantity, previewData) {
+  const params = [
+    `skuId=${skuId}`,
+    `quantity=${quantity}`
+  ]
+
+  if (previewData) {
+    params.push(`orderPreview=${encodeURIComponent(JSON.stringify(previewData))}`)
+    params.push(`scene=${scene.value}`)
+  }
+
+  uni.navigateTo({
+    url: `/pages/order/confirm?${params.join('&')}`
+  })
+}
+
+async function requestSeckillPreview(skuId, quantity) {
+  const res = await request({
+    url: `${BASE_API}/app/order/previewForSeckill`,
+    method: 'POST',
+    header: buildAuthHeader(),
+    data: {
+      items: [{
+        skuId,
+        quantity
+      }]
+    }
+  })
+
+  if (res.statusCode === 200 && res.data.code === 0) {
+    return res.data.data
+  }
+
+  throw new Error((res.data && res.data.message) || '获取订单信息失败')
+}
+
+async function requestSeckillOrder(skuId) {
+  const res = await request({
+    url: `${BASE_API}/app/order/seckill`,
+    method: 'POST',
+    header: buildAuthHeader(),
+    data: {
+      skuId,
+      activityId: activityId.value || ''
+    }
+  })
+
+  if (res.statusCode === 200 && res.data.code === 0 && res.data.data && res.data.data.success) {
+    return res.data.data
+  }
+
+  throw new Error((res.data && res.data.data && res.data.data.message) || (res.data && res.data.message) || '秒杀失败')
+}
+
+async function confirmAddToCart() {
+  if (!validateCurrentSelection()) {
+    return
+  }
+
+  const currentSkuInfo = getCurrentSkuInfo()
+  const quantity = scene.value === 'seckill' ? 1 : selectedQuantity.value
+
+  if (purchaseMode.value === 'buy') {
+    closeCartPopup()
+    navigateToOrderConfirm(currentSkuInfo.id, quantity)
+    return
+  }
+
+  authRequest({
+    url: `${BASE_API}/app/cartItem/create`,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    data: {
+      skuId: currentSkuInfo.id,
+      quantity
+    }
+  }, (res) => {
+    if (res.data.code === 0) {
+      uni.showToast({
+        title: '已添加到购物车',
+        icon: 'success'
+      })
+      closeCartPopup()
+      return
+    }
+
+    uni.showToast({
+      title: res.data.message || '添加购物车失败',
+      icon: 'none'
+    })
+  }, (error) => {
+    console.error('加入购物车请求失败:', error)
+    uni.showToast({
+      title: '请求失败，请稍后重试',
+      icon: 'none'
+    })
+  })
+}
+
+function buyNow() {
+  purchaseMode.value = 'buy'
+  showSpec.value = true
+}
+
+function addToFavorites() {
+  const userId = getUserId()
+  if (!userId) {
+    handleAuthFailure()
+    return
+  }
+
+  if (isCollected.value) {
+    cancelCollect()
+  } else {
+    addCollect()
+  }
+}
+
+function addCollect() {
+  authRequest({
+    url: `${BASE_API}/app/productFavorites/add`,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    data: {
+      id: product.value.id
+    }
+  }, (res) => {
+    if (res.data.code === 0 && res.data.data && res.data.data.success) {
+      isCollected.value = true
+      uni.showToast({
+        title: '收藏成功',
+        icon: 'success'
+      })
+      return
+    }
+
+    if (res.data.code === 401) {
+      handleAuthFailure()
+      return
+    }
+
+    uni.showToast({
+      title: res.data.message || '收藏失败',
+      icon: 'none'
+    })
+  }, (error) => {
+    console.error('收藏失败', error)
+    uni.showToast({
+      title: '收藏失败',
+      icon: 'none'
+    })
+  })
+}
+
+function cancelCollect() {
+  authRequest({
+    url: `${BASE_API}/app/productFavorites/remove`,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    data: {
+      id: product.value.id
+    }
+  }, (res) => {
+    if (res.data.code === 0 && res.data.data && res.data.data.success) {
+      isCollected.value = false
+      uni.showToast({
+        title: '已取消收藏',
+        icon: 'success'
+      })
+      return
+    }
+
+    if (res.data.code === 401) {
+      handleAuthFailure()
+      return
+    }
+
+    uni.showToast({
+      title: res.data.message || '取消收藏失败',
+      icon: 'none'
+    })
+  }, (error) => {
+    console.error('取消收藏失败', error)
+    uni.showToast({
+      title: '取消收藏失败',
+      icon: 'none'
+    })
+  })
+}
+
+function checkCollectStatus() {
+  if (!getUserId() || !product.value.id) {
+    return
+  }
+
+  authRequest({
+    url: `${BASE_API}/app/productFavorites/status?spuId=${product.value.id}`,
+    method: 'GET'
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      isCollected.value = !!res.data.data.result
+    } else if (res.statusCode === 401) {
+      handleAuthFailure()
+    } else {
+      console.error('检查收藏状态失败:', res.data && res.data.message)
+    }
+  }, (error) => {
+    console.error('检查收藏状态请求失败:', error)
+  })
+}
+
+function selectSpecOption(specId, optId) {
+  if (selectedSpecs[specId] === optId) {
+    delete selectedSpecs[specId]
+    return
+  }
+
+  selectedSpecs[specId] = optId
+}
+
+function selectSku(sku) {
+  selectedSku.value = sku
+}
+
+function isWithinActivityTime() {
+  if (scene.value !== 'seckill') {
+    return true
+  }
+
+  if (!activityBeginTime.value || !activityEndTime.value) {
+    return true
+  }
+
+  const beginTime = new Date(activityBeginTime.value)
+  const endTime = new Date(activityEndTime.value)
+  if (Number.isNaN(beginTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    return true
+  }
+
+  const now = new Date()
+  return now >= beginTime && now <= endTime
+}
+
+function getSelectedSpecDesc() {
+  const selected = []
+  specs.value.forEach((spec) => {
+    const selectedOptId = selectedSpecs[spec.specId]
+    if (!selectedOptId) {
+      return
+    }
+
+    const selectedOpt = (spec.opts || []).find((opt) => opt.optId === selectedOptId)
+    if (selectedOpt) {
+      selected.push(`${spec.specName}:${selectedOpt.optName}`)
+    }
+  })
+
+  return selected.join(' ')
+}
+
+function getCurrentSkuInfo() {
+  if (scene.value === 'seckill') {
+    if (!selectedSku.value) {
+      return { id: null, price: null, stock: 0 }
+    }
+
+    return {
+      id: selectedSku.value.id,
+      price: selectedSku.value.price,
+      stock: selectedSku.value.stock
+    }
+  }
+
+  const selectedOptIds = Object.values(selectedSpecs).filter(Boolean).map((id) => id.toString()).sort()
+  if (!Array.isArray(skus.value)) {
+    return { id: null, price: null, stock: 0 }
+  }
+
+  const matchedSku = skus.value.find((sku) => {
+    if (!sku.specCode) {
+      return false
+    }
+
+    const skuOptIdsSorted = sku.specCode.split('-').sort()
+    return selectedOptIds.length === skuOptIdsSorted.length && selectedOptIds.every((id) => skuOptIdsSorted.includes(id))
+  })
+
+  if (!matchedSku) {
+    return { id: null, price: null, stock: 0 }
+  }
+
+  return {
+    id: matchedSku.id,
+    price: matchedSku.price,
+    stock: matchedSku.stock
+  }
+}
+
+function isOptionDisabled(specId, optId) {
+  if (scene.value === 'seckill') {
+    return false
+  }
+
+  const tempSelectedSpecs = { ...selectedSpecs, [specId]: optId }
+  const selectedOptIds = Object.values(tempSelectedSpecs).filter(Boolean).map((id) => id.toString()).sort()
+
+  if (!Array.isArray(skus.value) || skus.value.length === 0) {
+    return false
+  }
+
+  const hasMatchingSku = skus.value.some((sku) => {
+    if (!sku.specCode) {
+      return false
+    }
+
+    const skuOptIdsSorted = sku.specCode.split('-').sort()
+    return selectedOptIds.every((id) => skuOptIdsSorted.includes(id))
+  })
+
+  return !hasMatchingSku
+}
+
+function decreaseQuantity() {
+  if (selectedQuantity.value > 1) {
+    selectedQuantity.value -= 1
+  }
+}
+
+function increaseQuantity() {
+  const currentStock = getCurrentSkuInfo().stock
+  if (selectedQuantity.value < currentStock) {
+    selectedQuantity.value += 1
+  }
+}
+
+async function confirmSpec() {
+  if (!validateCurrentSelection()) {
+    return
+  }
+
+  const currentSkuInfo = getCurrentSkuInfo()
+  const quantity = scene.value === 'seckill' ? 1 : selectedQuantity.value
+
+  closeSpecPopup()
+
+  if (purchaseMode.value !== 'buy') {
+    uni.showToast({
+      title: '已选择规格',
+      icon: 'success'
+    })
+    return
+  }
+
+  if (scene.value === 'seckill') {
+    uni.showLoading({ title: '正在抢购...' })
+    try {
+      await requestSeckillOrder(currentSkuInfo.id)
+      uni.showLoading({ title: '加载订单信息...' })
+      const previewData = await requestSeckillPreview(currentSkuInfo.id, quantity)
+      uni.hideLoading()
+      navigateToOrderConfirm(currentSkuInfo.id, quantity, previewData)
+    } catch (error) {
+      uni.hideLoading()
+      console.error('秒杀流程失败:', error)
+      uni.showToast({
+        title: error.message || '秒杀失败',
+        icon: 'none'
+      })
+    }
+    return
+  }
+
+  navigateToOrderConfirm(currentSkuInfo.id, quantity)
+}
+
+onLoad((options = {}) => {
+  const productId = options.productId || options.id
+  const sceneValue = options.scene || ''
+  scene.value = sceneValue
+
+  if (sceneValue === 'seckill') {
+    activityBeginTime.value = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : ''
+    activityEndTime.value = options.activityEndTime ? decodeURIComponent(options.activityEndTime) : ''
+    activityId.value = options.activityId || ''
+  }
+
+  fetchProductDetail(productId, sceneValue)
+})
 </script>
 
 <style scoped>

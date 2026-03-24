@@ -48,7 +48,7 @@
           </view>
         </view>
         <view v-if="availableCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="https://via.placeholder.com/100" mode="aspectFill" />
+          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
           <text class="empty-text">暂无可用优惠券</text>
         </view>
       </view>
@@ -76,7 +76,7 @@
           </view>
         </view>
         <view v-if="usedCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="https://via.placeholder.com/100" mode="aspectFill" />
+          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
           <text class="empty-text">暂无已使用优惠券</text>
         </view>
       </view>
@@ -104,7 +104,7 @@
           </view>
         </view>
         <view v-if="expiredCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="https://via.placeholder.com/100" mode="aspectFill" />
+          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
           <text class="empty-text">暂无已过期优惠券</text>
         </view>
       </view>
@@ -122,194 +122,130 @@
   </view>
 </template>
 
-<script>
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { BASE_API } from '@/utils/config.js'
 import { authRequest } from '@/utils/auth.js'
 
-export default {
-  data() {
-    return {
-      // 优惠券分类标签
-      tabs: [
-        { id: 'available', name: '可用' },
-        { id: 'used', name: '已使用' },
-        { id: 'expired', name: '已过期' }
-      ],
-      // 当前选中的标签
-      activeTab: 'available',
-      // 优惠券数据
-      availableCoupons: [],
-      usedCoupons: [],
-      expiredCoupons: [],
-      // 加载状态
-      loading: false,
-      // 刷新状态
-      refreshing: false,
-      // 加载更多状态
-      loadingMore: false,
-      // 没有更多数据
-      noMore: false,
-      // 分页参数
-      currentPage: 1,
-      pageSize: 10
-    }
-  },
-  methods: {
-    // 切换标签
-    switchTab(tabId) {
-      this.activeTab = tabId;
-      this.currentPage = 1; // 切换标签时重置到第一页
-      this.noMore = false; // 重置没有更多数据的状态
-      this.loading = true; // 显示加载状态
-      this.fetchCoupons();
-    },
-    
-    // 下拉刷新
-    onRefresh() {
-      if (this.refreshing) {
-        return;
-      }
-      this.refreshing = true;
-      this.currentPage = 1;
-      this.noMore = false;
-      this.fetchCoupons();
-    },
-    
-    // 上拉加载更多
-    onLoadMore() {
-      if (this.loadingMore || this.noMore) {
-        return;
-      }
-      this.loadingMore = true;
-      this.currentPage++;
-      this.fetchCoupons();
-    },
-    // 获取优惠券列表
-    fetchCoupons() {
-      // 构建API请求URL
-      let url = `${BASE_API}/app/coupon/receiveList`;
-      
-      // 添加条件参数
-      let condition = 1; // 默认为可用
-      if (this.activeTab === 'used') {
-        condition = 2; // 已使用
-      } else if (this.activeTab === 'expired') {
-        condition = 3; // 已过期
-      }
-      url += `?condition=${condition}&current=${this.currentPage}&size=${this.pageSize}`;
-      
-      // 使用authRequest发送带认证的请求
-      authRequest({
-        url: url,
-        method: 'GET',
-        header: {
-          'Content-Type': 'application/json'
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          // 处理返回的优惠券数据
-          const couponData = res.data.data.records || [];
-          
-          // 转换数据结构
-          const coupons = couponData.map(item => {
-            // 根据useRange生成使用范围文本
-            let useRangeText = '';
-            switch(item.useRange) {
-              case 1:
-                useRangeText = '指定店铺';
-                break;
-              case 2:
-                useRangeText = '指定商品';
-                break;
-              case 3:
-                useRangeText = '指定品类';
-                break;
-              default:
-                useRangeText = '';
-            }
-            
-            return {
-              id: item.id,
-              title: item.name,
-              amount: item.amount,
-              minSpend: item.minAmount,
-              expiryDate: item.endTime,
-              usedDate: item.usedTime,
-              type: item.type,
-              useRange: item.useRange,
-              useRangeText: useRangeText,
-              isUsed: item.isUsed
-            };
-          });
-          
-          // 根据标签类型存储数据
-          if (this.activeTab === 'available') {
-            if (this.currentPage === 1) {
-              this.availableCoupons = coupons;
-            } else {
-              this.availableCoupons = [...this.availableCoupons, ...coupons];
-            }
-          } else if (this.activeTab === 'used') {
-            if (this.currentPage === 1) {
-              this.usedCoupons = coupons;
-            } else {
-              this.usedCoupons = [...this.usedCoupons, ...coupons];
-            }
-          } else if (this.activeTab === 'expired') {
-            if (this.currentPage === 1) {
-              this.expiredCoupons = coupons;
-            } else {
-              this.expiredCoupons = [...this.expiredCoupons, ...coupons];
-            }
-          }
-          
-          // 判断是否还有更多数据
-          this.noMore = coupons.length < this.pageSize;
-        } else {
-          console.error('获取优惠券列表失败:', res.data.message);
-        }
-        this.loading = false;
-        this.refreshing = false;
-        this.loadingMore = false;
-      }, (err) => {
-        // 错误回调
-        console.error('请求优惠券列表失败:', err);
-        this.loading = false;
-        this.refreshing = false;
-        this.loadingMore = false;
-      }, '/pages/coupons/list'); // 传递redirect参数
-    },
-    // 使用优惠券
-    useCoupon(couponId) {
-      // 这里可以添加使用优惠券的逻辑
-      uni.showToast({
-        title: '跳转到使用页面',
-        icon: 'success',
-        duration: 1500
-      });
-      
-      console.log('使用优惠券:', couponId);
-      // 这里可以跳转到商品列表或购物车页面
-    },
-    // 上一页
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-        this.fetchCoupons();
-      }
-    },
-    // 下一页
-    nextPage() {
-      this.currentPage++;
-      this.fetchCoupons();
-    }
-  },
-  // 页面加载时获取数据
-  mounted() {
-    this.fetchCoupons();
-  }
+const tabs = [
+  { id: 'available', name: '可用' },
+  { id: 'used', name: '已使用' },
+  { id: 'expired', name: '已过期' }
+]
+
+const activeTab = ref('available')
+const availableCoupons = ref([])
+const usedCoupons = ref([])
+const expiredCoupons = ref([])
+const loading = ref(false)
+const refreshing = ref(false)
+const loadingMore = ref(false)
+const noMore = ref(false)
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10
+})
+
+function switchTab(tabId) {
+  activeTab.value = tabId
+  pagination.currentPage = 1
+  noMore.value = false
+  loading.value = true
+  fetchCoupons()
 }
+
+function onRefresh() {
+  if (refreshing.value) {
+    return
+  }
+  refreshing.value = true
+  pagination.currentPage = 1
+  noMore.value = false
+  fetchCoupons()
+}
+
+function onLoadMore() {
+  if (loadingMore.value || noMore.value) {
+    return
+  }
+  loadingMore.value = true
+  pagination.currentPage += 1
+  fetchCoupons()
+}
+
+function fetchCoupons() {
+  let condition = 1
+  if (activeTab.value === 'used') {
+    condition = 2
+  } else if (activeTab.value === 'expired') {
+    condition = 3
+  }
+
+  authRequest({
+    url: `${BASE_API}/app/coupon/receiveList?condition=${condition}&current=${pagination.currentPage}&size=${pagination.pageSize}`,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json'
+    }
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      const coupons = (res.data.data.records || []).map((item) => {
+        let useRangeText = ''
+        if (item.useRange === 1) useRangeText = '指定店铺'
+        else if (item.useRange === 2) useRangeText = '指定商品'
+        else if (item.useRange === 3) useRangeText = '指定品类'
+
+        return {
+          id: item.id,
+          title: item.name,
+          amount: item.amount,
+          minSpend: item.minAmount,
+          expiryDate: item.endTime,
+          usedDate: item.usedTime,
+          type: item.type,
+          useRange: item.useRange,
+          useRangeText,
+          isUsed: item.isUsed
+        }
+      })
+
+      if (activeTab.value === 'available') {
+        availableCoupons.value = pagination.currentPage === 1 ? coupons : [...availableCoupons.value, ...coupons]
+      } else if (activeTab.value === 'used') {
+        usedCoupons.value = pagination.currentPage === 1 ? coupons : [...usedCoupons.value, ...coupons]
+      } else {
+        expiredCoupons.value = pagination.currentPage === 1 ? coupons : [...expiredCoupons.value, ...coupons]
+      }
+
+      noMore.value = coupons.length < pagination.pageSize
+    } else {
+      console.error('获取优惠券列表失败:', res.data && res.data.message)
+    }
+
+    loading.value = false
+    refreshing.value = false
+    loadingMore.value = false
+  }, (error) => {
+    console.error('请求优惠券列表失败:', error)
+    loading.value = false
+    refreshing.value = false
+    loadingMore.value = false
+  }, '/pages/coupons/list')
+}
+
+function useCoupon(couponId) {
+  uni.showToast({
+    title: '跳转到使用页面',
+    icon: 'success',
+    duration: 1500
+  })
+  void couponId
+}
+
+onLoad(() => {
+  fetchCoupons()
+})
 </script>
 
 <style scoped>

@@ -50,7 +50,7 @@
           </view>
         </view>
         <view v-if="coupons.length === 0" class="empty-state">
-          <image class="empty-icon" src="https://via.placeholder.com/100" mode="aspectFill" />
+          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
           <text class="empty-text">暂无可用优惠券</text>
         </view>
       </view>
@@ -58,162 +58,120 @@
   </view>
 </template>
 
-<script>
+<script setup>
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { BASE_API } from '@/utils/config.js'
 import { authRequest } from '@/utils/auth.js'
 
-export default {
-  data() {
-    return {
-      // 筛选标签
-      tabs: [
-        { id: 'all', name: '全部', useRange: null },
-        { id: 'shop', name: '店铺', useRange: 1 },
-        { id: 'product', name: '商品', useRange: 2 },
-        { id: 'category', name: '品类', useRange: 3 }
-      ],
-      // 当前选中的标签
-      activeTab: 'all',
-      // 优惠券数据
-      coupons: [],
-      // 加载状态
-      loading: false
-    }
-  },
-  computed: {
-    // 当前选中标签的useRange值
-    currentUseRange() {
-      const tab = this.tabs.find(t => t.id === this.activeTab);
-      return tab ? tab.useRange : null;
-    }
-  },
-  methods: {
-    // 切换标签
-    switchTab(tabId) {
-      this.activeTab = tabId;
-      this.fetchCoupons();
-    },
-    // 获取优惠券列表
-    fetchCoupons() {
-      this.loading = true;
-      
-      // 构建API请求URL
-      let url = `${BASE_API}/app/coupon/centerList`;
-      
-      // 添加useRange参数
-      if (this.currentUseRange !== null) {
-        url += `?useRange=${this.currentUseRange}`;
-      }
-      
-      // 使用authRequest发送带认证的请求
-      authRequest({
-        url: url,
-        method: 'GET',
-        header: {
-          'Content-Type': 'application/json'
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          // 处理返回的优惠券数据
-          const couponData = res.data.data.records;
-          
-          // 转换数据结构
-              this.coupons = couponData.map(item => {
-                // 根据useRange生成使用范围文本
-                let useRangeText = '';
-                switch(item.useRange) {
-                  case 1:
-                    useRangeText = '指定店铺';
-                    break;
-                  case 2:
-                    useRangeText = '指定商品';
-                    break;
-                  case 3:
-                    useRangeText = '指定品类';
-                    break;
-                  default:
-                    useRangeText = '';
-                }
-                
-                return {
-                  id: item.id,
-                  title: item.name,
-                  amount: item.amount,
-                  minSpend: item.minAmount,
-                  expiryDate: item.endTime,
-                  type: item.type,
-                  quantity: item.quantity,
-                  received: item.received,
-                  receivedCount: item.receivedCount || 0,
-                  used: item.used,
-                  perLimit: item.perLimit,
-                  useRange: item.useRange,
-                  useRangeText: useRangeText
-                };
-              });
-        } else {
-          console.error('获取优惠券列表失败:', res.data.message);
-        }
-        this.loading = false;
-      }, (err) => {
-        // 错误回调
-        console.error('请求优惠券列表失败:', err);
-        this.loading = false;
-      }, '/pages/coupons/center'); // 传递redirect参数
-    },
-    // 领取优惠券
-    claimCoupon(couponId) {
-      // 构建API请求URL
-      const url = `${BASE_API}/app/coupon/receive`;
-      
-      // 使用authRequest发送带认证的请求
-      authRequest({
-        url: url,
-        method: 'POST',
-        header: {
-          'Content-Type': 'application/json'
-        },
-        data: {
-          id: couponId
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          // 显示领取成功提示
-          uni.showToast({
-            title: '领取成功',
-            icon: 'success',
-            duration: 1500
-          });
-          
-          // 重新获取优惠券列表
-          this.fetchCoupons();
-        } else {
-          // 显示领取失败提示
-          uni.showToast({
-            title: res.data.message || '领取失败',
-            icon: 'none',
-            duration: 1500
-          });
-        }
-      }, (err) => {
-        // 错误回调
-        console.error('领取优惠券失败:', err);
-        // 显示领取失败提示
-        uni.showToast({
-          title: '领取失败，请重试',
-          icon: 'none',
-          duration: 1500
-        });
-      }, '/pages/coupons/center'); // 传递redirect参数
-    }
-  },
-  // 页面加载时获取数据
-  mounted() {
-    this.fetchCoupons();
-  }
+const tabs = [
+  { id: 'all', name: '全部', useRange: null },
+  { id: 'shop', name: '店铺', useRange: 1 },
+  { id: 'product', name: '商品', useRange: 2 },
+  { id: 'category', name: '品类', useRange: 3 }
+]
+
+const activeTab = ref('all')
+const coupons = ref([])
+const loading = ref(false)
+
+const currentUseRange = computed(() => {
+  const tab = tabs.find((item) => item.id === activeTab.value)
+  return tab ? tab.useRange : null
+})
+
+function switchTab(tabId) {
+  activeTab.value = tabId
+  fetchCoupons()
 }
+
+function fetchCoupons() {
+  loading.value = true
+  let url = `${BASE_API}/app/coupon/centerList`
+  if (currentUseRange.value !== null) {
+    url += `?useRange=${currentUseRange.value}`
+  }
+
+  authRequest({
+    url,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json'
+    }
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      const couponData = res.data.data.records || []
+      coupons.value = couponData.map((item) => {
+        let useRangeText = ''
+        if (item.useRange === 1) useRangeText = '指定店铺'
+        else if (item.useRange === 2) useRangeText = '指定商品'
+        else if (item.useRange === 3) useRangeText = '指定品类'
+
+        return {
+          id: item.id,
+          title: item.name,
+          amount: item.amount,
+          minSpend: item.minAmount,
+          expiryDate: item.endTime,
+          type: item.type,
+          quantity: item.quantity,
+          received: item.received,
+          receivedCount: item.receivedCount || 0,
+          used: item.used,
+          perLimit: item.perLimit,
+          useRange: item.useRange,
+          useRangeText
+        }
+      })
+    } else {
+      console.error('获取优惠券列表失败:', res.data && res.data.message)
+    }
+    loading.value = false
+  }, (error) => {
+    console.error('请求优惠券列表失败:', error)
+    loading.value = false
+  }, '/pages/coupons/center')
+}
+
+function claimCoupon(couponId) {
+  authRequest({
+    url: `${BASE_API}/app/coupon/receive`,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    data: {
+      id: couponId
+    }
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      uni.showToast({
+        title: '领取成功',
+        icon: 'success',
+        duration: 1500
+      })
+      fetchCoupons()
+      return
+    }
+
+    uni.showToast({
+      title: (res.data && res.data.message) || '领取失败',
+      icon: 'none',
+      duration: 1500
+    })
+  }, (error) => {
+    console.error('领取优惠券失败:', error)
+    uni.showToast({
+      title: '领取失败，请重试',
+      icon: 'none',
+      duration: 1500
+    })
+  }, '/pages/coupons/center')
+}
+
+onLoad(() => {
+  fetchCoupons()
+})
 </script>
 
 <style scoped>

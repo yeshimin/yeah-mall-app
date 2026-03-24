@@ -119,280 +119,201 @@
 	</view>
 </template>
 
-<script>
-	import { BASE_API } from '@/utils/config.js'
-	export default {
-		data() {
-				return {
-					categoryName: '',
-					categoryId: 0,
-					currentSort: 'default-asc',
-					isGridView: true, // true为双列，false为单列
-					searchKeyword: '', // 搜索关键词
-					showFilterPopup: false, // 是否显示筛选弹窗
-					filterOptions: {
-						minPrice: '',
-						maxPrice: '',
-						selectedBrands: [],
-						shippingOption: 'all' // all, free, fast
-					},
-					brands: ['品牌A', '品牌B', '品牌C', '品牌D'],
-					products: [],
-					scrollToken: null, // 滚动分页token
-					hasMore: false // 是否还有更多数据
-				}
-			},
-		methods: {
-			showFilter() {
-				// 显示筛选弹窗
-				this.showFilterPopup = true;
-			},
-			closeFilter() {
-				// 关闭筛选弹窗
-				this.showFilterPopup = false;
-			},
-			sortProducts(sortType) {
-				// 根据排序类型设置currentSort的值
-				if (sortType === 'sales') {
-					// 销量排序特殊处理：根据当前状态切换
-					if (this.currentSort === 'sales-asc') {
-						this.currentSort = 'sales-desc';
-					} else {
-						this.currentSort = 'sales-asc';
-					}
-				} else if (sortType === 'price') {
-					// 价格排序特殊处理：根据当前状态切换
-					if (this.currentSort === 'price-asc') {
-						this.currentSort = 'price-desc';
-					} else {
-						this.currentSort = 'price-asc';
-					}
-				} else if (sortType === 'default') {
-					// 综合排序保持不变
-					this.currentSort = sortType;
-				} else {
-					// 其他排序类型保持原有逻辑
-					this.currentSort = sortType;
-				}
-				
-				// 根据排序类型对商品进行排序
-				console.log('按' + this.currentSort + '排序');
-				// 实际项目中这里会调用后端API进行排序
-				this.scrollToken = null; // 重置滚动分页token
-				this.hasMore = false; // 重置更多数据标志
-				this.products = []; // 清空商品列表
-				this.fetchProducts();
-			},
-			// 切换排序方式
-			toggleSort(sortType, direction) {
-				// 如果传递了方向参数，直接使用；否则根据当前状态切换
-				let newSortType;
-				if (direction) {
-					newSortType = sortType + '-' + direction;
-				} else {
-					// 根据当前排序状态切换排序方式
-					if (sortType === 'sales') {
-						// 销量排序特殊处理：只在2和3之间切换
-						if (this.currentSort === 'sales-asc') {
-							newSortType = 'sales-desc';
-						} else {
-							newSortType = 'sales-asc';
-						}
-					} else {
-						newSortType = sortType + '-asc'; // 默认为正序
-						
-						// 如果当前已经是该类型的正序，则切换为倒序
-						if (this.currentSort === sortType + '-asc') {
-							newSortType = sortType + '-desc';
-						} else if (this.currentSort === sortType + '-desc') {
-							// 如果当前是倒序，则切换回默认排序
-							newSortType = 'default-asc';
-						}
-					}
-				}
-				
-				this.currentSort = newSortType;
-				console.log('按' + newSortType + '排序');
-				
-				// 重置分页相关状态
-				this.scrollToken = null;
-				this.hasMore = false;
-				this.products = [];
-				
-				// 重新获取商品列表
-				this.fetchProducts();
-			},
-			goToProductDetail(item) {
-				// 跳转到商品详情页面
-				uni.navigateTo({
-					url: `/pages/product/detail?id=${item.id}`
-				});
-			},
-			// 切换视图（单列/双列）
-			toggleView() {
-				this.isGridView = !this.isGridView;
-			},
-			// 搜索商品
-			searchProducts() {
-				console.log('搜索关键词：' + this.searchKeyword);
-				// 实际项目中这里会调用后端API进行搜索
-				this.scrollToken = null; // 重置滚动分页token
-				this.hasMore = false; // 重置更多数据标志
-				this.products = []; // 清空商品列表
-				this.fetchProducts();
-			},
-			// 筛选相关方法
-			toggleBrand(brand) {
-				const index = this.filterOptions.selectedBrands.indexOf(brand);
-				if (index > -1) {
-					// 如果已选中，则移除
-					this.filterOptions.selectedBrands.splice(index, 1);
-				} else {
-					// 如果未选中，则添加
-					this.filterOptions.selectedBrands.push(brand);
-				}
-			},
-			selectShipping(option) {
-				this.filterOptions.shippingOption = option;
-			},
-			resetFilter() {
-				// 重置筛选条件
-				this.filterOptions.minPrice = '';
-				this.filterOptions.maxPrice = '';
-				this.filterOptions.selectedBrands = [];
-				this.filterOptions.shippingOption = 'all';
-			},
-			applyFilter() {
-				// 应用筛选条件
-				console.log('应用筛选条件:', this.filterOptions);
-				// 实际项目中这里会调用后端API进行筛选
-				this.closeFilter();
-					},
-					
-					// 加载更多商品
-					loadMore() {
-						// 如果还有更多数据且当前不在加载中，则加载更多
-						if (this.hasMore && this.scrollToken) {
-							console.log('加载更多商品...');
-							this.fetchProducts();
-						}
-					},
-					
-					// 获取商品列表
-					fetchProducts() {
-				// 构建API请求URL
-				let url = `${BASE_API}/app/product/query`;
-				
-				// 构建查询参数
-				let params = [];
-				
-				// 添加排序参数
-				let sortBy = '1'; // 默认综合正序
-				if (this.currentSort === 'sales-asc') {
-					sortBy = '2'; // 销量正序
-				} else if (this.currentSort === 'sales-desc') {
-					sortBy = '3'; // 销量倒序
-				} else if (this.currentSort === 'price-asc') {
-					sortBy = '4'; // 价格正序
-				} else if (this.currentSort === 'price-desc') {
-					sortBy = '5'; // 价格倒序
-				} else if (this.currentSort === 'default-desc') {
-					sortBy = '6'; // 综合倒序
-				}
-				params.push('sortBy=' + sortBy);
-				
-				// 添加关键词参数
-				if (this.searchKeyword) {
-					params.push('keyword=' + encodeURIComponent(this.searchKeyword));
-				}
-				
-				// 添加分页参数
-				params.push('pageSize=20'); // 设置每页大小
-				
-				// 添加滚动分页token
-				if (this.scrollToken) {
-					params.push('scrollToken=' + encodeURIComponent(this.scrollToken));
-				}
-				
-				// 拼接完整URL
-				url += '?' + params.join('&');
-				
-				uni.request({
-					url: url,
-					method: 'GET',
-					header: {
-						'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxIiwiaWF0IjoxNzU0ODMxOTI0LCJzdWIiOiJhcHAiLCJ0ZXJtIjoiYXBwIiwiaWF0TXMiOjE3NTQ4MzE5MjQ5NjksImV4cE1zIjoxNzU0ODM1NTI0OTY5fQ.T5UGHYy6ThASbwIae6aM1tJue15rJaAFnyXI945UhSk',
-						'Content-Type': 'application/json'
-					},
-					success: (res) => {
-						if (res.statusCode === 200 && res.data.code === 0) {
-							// 处理返回的商品数据
-							const responseData = res.data.data;
-							
-							// 更新滚动分页相关变量
-							this.scrollToken = responseData.scrollToken || null;
-							this.hasMore = responseData.hasMore || false;
-							
-							// 处理商品数据，添加价格和销量的模拟值
-							const productsWithDetails = responseData.data.map(item => ({
-								...item,
-								price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : (Math.random() * 1000).toFixed(2),
-								sales: item.sales !== undefined ? item.sales : Math.floor(Math.random() * 1000),
-								// 根据不同环境构造图片URL
-                image: item.mainImage && item.mainImage.trim() !== '' ? (() => {
-                  // 使用uni-app的环境变量判断
-                  if (process.env.NODE_ENV === 'development') {
-                    // 开发环境从环境变量中获取目标地址
-                    const proxyTarget = BASE_API; // 使用全局配置的基础API路径
-                    return `${proxyTarget}/public/storage/preview?fileKey=${item.mainImage}`;
-                  } else {
-                    // 其他环境(生产、测试等)使用配置的基础API路径
-                    const baseApi = BASE_API; // 使用全局配置的基础API路径
-                    return `${baseApi}/public/storage/preview?fileKey=${item.mainImage}`;
-                  }
-                })() : 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-							}));
-							
-							// 如果是加载更多，追加到现有商品列表；否则替换商品列表
-							if (this.scrollToken && this.products.length > 0) {
-								this.products = [...this.products, ...productsWithDetails];
-							} else {
-								this.products = productsWithDetails;
-							}
-							
-							// 如果返回的数据为空，表示没有更多数据了，停止显示"加载中"
-							if (productsWithDetails.length === 0) {
-								this.hasMore = false;
-							}
-						} else {
-							console.error('获取商品列表失败:', res.data.message);
-						}
-					},
-					fail: (err) => {
-						console.error('请求商品列表失败:', err);
-					}
-				});
-			}
-		},
-		onLoad(options) {
-			// 获取分类ID和名称
-			if (options.categoryId) {
-				this.categoryId = options.categoryId;
-			}
-			if (options.categoryName) {
-				this.categoryName = options.categoryName;
-			}
-			// 获取搜索关键词并填充到搜索框
-			if (options.searchKeyword) {
-				this.searchKeyword = options.searchKeyword;
-			} else if (options.query) { // 处理从首页搜索框传递的query参数
-				this.searchKeyword = options.query;
-			}
-			
-			// 调用接口获取商品列表
-			this.fetchProducts();
-		},
-	}
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
+import { getToken } from '@/utils/auth.js'
+
+const categoryName = ref('')
+const categoryId = ref(0)
+const currentSort = ref('default-asc')
+const isGridView = ref(true)
+const searchKeyword = ref('')
+const showFilterPopup = ref(false)
+const filterOptions = reactive({
+  minPrice: '',
+  maxPrice: '',
+  selectedBrands: [],
+  shippingOption: 'all'
+})
+const brands = ['品牌A', '品牌B', '品牌C', '品牌D']
+const products = ref([])
+const scrollToken = ref(null)
+const hasMore = ref(false)
+const pageSize = 20
+
+function createRequestHeader() {
+  const header = {
+    'Content-Type': 'application/json'
+  }
+  const token = getToken()
+  if (token) {
+    header.Authorization = `Bearer ${token}`
+  }
+  return header
+}
+
+function resetPagination() {
+  scrollToken.value = null
+  hasMore.value = false
+  products.value = []
+}
+
+function showFilter() {
+  showFilterPopup.value = true
+}
+
+function closeFilter() {
+  showFilterPopup.value = false
+}
+
+function sortProducts(sortType) {
+  if (sortType === 'sales') {
+    currentSort.value = currentSort.value === 'sales-asc' ? 'sales-desc' : 'sales-asc'
+  } else if (sortType === 'price') {
+    currentSort.value = currentSort.value === 'price-asc' ? 'price-desc' : 'price-asc'
+  } else if (sortType === 'default') {
+    currentSort.value = 'default-asc'
+  } else {
+    currentSort.value = sortType
+  }
+
+  resetPagination()
+  fetchProducts()
+}
+
+function goToProductDetail(item) {
+  uni.navigateTo({
+    url: `/pages/product/detail?productId=${item.id}`
+  })
+}
+
+function toggleView() {
+  isGridView.value = !isGridView.value
+}
+
+function searchProducts() {
+  resetPagination()
+  fetchProducts()
+}
+
+function toggleBrand(brand) {
+  const index = filterOptions.selectedBrands.indexOf(brand)
+  if (index > -1) {
+    filterOptions.selectedBrands.splice(index, 1)
+  } else {
+    filterOptions.selectedBrands.push(brand)
+  }
+}
+
+function selectShipping(option) {
+  filterOptions.shippingOption = option
+}
+
+function resetFilter() {
+  filterOptions.minPrice = ''
+  filterOptions.maxPrice = ''
+  filterOptions.selectedBrands.splice(0, filterOptions.selectedBrands.length)
+  filterOptions.shippingOption = 'all'
+}
+
+function applyFilter() {
+  closeFilter()
+  resetPagination()
+  fetchProducts()
+}
+
+function loadMore() {
+  if (hasMore.value && scrollToken.value) {
+    fetchProducts()
+  }
+}
+
+function getSortBy() {
+  switch (currentSort.value) {
+    case 'sales-asc':
+      return '2'
+    case 'sales-desc':
+      return '3'
+    case 'price-asc':
+      return '4'
+    case 'price-desc':
+      return '5'
+    case 'default-desc':
+      return '6'
+    default:
+      return '1'
+  }
+}
+
+function buildQueryParams() {
+  const params = [`sortBy=${getSortBy()}`, `pageSize=${pageSize}`]
+
+  if (searchKeyword.value) {
+    params.push(`keyword=${encodeURIComponent(searchKeyword.value)}`)
+  }
+
+  if (scrollToken.value) {
+    params.push(`scrollToken=${encodeURIComponent(scrollToken.value)}`)
+  }
+
+  return params
+}
+
+function fetchProducts() {
+  uni.request({
+    url: `${BASE_API}/app/product/query?${buildQueryParams().join('&')}`,
+    method: 'GET',
+    header: createRequestHeader(),
+    success: (res) => {
+      if (res.statusCode !== 200 || res.data.code !== 0) {
+        console.error('获取商品列表失败:', res.data && res.data.message)
+        return
+      }
+
+      const responseData = res.data.data || {}
+      const incomingProducts = (responseData.data || []).map((item) => ({
+        ...item,
+        price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : '0.00',
+        sales: item.sales !== undefined ? item.sales : 0,
+        image: getStoragePreviewUrl(item.mainImage) || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+      }))
+
+      scrollToken.value = responseData.scrollToken || null
+      hasMore.value = !!responseData.hasMore
+
+      if (scrollToken.value && products.value.length > 0) {
+        products.value = [...products.value, ...incomingProducts]
+      } else {
+        products.value = incomingProducts
+      }
+
+      if (incomingProducts.length === 0) {
+        hasMore.value = false
+      }
+    },
+    fail: (error) => {
+      console.error('请求商品列表失败:', error)
+    }
+  })
+}
+
+onLoad((options = {}) => {
+  if (options.categoryId) {
+    categoryId.value = Number(options.categoryId)
+  }
+  if (options.categoryName) {
+    categoryName.value = decodeURIComponent(options.categoryName)
+  }
+  if (options.searchKeyword) {
+    searchKeyword.value = decodeURIComponent(options.searchKeyword)
+  } else if (options.query) {
+    searchKeyword.value = decodeURIComponent(options.query)
+  }
+
+  fetchProducts()
+})
 </script>
 
 <style scoped>

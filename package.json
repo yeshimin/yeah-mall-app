@@ -6,17 +6,18 @@
   "scripts": {
     "dev:h5": "vite",
     "build:h5": "vite build",
-    "dev:mp-weixin": "uni build --platform mp-weixin --watch",
-    "build:mp-weixin": "uni build --platform mp-weixin"
+    "dev:mp-weixin": "UNI_INPUT_DIR=. uni build --platform mp-weixin --watch",
+    "build:mp-weixin": "UNI_INPUT_DIR=. uni build --platform mp-weixin"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "^3.0.0",
-    "@dcloudio/uni-h5": "^3.0.0",
-    "@dcloudio/uni-mp-weixin": "^3.0.0",
-    "vue": "^2.6.14"
+    "@dcloudio/uni-app": "3.0.0-alpha-5000420260319001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5000420260319001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5000420260319001",
+    "vue": "^3.4.38"
   },
   "devDependencies": {
-    "@dcloudio/vite-plugin-uni": "^3.0.0",
-    "vite": "^4.0.0"
+    "@vue/compiler-sfc": "^3.4.38",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5000420260319001",
+    "vite": "5.2.8"
   }
 }

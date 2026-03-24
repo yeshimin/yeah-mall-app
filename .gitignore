@@ -1,7 +1,10 @@
 node_modules/
+dist/
 .project
 unpackage/
 .DS_Store
+.env.local
+.env.*.local
 wxcomponents/**/*.vue
 wxcomponents/**/*.css
 .hbuilderx/

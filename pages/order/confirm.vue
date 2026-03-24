@@ -103,583 +103,458 @@
 	</view>
 </template>
 
-<script>
-	import { fetchOrderPreview, submitOrder, queryPayOrderInfo, queryAddressList } from '../../utils/api.js';
-	import { BASE_API } from '@/utils/config.js';
-	
-	export default {
-		data() {
-		return {
-			selectedAddress: null,
-			addressLoading: false,
-			groupedOrderGoods: [], // 按店铺分组的商品
-			goodsTotal: 0.00,
-			shippingFee: 0.00,
-			coupon: 0.00,
-			loading: false,
-			// 用于存储原始的请求参数，以便需要时可以重新获取数据
-			requestItems: [],
-			// 订单来源：1-商品详情页，2-购物车页面
-			orderSource: 1,
-			// 场景值：普通场景或秒杀场景
-			scene: '',
-			// 优惠券相关
-			selectedCoupon: null,
-			couponId: null
-		}
-	},
-		onLoad(options) {
-			// 获取默认地址
-			this.fetchDefaultAddress();
-			
-			// 接收场景值
-			this.scene = options.scene || '';
-			console.log('接收到的场景值:', this.scene);
-			
-			// 接收从商品详情页传递过来的参数
-			if (options.skuId && options.quantity) {
-				console.log('接收到的SKU ID:', options.skuId);
-				console.log('接收到的数量:', options.quantity);
-				
-				// 设置订单来源为商品详情页
-				this.orderSource = 1;
-				
-				// 保存请求参数
-				const requestItems = [{
-					skuId: parseInt(options.skuId),
-					quantity: parseInt(options.quantity)
-				}];
-				this.requestItems = requestItems;
-				
-				// 检查是否有订单预览数据（秒杀场景下从商品详情页传递）
-				if (options.orderPreview) {
-					console.log('接收到的订单预览数据:', options.orderPreview);
-					// 使用传递过来的订单预览数据
-					this.processOrderPreviewData(JSON.parse(decodeURIComponent(options.orderPreview)));
-				} else {
-					// 从商品详情页跳转过来，只有一个商品，调用预览接口获取完整数据
-					this.fetchOrderPreviewData(requestItems);
-				}
-			} else {
-				// 获取事件通道
-				const eventChannel = this.getOpenerEventChannel();
-				// 获取从购物车页面传递的数据
-				eventChannel.on('acceptDataFromCartPage', (data) => {
-					console.log('从购物车页面接收到的数据:', data);
-					if (data && data.selectedItems && data.selectedItems.length > 0) {
-						// 设置订单来源为购物车页面
-						this.orderSource = 2;
-						
-						// 保存请求参数
-						this.requestItems = data.selectedItems;
-						
-						// 从购物车页面获取选中的商品ID和数量，然后请求订单预览数据
-						// 注意：这里只传递必要的参数(skuId和quantity)，完整数据从服务器获取
-						this.fetchOrderPreviewData(data.selectedItems);
-					} else {
-						// 没有商品数据
-						this.loading = false;
-						uni.showToast({
-							title: '没有选择商品',
-							icon: 'none'
-						});
-					}
-				});
-			}
-		},
-		onShow() {
-			console.log('Order confirm onShow called');
-			// 页面显示时，检查是否有选中的地址需要更新
-			const selectedAddr = uni.getStorageSync('selectedAddress');
-			console.log('Retrieved address from localStorage:', selectedAddr);
-			if (selectedAddr) {
-				this.selectedAddress = selectedAddr;
-				console.log('Selected address updated:', this.selectedAddress);
-				// 清除临时存储的地址
-				uni.removeStorageSync('selectedAddress');
-				console.log('LocalStorage cleared');
-			}
-			
-			// 检查是否有选中的优惠券需要更新
-			const selectedCoupon = uni.getStorageSync('selectedCoupon');
-			console.log('Retrieved coupon from localStorage:', selectedCoupon);
-			if (selectedCoupon) {
-				this.selectedCoupon = selectedCoupon;
-				this.couponId = selectedCoupon.id;
-				this.coupon = selectedCoupon.amount || 0;
-				console.log('Selected coupon updated:', this.selectedCoupon);
-				// 清除临时存储的优惠券
-				uni.removeStorageSync('selectedCoupon');
-				console.log('Coupon localStorage cleared');
-			}
-		},
-		computed: {
-			totalAmount() {
-				return (this.goodsTotal + this.shippingFee - this.coupon).toFixed(2);
-			}
-		},
-		methods: {
-			// 刷新订单数据 - 重新从服务器获取最新的订单预览数据
-			refreshOrderData() {
-				if (this.requestItems && this.requestItems.length > 0) {
-					uni.showToast({
-						title: '正在刷新数据...',
-						icon: 'loading',
-						duration: 500
-					});
-					// 使用保存的请求参数重新获取数据
-					this.fetchOrderPreviewData(this.requestItems);
-				} else {
-					uni.showToast({
-						title: '没有商品数据',
-						icon: 'none'
-					});
-				}
-			},
-			
-			// 获取订单预览数据
-			fetchOrderPreviewData(items) {
-				this.loading = true;
-				uni.showLoading({
-					title: '加载中...'
-				});
-				
-				// 秒杀场景使用previewForSeckill接口
-				if (this.scene === 'seckill') {
-					uni.request({
-						url: `${BASE_API}/app/order/previewForSeckill`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${uni.getStorageSync('token')}`
-						},
-						data: {
-							items: items
-						},
-						success: (res) => {
-							if (res.statusCode === 200 && res.data.code === 0) {
-								console.log('秒杀订单预览数据:', res.data.data);
-								// 处理秒杀订单预览数据
-								this.processOrderPreviewData(res.data.data);
-							} else {
-								console.error('获取秒杀订单预览失败:', res.data.message);
-								uni.showToast({
-									title: '获取订单信息失败，请重试',
-									icon: 'none'
-								});
-								this.loading = false;
-							}
-						},
-						fail: (err) => {
-							console.error('请求秒杀订单预览失败:', err);
-							uni.showToast({
-								title: '网络错误，请稍后重试',
-								icon: 'none'
-							});
-							this.loading = false;
-						}
-					});
-				} else {
-					// 普通场景使用原来的preview接口
-					fetchOrderPreview(items)
-						.then(data => {
-							console.log('订单预览数据:', data);
-							
-							// 完全使用服务器返回的数据，不依赖本地传递的参数
-							// 更新店铺分组商品数据
-							this.groupedOrderGoods = data.map(shop => ({
-								shopId: shop.shopId,
-								shopName: shop.shopName,
-								items: shop.items.map(item => ({
-									id: item.skuId,
-									name: item.spuName,
-									spec: item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';'),
-									// 严格使用服务器返回的价格和数量
-									price: item.price,
-									quantity: item.quantity, // 优先使用服务器返回的数量
-									// 构造图片URL，支持spuMainImage和mainImage两种字段
-										image: (item.spuMainImage || item.mainImage) ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage || item.mainImage}` : ''
-								}))
-							}));
-							
-							// 计算商品总额 - 使用服务器返回的价格和数量计算
-							this.goodsTotal = this.calculateTotalPrice();
-						})
-						.catch(error => {
-							console.error('获取订单预览数据失败:', error);
-							uni.showToast({
-								title: '获取订单预览数据失败',
-								icon: 'none'
-							});
-						})
-						.finally(() => {
-							this.loading = false;
-							uni.hideLoading();
-						});
-				}
-			},
-			
-			// 计算所有商品的总价
-			calculateTotalPrice() {
-				return this.groupedOrderGoods
-					.flatMap(shop => shop.items)
-					.reduce((total, item) => total + item.price * item.quantity, 0)
-					.toFixed(2);
-			},
-			
-			// 计算每个店铺的商品总价
-			calculateShopTotal(shop) {
-				return shop.items
-					.reduce((total, item) => total + item.price * item.quantity, 0)
-					.toFixed(2);
-			},
-			
-			// 处理订单预览数据
-			processOrderPreviewData(data) {
-				console.log('处理订单预览数据:', data);
-				
-				// 完全使用服务器返回的数据，不依赖本地传递的参数
-				// 更新店铺分组商品数据
-				this.groupedOrderGoods = data.map(shop => ({
-					shopId: shop.shopId,
-					shopName: shop.shopName,
-					items: shop.items.map(item => ({
-						id: item.skuId,
-						name: item.spuName || item.skuName,
-						spec: item.specs ? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';') : item.skuName,
-						// 严格使用服务器返回的价格和数量
-						price: item.price,
-						quantity: item.quantity, // 优先使用服务器返回的数量
-						// 构造图片URL，支持spuMainImage和mainImage两种字段
-						image: (item.spuMainImage || item.mainImage) ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage || item.mainImage}` : ''
-					}))
-				}));
-				
-				// 计算商品总额 - 使用服务器返回的价格和数量计算
-				this.goodsTotal = this.calculateTotalPrice();
-				this.loading = false;
-			},
-			
-			// 获取默认地址
-			fetchDefaultAddress() {
-				this.addressLoading = true;
-				queryAddressList({ isDefault: true })
-					.then(data => {
-						if (data && data.length > 0) {
-							this.selectedAddress = {
-								id: data[0].id,
-								name: data[0].name,
-								phone: data[0].contact,
-								address: data[0].fullAddress,
-								provinceCode: data[0].provinceCode,
-								cityCode: data[0].cityCode,
-								districtCode: data[0].districtCode,
-								isDefault: data[0].isDefault
-							};
-						}
-					})
-					.catch(error => {
-						console.error('获取默认地址失败:', error);
-					})
-					.finally(() => {
-						this.addressLoading = false;
-					});
-			},
-			
-			// 选择地址
-			selectAddress() {
-				// 跳转到地址选择页面
-				uni.navigateTo({
-					url: '/pages/address/list?fromOrder=true',
-					eventChannel: this.getOpenerEventChannel()
-				});
-			},
-			
-			// 选择优惠券
-			selectCoupon() {
-				// 跳转到优惠券选择页面，传递订单金额和商品信息
-				uni.navigateTo({
-					url: '/pages/coupons/select',
-					eventChannel: this.getOpenerEventChannel()
-				});
-			},
-			
-			payOrder() {
-				// 支付订单逻辑
-				console.log("支付订单");
-				
-				// 检查是否有商品
-				if (!this.groupedOrderGoods || this.groupedOrderGoods.length === 0) {
-					uni.showToast({
-						title: "没有可支付的商品",
-						icon: "none"
-					});
-					return;
-				}
-				
-				// 检查是否选择了收货地址
-				if (!this.selectedAddress) {
-					uni.showToast({
-						title: "请选择收货地址",
-						icon: "none"
-					});
-					return;
-				}
-				
-				// 显示加载提示
-				uni.showLoading({
-					title: '处理中...'
-				});
-				
-				// 构造第一个店铺的订单项（这里简化处理，只支持单个店铺的订单）
-				const shop = this.groupedOrderGoods[0];
-				const items = shop.items.map(item => ({
-					skuId: item.id,
-					quantity: item.quantity
-				}));
+<script setup>
+import { computed, getCurrentInstance, ref } from 'vue'
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app'
+import { fetchOrderPreview, queryAddressList, submitOrder } from '../../utils/api.js'
+import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
+import { getToken } from '@/utils/auth.js'
 
-				// 构造请求数据
-				const data = {
-					items: items,
-					addressId: this.selectedAddress.id, // 添加地址ID
-					scene: this.orderSource === 2 ? 2 : 1, // 添加订单场景，1:商品页下单，2:购物车下单
-					couponId: this.couponId // 添加优惠券ID
-				};
-				
-				// 秒杀场景使用submitForSeckill接口
-				if (this.scene === 'seckill') {
-					// 构造秒杀场景的请求数据，scene设置为3
-				const seckillData = {
-					items: items,
-					addressId: this.selectedAddress.id,
-					scene: "3", // 秒杀场景固定为3
-					couponId: this.couponId // 添加优惠券ID
-				};
-					// 调用秒杀提交接口
-					uni.request({
-						url: `${BASE_API}/app/order/submitForSeckill`,
-						method: 'POST',
-						header: {
-							'Content-Type': 'application/json',
-							'Authorization': `Bearer ${uni.getStorageSync('token')}`
-						},
-						data: seckillData,
-						success: (res) => {
-							if (res.statusCode === 200 && res.data.code === 0) {
-								console.log('秒杀提交接口响应:', res.data);
-								// 秒杀提交成功，开始轮询结果
-								// 从商品数据中获取第一个SKU的ID用于轮询
-								const firstSkuId = items[0].skuId;
-								uni.showLoading({ title: '正在处理...' });
-								this.pollSeckillResult(firstSkuId, 0);
-							} else {
-								uni.hideLoading();
-								console.error('秒杀提交接口请求失败:', res.data.message);
-								uni.showToast({
-									title: res.data.message || '秒杀请求失败，请重试',
-									icon: 'none'
-								});
-							}
-						},
-						fail: (err) => {
-							uni.hideLoading();
-							console.error('秒杀提交接口请求失败:', err);
-							uni.showToast({
-								title: '网络错误，请稍后重试',
-								icon: 'none'
-							});
-						}
-					});
-				} else {
-					// 普通场景使用原来的submitOrder接口
-					submitOrder(data)
-						.then(result => {
-							console.log("订单提交成功:", result);
-							
-							// 直接从下单接口返回结果中获取订单号、订单ID和支付信息
-							// 支付信息直接在result.data中，与genPayInfo接口返回格式一致
-							const orderNo = result.data.orderNo;
-							const orderId = result.data.orderId;
-							const paymentData = result.data;
-							console.log("订单号:", orderNo);
-							console.log("订单ID:", orderId);
-							console.log("支付信息:", paymentData);
-							
-							// 转换支付参数为uni.requestPayment所需格式
-							const payParams = {
-								provider: 'wxpay',
-								// 微信小程序支付必需参数
-								timeStamp: paymentData.timestamp, // 秒级时间戳
-								nonceStr: paymentData.nonceStr, // 随机字符串
-								package: paymentData.packageStr, // 预支付交易会话标识
-								signType: paymentData.signType, // 签名类型
-								paySign: paymentData.paySign // 签名
-							};
-							
-							// 打印支付参数
-							console.log('微信支付请求参数:', payParams);
-							
-							// 检查uni.requestPayment是否存在
-							if (typeof uni.requestPayment === 'function') {
-								// 发起微信支付
-								uni.requestPayment({
-									...payParams,
-									success: (res) => {
-										// 支付成功处理
-										console.log('支付成功', res);
-										uni.hideLoading();
-										// 跳转到支付结果页面，传递支付成功状态
-										uni.navigateTo({
-											url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
-										});
-									},
-									fail: (err) => {
-										// 支付失败处理
-										console.log('支付失败', err);
-										uni.hideLoading();
-										// 根据错误类型判断支付结果
-										if (err.errMsg === 'requestPayment:fail cancel') {
-											// 用户取消支付
-											uni.navigateTo({
-												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
-											});
-										} else {
-											// 支付失败，启动轮询
-											uni.navigateTo({
-												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
-											});
-										}
-									}
-								});
-							} else {
-								console.error('uni.requestPayment is not a function');
-								uni.hideLoading();
-								uni.showToast({
-									title: '当前环境不支持微信支付',
-									icon: 'none'
-								});
-							}
-						})
-						.catch(error => {
-							console.error("支付处理失败:", error);
-							uni.hideLoading();
-							uni.showToast({
-								title: error.message || "支付处理失败",
-								icon: "none"
-							});
-						});
-				}
-			},
-			
-			// 轮询秒杀结果
-			pollSeckillResult(skuId, retryCount) {
-				// 最多轮询2分钟，每2秒一次，共60次
-				if (retryCount >= 60) {
-					uni.hideLoading();
-					uni.showToast({
-						title: '秒杀处理超时，请稍后查询订单状态',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 调用查询秒杀结果接口
-				uni.request({
-					url: `${BASE_API}/app/order/querySeckillResult`,
-					method: 'GET',
-					header: {
-						'Authorization': `Bearer ${uni.getStorageSync('token')}`
-					},
-					data: {
-						skuId: skuId
-					},
-					success: (res) => {
-						if (res.statusCode === 200 && res.data.code === 0) {
-							const result = res.data.data;
-							console.log('秒杀结果查询响应:', result);
-							
-							if (result && result.success) {
-								// 秒杀处理成功，获取支付信息
-								uni.hideLoading();
-								const paymentData = result.data;
-								const orderId = paymentData.orderId;
-								
-								// 转换支付参数为uni.requestPayment所需格式
-								const payParams = {
-									provider: 'wxpay',
-									// 微信小程序支付必需参数
-									timeStamp: paymentData.timestamp, // 秒级时间戳
-									nonceStr: paymentData.nonceStr, // 随机字符串
-									package: paymentData.packageStr, // 预支付交易会话标识
-									signType: paymentData.signType, // 签名类型
-									paySign: paymentData.paySign // 签名
-								};
-								
-								// 打印支付参数
-								console.log('微信支付请求参数:', payParams);
-								
-								// 检查uni.requestPayment是否存在
-								if (typeof uni.requestPayment === 'function') {
-									// 发起微信支付
-									uni.requestPayment({
-										...payParams,
-										success: (res) => {
-											// 支付成功处理
-											console.log('支付成功', res);
-											// 跳转到支付结果页面，传递支付成功状态
-											uni.navigateTo({
-												url: `/pages/order/pay-result?orderId=${orderId}&payResultType=success`
-											});
-										},
-										fail: (err) => {
-											// 支付失败处理
-											console.log('支付失败', err);
-											// 根据错误类型判断支付结果
-											if (err.errMsg === 'requestPayment:fail cancel') {
-												// 用户取消支付
-												uni.navigateTo({
-													url: `/pages/order/pay-result?orderId=${orderId}&payResultType=cancel`
-												});
-											} else {
-												// 支付失败
-												uni.navigateTo({
-													url: `/pages/order/pay-result?orderId=${orderId}&payResultType=fail`
-												});
-											}
-										}
-									});
-								} else {
-									console.error('uni.requestPayment is not a function');
-									uni.showToast({
-										title: '当前环境不支持微信支付',
-										icon: 'none'
-									});
-								}
-							} else {
-								// 秒杀处理中，继续轮询
-								setTimeout(() => {
-									this.pollSeckillResult(skuId, retryCount + 1);
-								}, 2000); // 每2秒轮询一次
-							}
-						} else {
-							console.error('查询秒杀结果失败:', res.data.message);
-							// 继续轮询
-							setTimeout(() => {
-								this.pollSeckillResult(skuId, retryCount + 1);
-							}, 2000);
-						}
-					},
-					fail: (err) => {
-						console.error('查询秒杀结果失败:', err);
-						// 继续轮询
-						setTimeout(() => {
-							this.pollSeckillResult(skuId, retryCount + 1);
-						}, 2000);
-					}
-				});
-			},
-		}
-	}
+const instance = getCurrentInstance()
+
+const selectedAddress = ref(null)
+const addressLoading = ref(false)
+const groupedOrderGoods = ref([])
+const goodsTotal = ref('0.00')
+const shippingFee = ref('0.00')
+const coupon = ref(0)
+const loading = ref(false)
+const requestItems = ref([])
+const orderSource = ref(1)
+const scene = ref('')
+const selectedCoupon = ref(null)
+const couponId = ref(null)
+
+let seckillPollTimer = null
+
+const totalAmount = computed(() => {
+  return (Number(goodsTotal.value) + Number(shippingFee.value) - Number(coupon.value)).toFixed(2)
+})
+
+function clearSeckillPollTimer() {
+  if (!seckillPollTimer) {
+    return
+  }
+
+  clearTimeout(seckillPollTimer)
+  seckillPollTimer = null
+}
+
+function createAuthHeader() {
+  const header = {
+    'Content-Type': 'application/json'
+  }
+  const token = getToken()
+
+  if (token) {
+    header.Authorization = `Bearer ${token}`
+  }
+
+  return header
+}
+
+function request(options) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      ...options,
+      success: resolve,
+      fail: reject
+    })
+  })
+}
+
+function buildGroupedGoods(data = []) {
+  return data.map((shop) => ({
+    shopId: shop.shopId,
+    shopName: shop.shopName,
+    items: (shop.items || []).map((item) => ({
+      id: item.skuId,
+      name: item.spuName || item.skuName,
+      spec: item.specs && item.specs.length > 0
+        ? item.specs.map((spec) => `${spec.specName}:${spec.optName}`).join(';')
+        : item.skuName || '',
+      price: item.price,
+      quantity: item.quantity,
+      image: getStoragePreviewUrl(item.spuMainImage || item.mainImage)
+    }))
+  }))
+}
+
+function calculateTotalPrice() {
+  return groupedOrderGoods.value
+    .flatMap((shop) => shop.items)
+    .reduce((total, item) => total + item.price * item.quantity, 0)
+    .toFixed(2)
+}
+
+function calculateShopTotal(shop) {
+  return shop.items
+    .reduce((total, item) => total + item.price * item.quantity, 0)
+    .toFixed(2)
+}
+
+function processOrderPreviewData(data) {
+  groupedOrderGoods.value = buildGroupedGoods(data)
+  goodsTotal.value = calculateTotalPrice()
+  loading.value = false
+  uni.hideLoading()
+}
+
+async function refreshOrderData() {
+  if (!requestItems.value || requestItems.value.length === 0) {
+    uni.showToast({
+      title: '没有商品数据',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.showToast({
+    title: '正在刷新数据...',
+    icon: 'loading',
+    duration: 500
+  })
+
+  await fetchOrderPreviewData(requestItems.value)
+}
+
+async function fetchOrderPreviewData(items) {
+  loading.value = true
+  uni.showLoading({
+    title: '加载中...'
+  })
+
+  if (scene.value === 'seckill') {
+    try {
+      const res = await request({
+        url: `${BASE_API}/app/order/previewForSeckill`,
+        method: 'POST',
+        header: createAuthHeader(),
+        data: {
+          items
+        }
+      })
+
+      if (res.statusCode === 200 && res.data.code === 0) {
+        processOrderPreviewData(res.data.data)
+        return
+      }
+
+      console.error('获取秒杀订单预览失败:', res.data && res.data.message)
+      uni.showToast({
+        title: '获取订单信息失败，请重试',
+        icon: 'none'
+      })
+    } catch (error) {
+      console.error('请求秒杀订单预览失败:', error)
+      uni.showToast({
+        title: '网络错误，请稍后重试',
+        icon: 'none'
+      })
+    } finally {
+      loading.value = false
+      uni.hideLoading()
+    }
+    return
+  }
+
+  try {
+    const data = await fetchOrderPreview(items)
+    groupedOrderGoods.value = buildGroupedGoods(data)
+    goodsTotal.value = calculateTotalPrice()
+  } catch (error) {
+    console.error('获取订单预览数据失败:', error)
+    uni.showToast({
+      title: '获取订单预览数据失败',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+    uni.hideLoading()
+  }
+}
+
+function fetchDefaultAddress() {
+  addressLoading.value = true
+  queryAddressList({ isDefault: true })
+    .then((data) => {
+      if (!data || data.length === 0) {
+        return
+      }
+
+      selectedAddress.value = {
+        id: data[0].id,
+        name: data[0].name,
+        phone: data[0].contact,
+        address: data[0].fullAddress,
+        provinceCode: data[0].provinceCode,
+        cityCode: data[0].cityCode,
+        districtCode: data[0].districtCode,
+        isDefault: data[0].isDefault
+      }
+    })
+    .catch((error) => {
+      console.error('获取默认地址失败:', error)
+    })
+    .finally(() => {
+      addressLoading.value = false
+    })
+}
+
+function selectAddress() {
+  uni.navigateTo({
+    url: '/pages/address/list?fromOrder=true'
+  })
+}
+
+function selectCoupon() {
+  uni.navigateTo({
+    url: '/pages/coupons/select'
+  })
+}
+
+function navigateToPayResult({ orderId, orderNo = '', payResultType }) {
+  const params = [`orderId=${orderId}`, `payResultType=${payResultType}`]
+  if (orderNo) {
+    params.push(`orderNo=${encodeURIComponent(orderNo)}`)
+  }
+
+  uni.navigateTo({
+    url: `/pages/order/pay-result?${params.join('&')}`
+  })
+}
+
+function startPayment(paymentData, { orderId, orderNo = '' }) {
+  const payParams = {
+    provider: 'wxpay',
+    timeStamp: paymentData.timestamp,
+    nonceStr: paymentData.nonceStr,
+    package: paymentData.packageStr,
+    signType: paymentData.signType,
+    paySign: paymentData.paySign
+  }
+
+  if (typeof uni.requestPayment !== 'function') {
+    uni.hideLoading()
+    uni.showToast({
+      title: '当前环境不支持微信支付',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.requestPayment({
+    ...payParams,
+    success: () => {
+      uni.hideLoading()
+      navigateToPayResult({
+        orderId,
+        orderNo,
+        payResultType: 'success'
+      })
+    },
+    fail: (error) => {
+      uni.hideLoading()
+      navigateToPayResult({
+        orderId,
+        orderNo,
+        payResultType: error.errMsg === 'requestPayment:fail cancel' ? 'cancel' : 'fail'
+      })
+    }
+  })
+}
+
+async function payOrder() {
+  if (!groupedOrderGoods.value || groupedOrderGoods.value.length === 0) {
+    uni.showToast({
+      title: '没有可支付的商品',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (!selectedAddress.value) {
+    uni.showToast({
+      title: '请选择收货地址',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.showLoading({
+    title: '处理中...'
+  })
+
+  const shop = groupedOrderGoods.value[0]
+  const items = shop.items.map((item) => ({
+    skuId: item.id,
+    quantity: item.quantity
+  }))
+
+  const submitData = {
+    items,
+    addressId: selectedAddress.value.id,
+    scene: orderSource.value === 2 ? 2 : 1,
+    couponId: couponId.value
+  }
+
+  if (scene.value === 'seckill') {
+    try {
+      const res = await request({
+        url: `${BASE_API}/app/order/submitForSeckill`,
+        method: 'POST',
+        header: createAuthHeader(),
+        data: {
+          items,
+          addressId: selectedAddress.value.id,
+          scene: '3',
+          couponId: couponId.value
+        }
+      })
+
+      if (res.statusCode === 200 && res.data.code === 0) {
+        clearSeckillPollTimer()
+        uni.showLoading({ title: '正在处理...' })
+        pollSeckillResult(items[0].skuId, 0)
+        return
+      }
+
+      uni.hideLoading()
+      console.error('秒杀提交接口请求失败:', res.data && res.data.message)
+      uni.showToast({
+        title: (res.data && res.data.message) || '秒杀请求失败，请重试',
+        icon: 'none'
+      })
+    } catch (error) {
+      uni.hideLoading()
+      console.error('秒杀提交接口请求失败:', error)
+      uni.showToast({
+        title: '网络错误，请稍后重试',
+        icon: 'none'
+      })
+    }
+    return
+  }
+
+  try {
+    const result = await submitOrder(submitData)
+    const paymentData = result.data
+    startPayment(paymentData, {
+      orderId: paymentData.orderId,
+      orderNo: paymentData.orderNo
+    })
+  } catch (error) {
+    console.error('支付处理失败:', error)
+    uni.hideLoading()
+    uni.showToast({
+      title: error.message || '支付处理失败',
+      icon: 'none'
+    })
+  }
+}
+
+function pollSeckillResult(skuId, retryCount) {
+  if (retryCount >= 60) {
+    uni.hideLoading()
+    uni.showToast({
+      title: '秒杀处理超时，请稍后查询订单状态',
+      icon: 'none'
+    })
+    return
+  }
+
+  request({
+    url: `${BASE_API}/app/order/querySeckillResult`,
+    method: 'GET',
+    header: createAuthHeader(),
+    data: {
+      skuId
+    }
+  })
+    .then((res) => {
+      if (res.statusCode === 200 && res.data.code === 0) {
+        const result = res.data.data
+        if (result && result.success) {
+          uni.hideLoading()
+          const paymentData = result.data
+          startPayment(paymentData, {
+            orderId: paymentData.orderId,
+            orderNo: paymentData.orderNo || ''
+          })
+          return
+        }
+      } else {
+        console.error('查询秒杀结果失败:', res.data && res.data.message)
+      }
+
+      seckillPollTimer = setTimeout(() => {
+        pollSeckillResult(skuId, retryCount + 1)
+      }, 2000)
+    })
+    .catch((error) => {
+      console.error('查询秒杀结果失败:', error)
+      seckillPollTimer = setTimeout(() => {
+        pollSeckillResult(skuId, retryCount + 1)
+      }, 2000)
+    })
+}
+
+onLoad((options = {}) => {
+  fetchDefaultAddress()
+  scene.value = options.scene || ''
+
+  if (options.skuId && options.quantity) {
+    orderSource.value = 1
+    requestItems.value = [{
+      skuId: parseInt(options.skuId, 10),
+      quantity: parseInt(options.quantity, 10)
+    }]
+
+    if (options.orderPreview) {
+      processOrderPreviewData(JSON.parse(decodeURIComponent(options.orderPreview)))
+      return
+    }
+
+    fetchOrderPreviewData(requestItems.value)
+    return
+  }
+
+  const eventChannel = instance?.proxy?.getOpenerEventChannel?.()
+  eventChannel?.on('acceptDataFromCartPage', (data) => {
+    if (data && data.selectedItems && data.selectedItems.length > 0) {
+      orderSource.value = 2
+      requestItems.value = data.selectedItems
+      fetchOrderPreviewData(data.selectedItems)
+      return
+    }
+
+    loading.value = false
+    uni.showToast({
+      title: '没有选择商品',
+      icon: 'none'
+    })
+  })
+})
+
+onShow(() => {
+  const selectedAddr = uni.getStorageSync('selectedAddress')
+  if (selectedAddr) {
+    selectedAddress.value = selectedAddr
+    uni.removeStorageSync('selectedAddress')
+  }
+
+  const storedCoupon = uni.getStorageSync('selectedCoupon')
+  if (storedCoupon) {
+    selectedCoupon.value = storedCoupon
+    couponId.value = storedCoupon.id
+    coupon.value = storedCoupon.amount || 0
+    uni.removeStorageSync('selectedCoupon')
+  }
+})
+
+onUnload(() => {
+  clearSeckillPollTimer()
+})
 </script>
 
 <style scoped>

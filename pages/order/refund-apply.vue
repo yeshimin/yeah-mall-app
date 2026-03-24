@@ -50,99 +50,77 @@
 	</view>
 </template>
 
-<script>
-	import { applyRefund } from '../../utils/api.js';
-	
-	export default {
-		data() {
-			return {
-				// 订单ID
-				orderId: '',
-				// 加载状态
-				loading: false,
-				// 选中的退款原因
-				selectedReason: '',
-				// 退款说明
-				refundDescription: '',
-				// 退款原因列表（参考淘宝）
-				refundReasons: [
-					{ label: '不想要了', value: '不想要了' },
-					{ label: '拍错了', value: '拍错了' },
-					{ label: '多拍了', value: '多拍了' },
-					{ label: '商品无货', value: '商品无货' },
-					{ label: '商品信息与描述不符', value: '商品信息与描述不符' },
-					{ label: '商品质量问题', value: '商品质量问题' },
-					{ label: '商家发错货', value: '商家发错货' },
-					{ label: '物流问题', value: '物流问题' },
-					{ label: '其他原因', value: '其他原因' }
-				]
-			};
-		},
-		onLoad(options) {
-			// 获取订单ID
-			if (options.orderId) {
-				this.orderId = options.orderId;
-			}
-		},
-		methods: {
-			// 返回上一页
-			goBack() {
-				uni.navigateBack();
-			},
-			
-			// 选择退款原因
-			selectReason(reason) {
-				this.selectedReason = reason;
-			},
-			
-			// 提交退款申请
-			async submitRefund() {
-				if (!this.selectedReason) {
-					uni.showToast({
-						title: '请选择退款原因',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				if (!this.orderId) {
-					uni.showToast({
-						title: '订单信息错误',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				this.loading = true;
-				try {
-					// 调用退款申请接口
-					await applyRefund(this.orderId, this.selectedReason + (this.refundDescription ? `：${this.refundDescription}` : ''));
-					
-					// 申请成功
-					uni.showToast({
-						title: '退款申请已提交',
-						icon: 'success'
-					});
-					
-					// 延迟返回上一页
-					setTimeout(() => {
-						// 返回订单列表页面
-						uni.redirectTo({
-							url: '/pages/order/list'
-						});
-					}, 1500);
-				} catch (error) {
-					console.error('申请退款失败:', error);
-					uni.showToast({
-						title: error.message || '申请退款失败',
-						icon: 'none'
-					});
-				} finally {
-					this.loading = false;
-				}
-			}
-		}
-	};
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { applyRefund } from '../../utils/api.js'
+
+const orderId = ref('')
+const loading = ref(false)
+const selectedReason = ref('')
+const refundDescription = ref('')
+const refundReasons = [
+  { label: '不想要了', value: '不想要了' },
+  { label: '拍错了', value: '拍错了' },
+  { label: '多拍了', value: '多拍了' },
+  { label: '商品无货', value: '商品无货' },
+  { label: '商品信息与描述不符', value: '商品信息与描述不符' },
+  { label: '商品质量问题', value: '商品质量问题' },
+  { label: '商家发错货', value: '商家发错货' },
+  { label: '物流问题', value: '物流问题' },
+  { label: '其他原因', value: '其他原因' }
+]
+
+function selectReason(reason) {
+  selectedReason.value = reason
+}
+
+async function submitRefund() {
+  if (!selectedReason.value) {
+    uni.showToast({
+      title: '请选择退款原因',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (!orderId.value) {
+    uni.showToast({
+      title: '订单信息错误',
+      icon: 'none'
+    })
+    return
+  }
+
+  loading.value = true
+  try {
+    await applyRefund(orderId.value, selectedReason.value + (refundDescription.value ? `：${refundDescription.value}` : ''))
+    uni.showToast({
+      title: '退款申请已提交',
+      icon: 'success'
+    })
+
+    setTimeout(() => {
+      uni.redirectTo({
+        url: '/pages/order/list'
+      })
+    }, 1500)
+  } catch (error) {
+    console.error('申请退款失败:', error)
+    uni.showToast({
+      title: error.message || '申请退款失败',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad((options = {}) => {
+  if (options.orderId) {
+    orderId.value = options.orderId
+  }
+})
 </script>
 
 <style scoped>

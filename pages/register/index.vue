@@ -41,78 +41,71 @@
 	</view>
 </template>
 
-<script>
-	import CryptoJS from 'crypto-js'
-	import { BASE_API } from '@/utils/config.js'
-	
-	export default {
-		data() {
-			return {
-				mobile: '',
-				password: '',
-				confirmPassword: ''
-			}
-		},
-		methods: {
-			handleRegister() {
-				if (!this.mobile || !this.password || !this.confirmPassword) {
-					uni.showToast({
-						title: '请填写完整信息',
-						icon: 'none'
-					})
-					return
-				}
-				
-				if (this.password !== this.confirmPassword) {
-					uni.showToast({
-						title: '两次密码输入不一致',
-						icon: 'none'
-					})
-					return
-				}
-				
-				// 调用注册API
-				uni.request({
-					url: `${BASE_API}/app/auth/register`,
-					method: 'POST',
-					header: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						mobile: this.mobile,
-						password: CryptoJS.SHA256(this.password).toString()
-					},
-					success: (res) => {
-						if (res.data.code === 0) {
-							uni.showToast({
-								title: '注册成功',
-								icon: 'success'
-							})
-							
-							// 注册成功后跳转到登录页面
-							setTimeout(() => {
-								uni.redirectTo({
-									url: '/pages/login/index'
-								})
-							}, 1000)
-						} else {
-							uni.showToast({
-								title: res.data.message || '注册失败',
-								icon: 'none'
-							})
-						}
-					},
-					fail: (err) => {
-						console.error('注册失败', err)
-						uni.showToast({
-							title: '注册失败，请稍后重试',
-							icon: 'none'
-						})
-					}
-				})
-			}
-		}
-	}
+<script setup>
+import CryptoJS from 'crypto-js'
+import { ref } from 'vue'
+import { BASE_API } from '@/utils/config.js'
+
+const mobile = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+
+function handleRegister() {
+  if (!mobile.value || !password.value || !confirmPassword.value) {
+    uni.showToast({
+      title: '请填写完整信息',
+      icon: 'none'
+    })
+    return
+  }
+
+  if (password.value !== confirmPassword.value) {
+    uni.showToast({
+      title: '两次密码输入不一致',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.request({
+    url: `${BASE_API}/app/auth/register`,
+    method: 'POST',
+    header: {
+      'Content-Type': 'application/json'
+    },
+    data: {
+      mobile: mobile.value,
+      password: CryptoJS.SHA256(password.value).toString()
+    },
+    success: (res) => {
+      if (res.data.code === 0) {
+        uni.showToast({
+          title: '注册成功',
+          icon: 'success'
+        })
+
+        setTimeout(() => {
+          uni.redirectTo({
+            url: '/pages/login/index'
+          })
+        }, 1000)
+        return
+      }
+
+      uni.showToast({
+        title: res.data.message || '注册失败',
+        icon: 'none'
+      })
+    },
+    fail: (error) => {
+      console.error('注册失败', error)
+      uni.showToast({
+        title: '注册失败，请稍后重试',
+        icon: 'none'
+      })
+    }
+  })
+}
 </script>
 
 <style scoped>

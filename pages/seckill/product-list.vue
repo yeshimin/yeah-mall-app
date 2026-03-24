@@ -80,239 +80,102 @@
   </view>
 </template>
 
-<script>
-import { BASE_API } from '@/utils/config.js'
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { authRequest } from '@/utils/auth.js'
 
-export default {
-  data() {
-    return {
-      // 活动信息
-      activityInfo: null,
-      // 秒杀商品数据
-      seckillProducts: [],
-      // 加载状态
-      loading: false
-    }
-  },
-  methods: {
-    // 处理图片加载
-    handleImageLoad() {
-      // 可以在这里添加图片加载完成后的处理
-    },
+const activityInfo = ref(null)
+const seckillProducts = ref([])
+const loading = ref(false)
 
-    // 处理图片加载失败
-    handleImageError(e) {
-      console.log('图片加载失败:', e)
-      // 可以在这里设置默认图片
-    },
+function handleImageLoad() {}
 
-    // 跳转到商品详情页面
-    goToProductDetail(productId) {
-      console.log('跳转到商品详情:', productId)
-      try {
-        // 构建跳转URL，传递活动开始、结束时间和活动ID
-        const url = `/pages/product/detail?productId=${productId}&scene=seckill&activityBeginTime=${encodeURIComponent(this.activityInfo.activityBeginTime)}&activityEndTime=${encodeURIComponent(this.activityInfo.activityEndTime)}&activityId=${encodeURIComponent(this.activityInfo.id)}`
-        uni.navigateTo({
-          url: url,
-          success: function(res) {
-            console.log('跳转成功:', res)
-          },
-          fail: function(err) {
-            console.log('跳转失败:', err)
-            console.log('错误代码:', err.errCode)
-            console.log('错误信息:', err.errMsg)
-          }
-        })
-      } catch (e) {
-        console.log('跳转时发生异常:', e)
-      }
-    },
-
-    // 获取活动信息
-    fetchActivityInfo(activityId) {
-      if (this.loading) return
-
-      this.loading = true
-
-      // 构建API请求URL
-      const url = `${BASE_API}/app/seckill/queryActivityDetail?id=${activityId}`
-
-      // 使用带认证的请求
-      authRequest({
-        url: url,
-        method: 'GET',
-        header: {
-          'Content-Type': 'application/json'
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          const activity = res.data.data
-          this.activityInfo = {
-            id: activity.id,
-            name: activity.name,
-            description: activity.description,
-            coverImage: activity.coverImage ? `${BASE_API}/public/storage/preview?fileKey=${activity.coverImage}` : '',
-            activityBeginTime: activity.activityBeginTime,
-            activityEndTime: activity.activityEndTime,
-            status: activity.status
-          }
-        } else {
-          console.error('获取活动信息失败:', res.data.message)
-          // 使用模拟数据
-          this.useMockActivityData()
-        }
-        this.loading = false
-      }, (err) => {
-        // 错误回调
-        console.error('请求活动信息失败:', err)
-        // 使用模拟数据
-        this.useMockActivityData()
-        this.loading = false
-      })
-    },
-
-    // 使用模拟活动数据
-    useMockActivityData() {
-      if (!this.activityInfo) {
-        this.activityInfo = {
-          id: '2026211216331399169',
-          name: '618秒杀活动',
-          description: '全场爆款限时秒杀',
-          coverImage: 'https://via.placeholder.com/200x200',
-          activityBeginTime: '2026-06-18 00:00:00',
-          activityEndTime: '2026-06-18 23:59:59',
-          status: '2'
-        }
-      }
-    },
-
-    // 获取秒杀商品列表
-    fetchSeckillProducts(activityId) {
-      if (this.loading) return
-
-      this.loading = true
-
-      // 构建API请求URL
-      const url = `${BASE_API}/app/seckill/queryProduct?activityId=${activityId}`
-
-      // 使用带认证的请求
-      authRequest({
-        url: url,
-        method: 'GET',
-        header: {
-          'Content-Type': 'application/json'
-        }
-      }, (res) => {
-        // 成功回调
-        if (res.statusCode === 200 && res.data.code === 0) {
-          const responseData = res.data.data
-          
-          // 处理商品数据
-          const products = responseData.records.map(item => ({
-            id: item.id,
-            name: item.name,
-            image: item.mainImage ? `${BASE_API}/public/storage/preview?fileKey=${item.mainImage}` : '',
-            seckillPrice: item.minSeckillPrice ? item.minSeckillPrice.toFixed(2) : '0.00',
-            originalPrice: item.minOriginPrice ? item.minOriginPrice.toFixed(2) : '0.00',
-            stock: 0, // 接口未返回，暂时设为0
-            progress: 0, // 接口未返回，暂时设为0
-            sales: item.sales || 0,
-            mchName: item.mchName,
-            shopName: item.shopName,
-            sessionName: item.sessionName
-          }))
-
-          this.seckillProducts = products
-        } else {
-          console.error('获取秒杀商品失败:', res.data.message)
-          // 使用模拟数据
-          this.useMockProductData()
-        }
-        this.loading = false
-      }, (err) => {
-        // 错误回调
-        console.error('请求秒杀商品失败:', err)
-        // 使用模拟数据
-        this.useMockProductData()
-        this.loading = false
-      })
-    },
-
-    // 使用模拟商品数据
-    useMockProductData() {
-      if (this.seckillProducts.length === 0) {
-        this.seckillProducts = [
-          {
-            id: 1,
-            name: 'iPhone 14 Pro 256GB 暗夜紫色',
-            image: 'https://via.placeholder.com/300x300',
-            seckillPrice: '6999',
-            originalPrice: '7999',
-            stock: 50,
-            progress: 65
-          },
-          {
-            id: 2,
-            name: 'AirPods Pro 2代 主动降噪耳机',
-            image: 'https://via.placeholder.com/300x300',
-            seckillPrice: '1299',
-            originalPrice: '1899',
-            stock: 100,
-            progress: 32
-          },
-          {
-            id: 3,
-            name: 'Apple Watch Series 9 GPS 41mm',
-            image: 'https://via.placeholder.com/300x300',
-            seckillPrice: '2499',
-            originalPrice: '2999',
-            stock: 30,
-            progress: 88
-          }
-        ]
-      }
-    },
-    
-    // 获取活动状态文本
-    getActivityStatusText(status) {
-      const statusMap = {
-        '1': '新建',
-        '2': '发布',
-        '3': '开始报名',
-        '4': '结束报名',
-        '5': '开始活动',
-        '6': '结束活动'
-      }
-      return statusMap[status] || '未知状态'
-    }
-  },
-
-  // 页面加载时获取数据
-  onLoad(options) {
-    console.log('页面加载，开始获取数据', options)
-    const activityId = options.activityId
-    if (activityId) {
-      // 从URL参数中获取活动信息
-      this.activityInfo = {
-        id: options.activityId,
-        name: decodeURIComponent(options.activityName || ''),
-        description: decodeURIComponent(options.activityDescription || ''),
-        coverImage: decodeURIComponent(options.coverImage || ''),
-        activityBeginTime: decodeURIComponent(options.activityBeginTime || ''),
-        activityEndTime: decodeURIComponent(options.activityEndTime || ''),
-        status: options.activityStatus || '1'
-      }
-      // 获取秒杀商品列表
-      this.fetchSeckillProducts(activityId)
-      // 直接使用模拟数据，确保页面显示
-      this.useMockProductData()
-      console.log('活动信息:', this.activityInfo)
-      console.log('商品数据:', this.seckillProducts)
-    }
-  }
+function handleImageError(error) {
+  void error
 }
+
+function goToProductDetail(productId) {
+  if (!activityInfo.value) {
+    return
+  }
+
+  uni.navigateTo({
+    url: `/pages/product/detail?productId=${productId}&scene=seckill&activityBeginTime=${encodeURIComponent(activityInfo.value.activityBeginTime)}&activityEndTime=${encodeURIComponent(activityInfo.value.activityEndTime)}&activityId=${encodeURIComponent(activityInfo.value.id)}`
+  })
+}
+
+function fetchSeckillProducts(activityId) {
+  if (loading.value) {
+    return
+  }
+
+  loading.value = true
+  authRequest({
+    url: `${BASE_API}/app/seckill/queryProduct?activityId=${activityId}`,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json'
+    }
+  }, (res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      const responseData = res.data.data || {}
+      seckillProducts.value = (responseData.records || []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        image: getStoragePreviewUrl(item.mainImage),
+        seckillPrice: item.minSeckillPrice ? item.minSeckillPrice.toFixed(2) : '0.00',
+        originalPrice: item.minOriginPrice ? item.minOriginPrice.toFixed(2) : '0.00',
+        stock: 0,
+        progress: 0,
+        sales: item.sales || 0,
+        mchName: item.mchName,
+        shopName: item.shopName,
+        sessionName: item.sessionName
+      }))
+    } else {
+      console.error('获取秒杀商品失败:', res.data && res.data.message)
+      seckillProducts.value = []
+    }
+    loading.value = false
+  }, (error) => {
+    console.error('请求秒杀商品失败:', error)
+    seckillProducts.value = []
+    loading.value = false
+  })
+}
+
+function getActivityStatusText(status) {
+  const statusMap = {
+    '1': '新建',
+    '2': '发布',
+    '3': '开始报名',
+    '4': '结束报名',
+    '5': '开始活动',
+    '6': '结束活动'
+  }
+  return statusMap[status] || '未知状态'
+}
+
+onLoad((options = {}) => {
+  const activityId = options.activityId
+  if (!activityId) {
+    return
+  }
+
+  activityInfo.value = {
+    id: options.activityId,
+    name: decodeURIComponent(options.activityName || ''),
+    description: decodeURIComponent(options.activityDescription || ''),
+    coverImage: decodeURIComponent(options.coverImage || ''),
+    activityBeginTime: decodeURIComponent(options.activityBeginTime || ''),
+    activityEndTime: decodeURIComponent(options.activityEndTime || ''),
+    status: options.activityStatus || '1'
+  }
+
+  fetchSeckillProducts(activityId)
+})
 </script>
 
 <style scoped>

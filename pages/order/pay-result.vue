@@ -62,165 +62,172 @@
 	</view>
 </template>
 
-<script>
-	import { queryPayOrderInfo, queryPayResult } from '../../utils/api.js';
-	
-export default {
-		data() {
-			return {
-				orderNo: '',
-				orderId: '',
-				orderInfo: null,
-				loading: true,
-				pollingTimer: null,
-				pollingCount: 0, // 轮询计数器
-				maxPollingCount: 30, // 最大轮询次数（60秒/2秒 = 30次）
-				payResultType: null, // 支付结果类型：success, cancel, fail
-				payResultInfo: null // 支付结果信息
-			}
-		},
-		onLoad(options) {
-			// 获取订单号、订单ID和支付结果类型
-			this.orderId = options.orderId;
-			this.orderNo = options.orderNo;
-			this.payResultType = options.payResultType || null; // success, cancel, fail
-			
-			if (this.orderId || this.orderNo) {
-				// 根据支付结果类型进行相应处理
-				this.handlePayResult();
-			} else {
-				uni.showToast({
-					title: '参数错误',
-					icon: 'none'
-				});
-			}
-		},
-		onUnload() {
-			// 页面卸载时清除定时器
-			if (this.pollingTimer) {
-				clearTimeout(this.pollingTimer);
-			}
-		},
-		methods: {
-			// 处理支付结果
-			handlePayResult() {
-				if (this.payResultType === 'success') {
-					// 支付成功，直接显示成功状态
-					this.fetchPayResult();
-				} else if (this.payResultType === 'cancel') {
-					// 用户取消支付，显示取消状态
-					this.payResultInfo = {
-						orderNo: this.orderNo,
-						paySuccess: false,
-						paySuccessTime: null
-					};
-					this.loading = false;
-				} else {
-					// 支付失败，开始轮询查询
-					this.startPolling();
-				}
-			},
-			
-			// 获取支付结果
-			fetchPayResult() {
-				queryPayResult(this.orderId || this.orderNo)
-					.then(data => {
-						console.log('支付结果:', data);
-						this.payResultInfo = data;
-						this.loading = false;
-						
-						// 如果支付失败，开始轮询
-						if (!data.paySuccess && this.payResultType !== 'success') {
-							this.startPolling();
-						}
-					})
-					.catch(error => {
-						console.error('获取支付结果失败:', error);
-						uni.showToast({
-							title: '获取支付结果失败',
-							icon: 'none'
-						});
-						this.loading = false;
-					});
-			},
-			
-			// 开始轮询查询支付结果
-			startPolling() {
-				if (this.pollingCount >= this.maxPollingCount) {
-					// 轮询次数已达上限，停止轮询
-					this.loading = false;
-					return;
-				}
-				
-				queryPayResult(this.orderId || this.orderNo)
-					.then(data => {
-						console.log('轮询支付结果:', data);
-						this.payResultInfo = data;
-						
-						// 如果支付成功，停止轮询
-						if (data.paySuccess) {
-							this.loading = false;
-							return;
-						}
-						
-						// 继续轮询
-						this.pollingCount++;
-						this.pollingTimer = setTimeout(() => {
-							this.startPolling();
-						}, 2000); // 每2秒轮询一次
-					})
-					.catch(error => {
-						console.error('查询支付结果失败:', error);
-						// 继续轮询，直到达到最大次数
-						this.pollingCount++;
-						if (this.pollingCount < this.maxPollingCount) {
-							this.pollingTimer = setTimeout(() => {
-								this.startPolling();
-							}, 2000);
-						} else {
-							this.loading = false;
-						}
-					});
-			},
-			
-			// 格式化时间
-			formatTime(timeStr) {
-				if (!timeStr) return '';
-				// 处理 iOS 不支持的日期格式
-				let formattedTimeStr = timeStr;
-				// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 "yyyy/MM/dd HH:mm:ss" 格式，iOS 支持
-				if (timeStr.includes(' ') && !timeStr.includes('T')) {
-					formattedTimeStr = timeStr.replace(/-/g, '/');
-				}
-				// 将时间字符串转换为Date对象
-				const date = new Date(formattedTimeStr);
-				// 格式化为 yyyy-MM-dd HH:mm:ss 格式
-				const year = date.getFullYear();
-				const month = String(date.getMonth() + 1).padStart(2, '0');
-				const day = String(date.getDate()).padStart(2, '0');
-				const hours = String(date.getHours()).padStart(2, '0');
-				const minutes = String(date.getMinutes()).padStart(2, '0');
-				const seconds = String(date.getSeconds()).padStart(2, '0');
-				return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-			},
-			
-			// 查看订单
-			viewOrder() {
-				// 跳转到订单详情页面（如果有的话）
-				// 这里暂时跳转到订单列表页面
-				uni.navigateTo({
-					url: '/pages/order/list'
-				});
-			},
-			
-			// 返回首页
-			goHome() {
-				uni.switchTab({
-					url: '/pages/index/index'
-				});
-			}
-		}
-	}
+<script setup>
+import { ref } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { queryPayOrderInfo, queryPayResult } from '../../utils/api.js'
+
+const orderNo = ref('')
+const orderId = ref('')
+const loading = ref(true)
+const pollingCount = ref(0)
+const maxPollingCount = 30
+const payResultType = ref(null)
+const payResultInfo = ref(null)
+
+let pollingTimer = null
+
+function stopPolling() {
+  if (!pollingTimer) {
+    return
+  }
+
+  clearTimeout(pollingTimer)
+  pollingTimer = null
+}
+
+function formatTime(timeStr) {
+  if (!timeStr) {
+    return ''
+  }
+
+  let formattedTimeStr = timeStr
+  if (timeStr.includes(' ') && !timeStr.includes('T')) {
+    formattedTimeStr = timeStr.replace(/-/g, '/')
+  }
+
+  const date = new Date(formattedTimeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+function requestPayResult() {
+  if (orderId.value) {
+    return queryPayResult(orderId.value)
+  }
+
+  return queryPayOrderInfo(orderNo.value)
+}
+
+function fetchPayResult() {
+  requestPayResult()
+    .then((data) => {
+      payResultInfo.value = data
+      loading.value = false
+
+      if (!data.paySuccess && payResultType.value !== 'success') {
+        startPolling()
+      }
+    })
+    .catch((error) => {
+      console.error('获取支付结果失败:', error)
+      uni.showToast({
+        title: '获取支付结果失败',
+        icon: 'none'
+      })
+      loading.value = false
+    })
+}
+
+function startPolling() {
+  if (pollingCount.value >= maxPollingCount) {
+    loading.value = false
+    return
+  }
+
+  requestPayResult()
+    .then((data) => {
+      payResultInfo.value = data
+
+      if (data.paySuccess) {
+        loading.value = false
+        return
+      }
+
+      pollingCount.value += 1
+      pollingTimer = setTimeout(() => {
+        startPolling()
+      }, 2000)
+    })
+    .catch((error) => {
+      console.error('查询支付结果失败:', error)
+      pollingCount.value += 1
+
+      if (pollingCount.value >= maxPollingCount) {
+        loading.value = false
+        return
+      }
+
+      pollingTimer = setTimeout(() => {
+        startPolling()
+      }, 2000)
+    })
+}
+
+function handlePayResult() {
+  if (payResultType.value === 'success') {
+    fetchPayResult()
+    return
+  }
+
+  if (payResultType.value === 'cancel') {
+    payResultInfo.value = {
+      orderNo: orderNo.value,
+      paySuccess: false,
+      paySuccessTime: null
+    }
+    loading.value = false
+    return
+  }
+
+  startPolling()
+}
+
+function viewOrder() {
+  if (orderId.value) {
+    uni.navigateTo({
+      url: `/pages/order/detail?orderId=${orderId.value}`
+    })
+    return
+  }
+
+  uni.navigateTo({
+    url: '/pages/order/list'
+  })
+}
+
+function goHome() {
+  uni.switchTab({
+    url: '/pages/index/index'
+  })
+}
+
+onLoad((options = {}) => {
+  orderId.value = options.orderId || ''
+  orderNo.value = options.orderNo || ''
+  payResultType.value = options.payResultType || null
+
+  if (!orderId.value && !orderNo.value) {
+    uni.showToast({
+      title: '参数错误',
+      icon: 'none'
+    })
+    loading.value = false
+    return
+  }
+
+  handlePayResult()
+})
+
+onUnload(() => {
+  stopPolling()
+})
 </script>
 
 <style scoped>

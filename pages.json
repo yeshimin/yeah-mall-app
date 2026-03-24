@@ -20,6 +20,12 @@
 			}
 		},
 		{
+			"path": "pages/shop/detail",
+			"style": {
+				"navigationBarTitleText": "店铺详情"
+			}
+		},
+		{
 			"path": "pages/cart/cart",
 			"style": {
 				"navigationBarTitleText": "购物车"
@@ -54,6 +60,12 @@
 			"style": {
 				"navigationBarTitleText": "商品详情",
 				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/product/reviews",
+			"style": {
+				"navigationBarTitleText": "商品评价"
 			}
 		},
 		{

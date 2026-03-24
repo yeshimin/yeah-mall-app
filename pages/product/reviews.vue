@@ -31,7 +31,7 @@
 				<view class="user-info">
 					<image 
 						class="avatar" 
-						:src="item.userAvatar || 'https://via.placeholder.com/60'" 
+						:src="item.userAvatar || '/static/logo.png'" 
 						mode="aspectFill"
 					></image>
 					<view class="user-detail">
@@ -82,81 +82,86 @@
 	</view>
 </template>
 
-<script>
-	import { fetchProductReviews } from '@/utils/api.js';
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { fetchProductReviews } from '@/utils/api.js'
 
-	export default {
-		data() {
-			return {
-				productId: '',
-				currentType: 'all',
-				list: [],
-				total: 0,
-				picCount: 0,
-				goodCount: 0,
-				page: 1,
-				loading: false,
-				noMore: false
-			};
-		},
-		onLoad(options) {
-			if (options.productId) {
-				this.productId = options.productId;
-				this.loadData(true);
-			}
-		},
-		methods: {
-			switchType(type) {
-				if (this.currentType === type) return;
-				this.currentType = type;
-				this.loadData(true);
-			},
-			loadData(refresh = false) {
-				if (refresh) {
-					this.page = 1;
-					this.list = [];
-					this.noMore = false;
-				}
-				
-				if (this.loading || this.noMore) return;
-				
-				this.loading = true;
-				
-				fetchProductReviews(this.productId, {
-					page: this.page,
-					type: this.currentType
-				}).then(res => {
-					this.loading = false;
-					this.total = res.total || 0;
-					// 模拟一些统计数据，实际应由后端返回
-					this.picCount = Math.floor(this.total * 0.3);
-					this.goodCount = Math.floor(this.total * 0.95);
-					
-					if (res.list && res.list.length > 0) {
-						this.list = [...this.list, ...res.list];
-						this.page++;
-					} else {
-						this.noMore = true;
-					}
-				}).catch(err => {
-					this.loading = false;
-					uni.showToast({
-						title: '加载失败',
-						icon: 'none'
-					});
-				});
-			},
-			loadMore() {
-				this.loadData();
-			},
-			previewImage(urls, current) {
-				uni.previewImage({
-					urls: urls,
-					current: current
-				});
-			}
-		}
-	}
+const productId = ref('')
+const currentType = ref('all')
+const list = ref([])
+const total = ref(0)
+const picCount = ref(0)
+const goodCount = ref(0)
+const page = ref(1)
+const loading = ref(false)
+const noMore = ref(false)
+
+function switchType(type) {
+  if (currentType.value === type) {
+    return
+  }
+
+  currentType.value = type
+  loadData(true)
+}
+
+function loadData(refresh = false) {
+  if (refresh) {
+    page.value = 1
+    list.value = []
+    noMore.value = false
+  }
+
+  if (loading.value || noMore.value) {
+    return
+  }
+
+  loading.value = true
+  fetchProductReviews(productId.value, {
+    page: page.value,
+    type: currentType.value
+  })
+    .then((res) => {
+      total.value = res.total || 0
+      picCount.value = Math.floor(total.value * 0.3)
+      goodCount.value = Math.floor(total.value * 0.95)
+
+      if (res.list && res.list.length > 0) {
+        list.value = [...list.value, ...res.list]
+        page.value += 1
+      } else {
+        noMore.value = true
+      }
+    })
+    .catch(() => {
+      uni.showToast({
+        title: '加载失败',
+        icon: 'none'
+      })
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+function loadMore() {
+  loadData()
+}
+
+function previewImage(urls, current) {
+  uni.previewImage({
+    urls,
+    current
+  })
+}
+
+onLoad((options = {}) => {
+  if (options.productId) {
+    productId.value = options.productId
+    loadData(true)
+  }
+})
 </script>
 
 <style scoped>

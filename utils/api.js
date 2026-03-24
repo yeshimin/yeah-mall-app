@@ -809,8 +809,6 @@ export const submitReview = (data) => {
       items: data.items
     };
     
-    console.log('提交评价数据:', requestData);
-    
     uni.request({
       url: `${BASE_API}/app/review/publish`,
       method: 'POST',

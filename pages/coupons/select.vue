@@ -29,63 +29,59 @@
 	</view>
 </template>
 
-<script>
-	import { BASE_API } from '@/utils/config.js';
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { BASE_API } from '@/utils/config.js'
+import { getToken } from '@/utils/auth.js'
 
-	export default {
-		data() {
-			return {
-				availableCoupons: [],
-				loading: false
-			};
-		},
-		onLoad() {
-			this.fetchAvailableCoupons();
-		},
-		methods: {
-			fetchAvailableCoupons() {
-				this.loading = true;
-				uni.showLoading({ title: '加载中...' });
-				
-				uni.request({
-					url: `${BASE_API}/app/coupon/availableList`,
-					method: 'GET',
-					header: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${uni.getStorageSync('token')}`
-					},
-					success: (res) => {
-						if (res.statusCode === 200 && res.data.code === 0) {
-							this.availableCoupons = res.data.data || [];
-						} else {
-							uni.showToast({ title: '获取优惠券失败', icon: 'none' });
-						}
-					},
-					fail: () => {
-						uni.showToast({ title: '网络错误', icon: 'none' });
-					},
-					complete: () => {
-						this.loading = false;
-						uni.hideLoading();
-					}
-				});
-			},
-			
-			selectCoupon(coupon) {
-				uni.setStorageSync('selectedCoupon', coupon);
-				uni.navigateBack();
-			},
-			
-			formatDate(dateStr) {
-				if (!dateStr) return '';
-				const date = new Date(dateStr);
-				const year = date.getFullYear();
-				const month = (date.getMonth() + 1).toString().padStart(2, '0');
-				const day = date.getDate().toString().padStart(2, '0');
-				return `${year}-${month}-${day}`;
-			}
-		}
-	}
+const availableCoupons = ref([])
+const loading = ref(false)
+
+function fetchAvailableCoupons() {
+  loading.value = true
+  uni.showLoading({ title: '加载中...' })
+  uni.request({
+    url: `${BASE_API}/app/coupon/availableList`,
+    method: 'GET',
+    header: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`
+    },
+    success: (res) => {
+      if (res.statusCode === 200 && res.data.code === 0) {
+        availableCoupons.value = res.data.data || []
+      } else {
+        uni.showToast({ title: '获取优惠券失败', icon: 'none' })
+      }
+    },
+    fail: () => {
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    },
+    complete: () => {
+      loading.value = false
+      uni.hideLoading()
+    }
+  })
+}
+
+function selectCoupon(coupon) {
+  uni.setStorageSync('selectedCoupon', coupon)
+  uni.navigateBack()
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+onLoad(() => {
+  fetchAvailableCoupons()
+})
 </script>
 
 <style scoped>

@@ -76,342 +76,276 @@
   </view>
 </template>
 
-<script>
-import { fetchCartItems, updateCartItemQuantity, deleteCartItems } from '../../utils/api.js';
-import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js';
-import { BASE_API } from '@/utils/config.js';
+<script setup>
+import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import { deleteCartItems, fetchCartItems, updateCartItemQuantity } from '../../utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
+import { handleAuthFailure, isAuthenticated } from '../../utils/auth.js'
 
-export default {
-  data() {
-    return {
-      isEditing: false,
-      // 按店铺分组的购物车商品数据
-      groupedCartItems: []
-    }
-  },
-  onLoad() {
-    // 进入页面时先做登录校验
-    if (this.ensureLogin()) {
-      this.fetchCartData();
-    }
-  },
-  onShow() {
-    // 当页面显示时，重新获取购物车数据
-    if (this.ensureLogin()) {
-      this.fetchCartData();
-    }
-  },
-  computed: {
-    // 计算选中商品的总价格
-    totalPrice() {
-      return this.groupedCartItems
-        .flatMap(shop => shop.items)
-        .filter(item => item.selected)
-        .reduce((total, item) => total + item.price * item.quantity, 0)
-        .toFixed(2)
-    },
-    // 计算选中商品的数量
-    selectedCount() {
-      return this.groupedCartItems
-        .flatMap(shop => shop.items)
-        .filter(item => item.selected)
-        .reduce((count, item) => count + item.quantity, 0)
-    },
-    // 判断是否全选
-    isAllSelected() {
-      const allItems = this.groupedCartItems.flatMap(shop => shop.items)
-      return allItems.length > 0 && allItems.every(item => item.selected)
-    }
-  },
-  methods: {
-    // 登录校验封装，未登录时跳转登录页
-    ensureLogin() {
-      if (!isAuthenticated()) {
-        handleAuthFailure();
-        return false;
-      }
-      return true;
-    },
-    // 切换编辑状态
-    toggleEdit() {
-      this.isEditing = !this.isEditing
-    },
-    // 切换单个商品选择状态
-    toggleItemSelection(shopIndex, itemIndex) {
-      const item = this.groupedCartItems[shopIndex].items[itemIndex]
-      item.selected = !item.selected
+const isEditing = ref(false)
+const groupedCartItems = ref([])
 
-      // 检查店铺内所有商品是否都已选中
-      const shop = this.groupedCartItems[shopIndex]
-      shop.selected = shop.items.every(item => item.selected)
-    },
-    // 切换店铺选择状态
-    toggleShopSelection(shopIndex) {
-      const shop = this.groupedCartItems[shopIndex]
-      shop.selected = !shop.selected
+const totalPrice = computed(() => {
+  return groupedCartItems.value
+    .flatMap((shop) => shop.items)
+    .filter((item) => item.selected)
+    .reduce((total, item) => total + item.price * item.quantity, 0)
+    .toFixed(2)
+})
 
-      // 同步店铺内所有商品的选择状态
-      shop.items.forEach(item => {
-        item.selected = shop.selected
+const selectedCount = computed(() => {
+  return groupedCartItems.value
+    .flatMap((shop) => shop.items)
+    .filter((item) => item.selected)
+    .reduce((count, item) => count + item.quantity, 0)
+})
+
+const isAllSelected = computed(() => {
+  const allItems = groupedCartItems.value.flatMap((shop) => shop.items)
+  return allItems.length > 0 && allItems.every((item) => item.selected)
+})
+
+function ensureLogin() {
+  if (isAuthenticated()) {
+    return true
+  }
+
+  handleAuthFailure()
+  return false
+}
+
+function toggleEdit() {
+  isEditing.value = !isEditing.value
+}
+
+function toggleItemSelection(shopIndex, itemIndex) {
+  const item = groupedCartItems.value[shopIndex].items[itemIndex]
+  item.selected = !item.selected
+
+  const shop = groupedCartItems.value[shopIndex]
+  shop.selected = shop.items.every((shopItem) => shopItem.selected)
+}
+
+function toggleShopSelection(shopIndex) {
+  const shop = groupedCartItems.value[shopIndex]
+  shop.selected = !shop.selected
+  shop.items.forEach((item) => {
+    item.selected = shop.selected
+  })
+}
+
+function toggleSelectAll() {
+  const nextValue = !isAllSelected.value
+  groupedCartItems.value.forEach((shop) => {
+    shop.selected = nextValue
+    shop.items.forEach((item) => {
+      item.selected = nextValue
+    })
+  })
+}
+
+function removeItemFromGroupedData(shopIndex, itemIndex) {
+  groupedCartItems.value[shopIndex].items.splice(itemIndex, 1)
+  if (groupedCartItems.value[shopIndex].items.length === 0) {
+    groupedCartItems.value.splice(shopIndex, 1)
+  }
+}
+
+function increaseQuantity(shopIndex, itemIndex) {
+  const item = groupedCartItems.value[shopIndex].items[itemIndex]
+  const oldQuantity = item.quantity
+  item.quantity += 1
+
+  updateCartItemQuantity(item.id, item.quantity)
+    .catch((error) => {
+      console.error('商品数量更新失败:', error)
+      item.quantity = oldQuantity
+      uni.showToast({
+        title: '数量更新失败',
+        icon: 'none'
       })
-    },
-    // 切换全选状态
-    toggleSelectAll() {
-      const newValue = !this.isAllSelected
-      this.groupedCartItems.forEach(shop => {
-        shop.selected = newValue
-        shop.items.forEach(item => {
-          item.selected = newValue
-        })
-      })
-    },
-    // 增加商品数量
-    increaseQuantity(shopIndex, itemIndex) {
-      const item = this.groupedCartItems[shopIndex].items[itemIndex];
-      const oldQuantity = item.quantity;
-      item.quantity++;
-      
-      // 调用后端接口更新数量
-      updateCartItemQuantity(item.id, item.quantity)
-        .then(response => {
-          console.log('商品数量更新成功:', response);
-        })
-        .catch(error => {
-          console.error('商品数量更新失败:', error);
-          // 如果更新失败，恢复原来的数量
-          item.quantity = oldQuantity;
-          uni.showToast({
-            title: '数量更新失败',
-            icon: 'none'
-          });
-        });
-    },
-    // 减少商品数量
-    decreaseQuantity(shopIndex, itemIndex) {
-      const item = this.groupedCartItems[shopIndex].items[itemIndex]
-      const oldQuantity = item.quantity;
-      
-      if (item.quantity > 1) {
-        item.quantity--
-        
-        // 调用后端接口更新数量
-        updateCartItemQuantity(item.id, item.quantity)
-          .then(response => {
-            console.log('商品数量更新成功:', response);
-          })
-          .catch(error => {
-            console.error('商品数量更新失败:', error);
-            // 如果更新失败，恢复原来的数量
-            item.quantity = oldQuantity;
-            uni.showToast({
-              title: '数量更新失败',
-              icon: 'none'
-            });
-          });
-      } else {
-        // 如果数量为1，提示是否删除商品
-        uni.showModal({
-          title: '提示',
-          content: '是否删除该商品？',
-          success: (res) => {
-            if (res.confirm) {
-              // 调用后端接口删除商品
-              deleteCartItems([item.id])
-                .then(response => {
-                  console.log('商品删除成功:', response);
-                  this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
+    })
+}
 
-                  // 如果店铺内没有商品了，删除店铺
-                  if (this.groupedCartItems[shopIndex].items.length === 0) {
-                    this.groupedCartItems.splice(shopIndex, 1)
-                  }
+function decreaseQuantity(shopIndex, itemIndex) {
+  const item = groupedCartItems.value[shopIndex].items[itemIndex]
+  const oldQuantity = item.quantity
 
-                  // 重新检查全选状态
-                  this.checkAllSelected()
-                })
-                .catch(error => {
-                  console.error('商品删除失败:', error);
-                  uni.showToast({
-                    title: '删除失败',
-                    icon: 'none'
-                  });
-                });
-            }
-          }
-        })
-      }
-    },
-    // 删除单个商品
-    deleteItem(shopIndex, itemIndex) {
-      const item = this.groupedCartItems[shopIndex].items[itemIndex];
-      
-      // 调用后端接口删除商品
-      deleteCartItems([item.id])
-        .then(response => {
-          console.log('商品删除成功:', response);
-          this.groupedCartItems[shopIndex].items.splice(itemIndex, 1)
-
-          // 如果店铺内没有商品了，删除店铺
-          if (this.groupedCartItems[shopIndex].items.length === 0) {
-            this.groupedCartItems.splice(shopIndex, 1)
-          }
-
-          // 重新检查全选状态
-          this.checkAllSelected()
-        })
-        .catch(error => {
-          console.error('商品删除失败:', error);
-          uni.showToast({
-            title: '删除失败',
-            icon: 'none'
-          });
-        });
-    },
-    
-    // 删除选中的商品
-    deleteSelectedItems() {
-      // 获取所有选中的商品
-      const selectedItems = this.groupedCartItems
-        .flatMap(shop => shop.items)
-        .filter(item => item.selected);
-      
-      if (selectedItems.length === 0) {
+  if (item.quantity > 1) {
+    item.quantity -= 1
+    updateCartItemQuantity(item.id, item.quantity)
+      .catch((error) => {
+        console.error('商品数量更新失败:', error)
+        item.quantity = oldQuantity
         uni.showToast({
-          title: '请选择要删除的商品',
-          icon: 'none'
-        });
-        return;
-      }
-      
-      // 提取商品ID
-      const itemIds = selectedItems.map(item => item.id);
-      
-      uni.showModal({
-        title: '提示',
-        content: `确定要删除选中的${selectedItems.length}件商品吗？`,
-        success: (res) => {
-          if (res.confirm) {
-            // 调用后端接口批量删除商品
-            deleteCartItems(itemIds)
-              .then(response => {
-                console.log('商品批量删除成功:', response);
-                
-                // 从前端数据中移除已删除的商品
-                for (let i = this.groupedCartItems.length - 1; i >= 0; i--) {
-                  const shop = this.groupedCartItems[i];
-                  for (let j = shop.items.length - 1; j >= 0; j--) {
-                    if (itemIds.includes(shop.items[j].id)) {
-                      shop.items.splice(j, 1);
-                    }
-                  }
-                  // 如果店铺内没有商品了，删除店铺
-                  if (shop.items.length === 0) {
-                    this.groupedCartItems.splice(i, 1);
-                  }
-                }
-                
-                // 重新检查全选状态
-                this.checkAllSelected();
-                
-                uni.showToast({
-                  title: '删除成功',
-                  icon: 'success'
-                });
-              })
-              .catch(error => {
-                console.error('商品批量删除失败:', error);
-                uni.showToast({
-                  title: '删除失败',
-                  icon: 'none'
-                });
-              });
-          }
-        }
-      });
-    },
-    // 检查全选状态
-    checkAllSelected() {
-      const allItems = this.groupedCartItems.flatMap(shop => shop.items)
-      const allSelected = allItems.length > 0 && allItems.every(item => item.selected)
-
-      // 如果所有商品都已选中，更新全选状态
-      if (allSelected) {
-        this.groupedCartItems.forEach(shop => {
-          shop.selected = true
-        })
-      }
-    },
-    // 获取购物车数据
-    fetchCartData() {
-      // 再次校验，防止直接调用
-      if (!this.ensureLogin()) {
-        return;
-      }
-      fetchCartItems()
-        .then(data => {
-          // 转换数据格式以匹配现有结构
-          this.groupedCartItems = data.map(shop => ({
-            shopId: shop.shopId,
-            shopName: shop.shopName,
-            selected: false, // 默认不选中
-            items: shop.items.map(item => ({
-              id: item.id, // 使用购物车项的id，而不是skuId
-              skuId: item.skuId, // 保留skuId，用于其他用途
-              name: item.spuName,
-              spec: item.specs, // 保持原始规格数组，方便页面渲染
-              price: item.price,
-              quantity: item.quantity,
-              // 构造图片URL，参考商品列表和商品详情页的实现方式
-              image: item.spuMainImage && item.spuMainImage.trim() !== '' ? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}` : '',
-              selected: false // 默认不选中
-            }))
-          }));
-        })
-        .catch(error => {
-          // 认证失败统一跳转
-          if (error && error.message === 'AUTH_401') {
-            handleAuthFailure();
-          } else {
-            console.error('获取购物车数据失败:', error);
-            uni.showToast({
-              title: '获取购物车数据失败',
-              icon: 'none'
-            });
-          }
-        });
-    },
-    // 结算
-    checkout() {
-      if (this.selectedCount === 0) {
-        uni.showToast({
-          title: '请选择商品',
+          title: '数量更新失败',
           icon: 'none'
         })
+      })
+    return
+  }
+
+  uni.showModal({
+    title: '提示',
+    content: '是否删除该商品？',
+    success: (res) => {
+      if (!res.confirm) {
         return
       }
 
-      // 获取选中的商品的skuId和quantity
-      const selectedItems = this.groupedCartItems
-        .flatMap(shop => shop.items)
-        .filter(item => item.selected)
-        .map(item => ({
-          skuId: item.skuId, // 使用skuId字段，而不是购物车项的id
-          quantity: item.quantity
-        }));
-      
-      // 将选中的商品数据（仅包含skuId和quantity）传递到订单确认页面
-      uni.navigateTo({
-        url: '/pages/order/confirm',
-        success: (res) => {
-          // 通过eventChannel向被打开页面传送数据
-          res.eventChannel.emit('acceptDataFromCartPage', {
-            selectedItems: selectedItems
+      deleteCartItems([item.id])
+        .then(() => {
+          removeItemFromGroupedData(shopIndex, itemIndex)
+        })
+        .catch((error) => {
+          console.error('商品删除失败:', error)
+          uni.showToast({
+            title: '删除失败',
+            icon: 'none'
           })
-        }
+        })
+    }
+  })
+}
+
+function deleteItem(shopIndex, itemIndex) {
+  const item = groupedCartItems.value[shopIndex].items[itemIndex]
+  deleteCartItems([item.id])
+    .then(() => {
+      removeItemFromGroupedData(shopIndex, itemIndex)
+    })
+    .catch((error) => {
+      console.error('商品删除失败:', error)
+      uni.showToast({
+        title: '删除失败',
+        icon: 'none'
+      })
+    })
+}
+
+function deleteSelectedItems() {
+  const selectedItems = groupedCartItems.value
+    .flatMap((shop) => shop.items)
+    .filter((item) => item.selected)
+
+  if (selectedItems.length === 0) {
+    uni.showToast({
+      title: '请选择要删除的商品',
+      icon: 'none'
+    })
+    return
+  }
+
+  const itemIds = selectedItems.map((item) => item.id)
+  uni.showModal({
+    title: '提示',
+    content: `确定要删除选中的${selectedItems.length}件商品吗？`,
+    success: (res) => {
+      if (!res.confirm) {
+        return
+      }
+
+      deleteCartItems(itemIds)
+        .then(() => {
+          groupedCartItems.value = groupedCartItems.value
+            .map((shop) => ({
+              ...shop,
+              items: shop.items.filter((item) => !itemIds.includes(item.id))
+            }))
+            .filter((shop) => shop.items.length > 0)
+
+          uni.showToast({
+            title: '删除成功',
+            icon: 'success'
+          })
+        })
+        .catch((error) => {
+          console.error('商品批量删除失败:', error)
+          uni.showToast({
+            title: '删除失败',
+            icon: 'none'
+          })
+        })
+    }
+  })
+}
+
+function fetchCartData() {
+  if (!ensureLogin()) {
+    return
+  }
+
+  fetchCartItems()
+    .then((data) => {
+      groupedCartItems.value = (data || []).map((shop) => ({
+        shopId: shop.shopId,
+        shopName: shop.shopName,
+        selected: false,
+        items: (shop.items || []).map((item) => ({
+          id: item.id,
+          skuId: item.skuId,
+          name: item.spuName,
+          spec: item.specs || [],
+          price: item.price,
+          quantity: item.quantity,
+          image: getStoragePreviewUrl(item.spuMainImage),
+          selected: false
+        }))
+      }))
+    })
+    .catch((error) => {
+      if (error && error.message === 'AUTH_401') {
+        handleAuthFailure()
+        return
+      }
+
+      console.error('获取购物车数据失败:', error)
+      uni.showToast({
+        title: '获取购物车数据失败',
+        icon: 'none'
+      })
+    })
+}
+
+function checkout() {
+  if (selectedCount.value === 0) {
+    uni.showToast({
+      title: '请选择商品',
+      icon: 'none'
+    })
+    return
+  }
+
+  const selectedItems = groupedCartItems.value
+    .flatMap((shop) => shop.items)
+    .filter((item) => item.selected)
+    .map((item) => ({
+      skuId: item.skuId,
+      quantity: item.quantity
+    }))
+
+  uni.navigateTo({
+    url: '/pages/order/confirm',
+    success: (res) => {
+      res.eventChannel.emit('acceptDataFromCartPage', {
+        selectedItems
       })
     }
-  }
+  })
 }
+
+onLoad(() => {
+  if (ensureLogin()) {
+    fetchCartData()
+  }
+})
+
+onShow(() => {
+  if (ensureLogin()) {
+    fetchCartData()
+  }
+})
 </script>
 
 <style scoped>

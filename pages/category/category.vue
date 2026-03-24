@@ -59,84 +59,73 @@
 	</view>
 </template>
 
-<script>
-	import { fetchProductCategoryTree } from '../../utils/api.js'
-	
-	export default {
-		data() {
-			return {
-				currentPrimaryIndex: 0,
-				currentSecondaryIndex: 0,
-				primaryCategories: [],
-				secondaryCategories: [],
-				tertiaryScrollTop: 0
-			}
-		},
-		computed: {
-			
-		},
-		methods: {
-			selectPrimaryCategory(index) {
-				this.currentPrimaryIndex = index;
-				// 根据选中的一级分类更新二级分类
-				const selectedCategory = this.primaryCategories[index];
-				this.secondaryCategories = selectedCategory.children || [];
-				// 重置二级分类选中项
-				this.currentSecondaryIndex = 0;
-				// 滚动到第一个二级分类
-				this.$nextTick(() => {
-					this.scrollToSecondary(0);
-				});
-			},
-			selectSecondaryCategory(index) {
-				this.currentSecondaryIndex = index;
-				// 滚动到选中的二级分类对应的三级分类部分
-				this.$nextTick(() => {
-					this.scrollToSecondary(index);
-				});
-			},
-			scrollToSecondary(index) {
-				// 滚动到指定的二级分类对应的三级分类部分
-				this.$nextTick(() => {
-					const query = uni.createSelectorQuery().in(this);
-					// 获取滚动容器的位置信息
-					query.select('.tertiary-category').boundingClientRect();
-					// 获取目标元素的位置信息
-					query.select(`#secondarySection${index}`).boundingClientRect();
-					
-					query.exec((res) => {
-						if (res[0] && res[1]) {
-							const scrollViewRect = res[0];
-							const targetRect = res[1];
-							// 计算目标元素相对于滚动容器的偏移量
-							const offsetTop = targetRect.top - scrollViewRect.top;
-							this.tertiaryScrollTop = offsetTop;
-						}
-					});
-				});
-			},
-			goToProductList(item) {
-				// 跳转到商品列表页面，传递三级分类ID和名称，并将分类名称作为搜索关键词
-				uni.navigateTo({
-					url: `/pages/product/list?categoryId=${item.id}&categoryName=${item.name}&searchKeyword=${item.name}`
-				});
-			}
-		},
-		mounted() {
-			// 从API获取分类数据
-			fetchProductCategoryTree()
-				.then((data) => {
-					this.primaryCategories = data;
-					// 初始化二级分类数据
-					if (this.primaryCategories.length > 0) {
-						this.secondaryCategories = this.primaryCategories[0].children || [];
-					}
-				})
-				.catch((error) => {
-					console.error('Failed to fetch category data:', error);
-				});
-		}
-	}
+<script setup>
+import { getCurrentInstance, nextTick, onMounted, ref } from 'vue'
+import { fetchProductCategoryTree } from '../../utils/api.js'
+
+const instance = getCurrentInstance()
+
+const currentPrimaryIndex = ref(0)
+const currentSecondaryIndex = ref(0)
+const primaryCategories = ref([])
+const secondaryCategories = ref([])
+const tertiaryScrollTop = ref(0)
+
+function selectPrimaryCategory(index) {
+  currentPrimaryIndex.value = index
+  const selectedCategory = primaryCategories.value[index]
+  secondaryCategories.value = (selectedCategory && selectedCategory.children) || []
+  currentSecondaryIndex.value = 0
+  nextTick(() => {
+    scrollToSecondary(0)
+  })
+}
+
+function selectSecondaryCategory(index) {
+  currentSecondaryIndex.value = index
+  nextTick(() => {
+    scrollToSecondary(index)
+  })
+}
+
+function scrollToSecondary(index) {
+  nextTick(() => {
+    const query = uni.createSelectorQuery().in(instance?.proxy)
+    query.select('.tertiary-category').boundingClientRect()
+    query.select(`#secondarySection${index}`).boundingClientRect()
+
+    query.exec((res) => {
+      if (!res[0] || !res[1]) {
+        return
+      }
+
+      tertiaryScrollTop.value = res[1].top - res[0].top
+    })
+  })
+}
+
+function goToProductList(item) {
+  uni.navigateTo({
+    url: `/pages/product/list?categoryId=${item.id}&categoryName=${encodeURIComponent(item.name)}&searchKeyword=${encodeURIComponent(item.name)}`
+  })
+}
+
+function loadCategoryTree() {
+  fetchProductCategoryTree()
+    .then((data) => {
+      primaryCategories.value = data || []
+      if (primaryCategories.value.length > 0) {
+        secondaryCategories.value = primaryCategories.value[0].children || []
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to fetch category data:', error)
+    })
+}
+
+onMounted(() => {
+  loadCategoryTree()
+})
 </script>
 
 <style scoped>

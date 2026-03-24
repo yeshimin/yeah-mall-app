@@ -89,302 +89,268 @@
 	</view>
 </template>
 
-<script>
-	import { createAddress, updateAddress, getAddressDetail, fetchProvinces, fetchCities, fetchDistricts } from '../../utils/api.js';
-	
-	export default {
-		data() {
-			return {
-				// 表单数据
-				formData: {
-					id: null,
-					name: '',
-					contact: '',
-					provinceCode: '',
-					provinceName: '',
-					cityCode: '',
-					cityName: '',
-					districtCode: '',
-					districtName: '',
-					detailAddress: '',
-					postalCode: '',
-					isDefault: false
-				},
-				// 是否为编辑模式
-				isEdit: false,
-				// 地区选择器
-			showPicker: false,
-			pickerValue: [0, 0, 0],
-			// 地区数据
-			provinces: [],
-			cities: [],
-			districts: [],
-			// 临时存储选择的地区，点击确认后才更新到表单
-			tempRegion: {
-				provinceCode: '',
-				provinceName: '',
-				cityCode: '',
-				cityName: '',
-				districtCode: '',
-				districtName: ''
-			},
-			};
-		},
-		onLoad(options) {
-			// 初始化省份数据
-			this.fetchProvinceList();
-			
-			// 检查是否为编辑模式
-			if (options.id) {
-				this.isEdit = true;
-				this.formData.id = options.id;
-				// 加载地址详情
-				this.loadAddressDetail(options.id);
-			}
-		},
-		methods: {
-			// 处理switch变化
-			onSwitchChange(e) {
-				this.formData.isDefault = e.detail.value;
-			},
-			
-			// 加载地址详情
-			loadAddressDetail(id) {
-				getAddressDetail(id)
-					.then(data => {
-						this.formData = {
-							id: data.id,
-							name: data.name,
-							contact: data.contact,
-							provinceCode: data.provinceCode,
-							provinceName: data.provinceName,
-							cityCode: data.cityCode,
-							cityName: data.cityName,
-							districtCode: data.districtCode,
-							districtName: data.districtName,
-							detailAddress: data.detailAddress,
-							postalCode: data.postalCode,
-							isDefault: data.isDefault
-						};
-					})
-					.catch(error => {
-						console.error('获取地址详情失败:', error);
-						uni.showToast({
-							title: '获取地址详情失败',
-							icon: 'none'
-						});
-					});
-			},
-			
-			// 保存地址
-			saveAddress() {
-				// 表单验证
-				if (!this.formData.name) {
-					uni.showToast({
-						title: '请输入收货人姓名',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				if (!this.formData.contact || !/^1[3-9]\d{9}$/.test(this.formData.contact)) {
-					uni.showToast({
-						title: '请输入正确的手机号',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				if (!this.formData.provinceCode || !this.formData.cityCode || !this.formData.districtCode) {
-					uni.showToast({
-						title: '请选择所在地区',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				if (!this.formData.detailAddress) {
-					uni.showToast({
-						title: '请输入详细地址',
-						icon: 'none'
-					});
-					return;
-				}
-				
-				// 提交数据
-				const addressData = { ...this.formData };
-				
-				if (this.isEdit) {
-					// 更新地址
-					updateAddress(addressData)
-						.then(() => {
-							uni.showToast({
-								title: '更新地址成功',
-								icon: 'success'
-							});
-							// 返回上一页
-							uni.navigateBack();
-						})
-						.catch(error => {
-							console.error('更新地址失败:', error);
-							uni.showToast({
-								title: error.message || '更新地址失败',
-								icon: 'none'
-							});
-						});
-				} else {
-					// 创建地址
-					createAddress(addressData)
-						.then(() => {
-							uni.showToast({
-								title: '添加地址成功',
-								icon: 'success'
-							});
-							// 返回上一页
-							uni.navigateBack();
-						})
-						.catch(error => {
-							console.error('添加地址失败:', error);
-							uni.showToast({
-								title: error.message || '添加地址失败',
-								icon: 'none'
-							});
-						});
-				}
-			},
-			
-			// 显示地区选择器
-			showRegionPicker() {
-				// 初始化临时地区数据为当前表单值
-				this.tempRegion = {
-					provinceCode: this.formData.provinceCode,
-					provinceName: this.formData.provinceName,
-					cityCode: this.formData.cityCode,
-					cityName: this.formData.cityName,
-					districtCode: this.formData.districtCode,
-					districtName: this.formData.districtName
-				};
-				this.showPicker = true;
-			},
-			
-			// 隐藏地区选择器
-			hideRegionPicker() {
-				this.showPicker = false;
-			},
-			
-			// 获取省份列表
-			fetchProvinceList() {
-				fetchProvinces()
-					.then(data => {
-						this.provinces = data;
-						// 默认选中第一个省份，获取对应城市
-						if (data && data.length > 0) {
-							this.fetchCityList(data[0].code);
-						}
-					})
-					.catch(error => {
-						console.error('获取省份列表失败:', error);
-						uni.showToast({
-							title: '获取省份列表失败',
-							icon: 'none'
-						});
-					});
-			},
-			
-			// 获取城市列表
-			fetchCityList(provinceCode) {
-				fetchCities(provinceCode)
-					.then(data => {
-						this.cities = data;
-						// 默认选中第一个城市，获取对应区县
-						if (data && data.length > 0) {
-							this.fetchDistrictList(data[0].code);
-						} else {
-							this.districts = [];
-						}
-					})
-					.catch(error => {
-						console.error('获取城市列表失败:', error);
-						uni.showToast({
-							title: '获取城市列表失败',
-							icon: 'none'
-						});
-					});
-			},
-			
-			// 获取区县列表
-			fetchDistrictList(cityCode) {
-				fetchDistricts(cityCode)
-					.then(data => {
-						this.districts = data;
-					})
-					.catch(error => {
-						console.error('获取区县列表失败:', error);
-						uni.showToast({
-							title: '获取区县列表失败',
-							icon: 'none'
-						});
-					});
-			},
-			
-			// 地区选择器变化
-			pickerChange(e) {
-				const value = e.detail.value;
-				const oldValue = this.pickerValue;
-				this.pickerValue = value;
-				
-				// 更新选中的省份到临时变量
-				const province = this.provinces[value[0]];
-				if (province) {
-					this.tempRegion.provinceCode = province.code;
-					this.tempRegion.provinceName = province.name;
-					
-					// 如果省份变化，重新加载城市列表
-					if (oldValue[0] !== value[0]) {
-						this.pickerValue[1] = 0; // 重置城市选择
-						this.pickerValue[2] = 0; // 重置区县选择
-						this.fetchCityList(province.code);
-						return; // 等待城市列表加载完成后再更新
-					}
-					
-					// 更新选中的城市到临时变量
-					const city = this.cities[value[1]];
-					if (city) {
-						this.tempRegion.cityCode = city.code;
-						this.tempRegion.cityName = city.name;
-						
-						// 如果城市变化，重新加载区县列表
-						if (oldValue[1] !== value[1]) {
-							this.pickerValue[2] = 0; // 重置区县选择
-							this.fetchDistrictList(city.code);
-							return; // 等待区县列表加载完成后再更新
-						}
-						
-						// 更新选中的区县到临时变量
-						const district = this.districts[value[2]];
-						if (district) {
-							this.tempRegion.districtCode = district.code;
-							this.tempRegion.districtName = district.name;
-						}
-					}
-				}
-			},
-			
-			// 确认选中的地区
-			confirmRegion() {
-				// 将临时选择的地区更新到表单数据
-				this.formData.provinceCode = this.tempRegion.provinceCode;
-				this.formData.provinceName = this.tempRegion.provinceName;
-				this.formData.cityCode = this.tempRegion.cityCode;
-				this.formData.cityName = this.tempRegion.cityName;
-				this.formData.districtCode = this.tempRegion.districtCode;
-				this.formData.districtName = this.tempRegion.districtName;
-				
-				// 隐藏选择器
-				this.hideRegionPicker();
-			}
-		}
-	};
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { createAddress, fetchCities, fetchDistricts, fetchProvinces, getAddressDetail, updateAddress } from '../../utils/api.js'
+
+const formData = reactive({
+  id: null,
+  name: '',
+  contact: '',
+  provinceCode: '',
+  provinceName: '',
+  cityCode: '',
+  cityName: '',
+  districtCode: '',
+  districtName: '',
+  detailAddress: '',
+  postalCode: '',
+  isDefault: false
+})
+
+const tempRegion = reactive({
+  provinceCode: '',
+  provinceName: '',
+  cityCode: '',
+  cityName: '',
+  districtCode: '',
+  districtName: ''
+})
+
+const isEdit = ref(false)
+const showPicker = ref(false)
+const pickerValue = ref([0, 0, 0])
+const provinces = ref([])
+const cities = ref([])
+const districts = ref([])
+
+function assignFormData(data) {
+  Object.assign(formData, {
+    id: data.id ?? null,
+    name: data.name || '',
+    contact: data.contact || '',
+    provinceCode: data.provinceCode || '',
+    provinceName: data.provinceName || '',
+    cityCode: data.cityCode || '',
+    cityName: data.cityName || '',
+    districtCode: data.districtCode || '',
+    districtName: data.districtName || '',
+    detailAddress: data.detailAddress || '',
+    postalCode: data.postalCode || '',
+    isDefault: !!data.isDefault
+  })
+}
+
+function onSwitchChange(event) {
+  formData.isDefault = event.detail.value
+}
+
+function loadAddressDetail(id) {
+  getAddressDetail(id)
+    .then(async (data) => {
+      assignFormData(data)
+      await syncPickerByFormData()
+    })
+    .catch((error) => {
+      console.error('获取地址详情失败:', error)
+      uni.showToast({
+        title: '获取地址详情失败',
+        icon: 'none'
+      })
+    })
+}
+
+function validateForm() {
+  if (!formData.name) {
+    uni.showToast({ title: '请输入收货人姓名', icon: 'none' })
+    return false
+  }
+
+  if (!formData.contact || !/^1[3-9]\d{9}$/.test(formData.contact)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
+    return false
+  }
+
+  if (!formData.provinceCode || !formData.cityCode || !formData.districtCode) {
+    uni.showToast({ title: '请选择所在地区', icon: 'none' })
+    return false
+  }
+
+  if (!formData.detailAddress) {
+    uni.showToast({ title: '请输入详细地址', icon: 'none' })
+    return false
+  }
+
+  return true
+}
+
+function saveAddress() {
+  if (!validateForm()) {
+    return
+  }
+
+  const addressData = { ...formData }
+  const request = isEdit.value ? updateAddress(addressData) : createAddress(addressData)
+
+  request
+    .then(() => {
+      uni.showToast({
+        title: isEdit.value ? '更新地址成功' : '添加地址成功',
+        icon: 'success'
+      })
+      uni.navigateBack()
+    })
+    .catch((error) => {
+      console.error(isEdit.value ? '更新地址失败:' : '添加地址失败:', error)
+      uni.showToast({
+        title: error.message || (isEdit.value ? '更新地址失败' : '添加地址失败'),
+        icon: 'none'
+      })
+    })
+}
+
+function showRegionPicker() {
+  Object.assign(tempRegion, {
+    provinceCode: formData.provinceCode,
+    provinceName: formData.provinceName,
+    cityCode: formData.cityCode,
+    cityName: formData.cityName,
+    districtCode: formData.districtCode,
+    districtName: formData.districtName
+  })
+  showPicker.value = true
+}
+
+function hideRegionPicker() {
+  showPicker.value = false
+}
+
+function fetchProvinceList() {
+  return fetchProvinces()
+    .then((data) => {
+      provinces.value = data || []
+      if (provinces.value.length > 0 && !formData.provinceCode) {
+        return fetchCityList(provinces.value[0].code)
+      }
+      return Promise.resolve()
+    })
+    .catch((error) => {
+      console.error('获取省份列表失败:', error)
+      uni.showToast({ title: '获取省份列表失败', icon: 'none' })
+    })
+}
+
+function fetchCityList(provinceCode) {
+  return fetchCities(provinceCode)
+    .then((data) => {
+      cities.value = data || []
+      if (cities.value.length > 0 && !formData.cityCode) {
+        return fetchDistrictList(cities.value[0].code)
+      }
+      if (cities.value.length === 0) {
+        districts.value = []
+      }
+      return Promise.resolve()
+    })
+    .catch((error) => {
+      console.error('获取城市列表失败:', error)
+      uni.showToast({ title: '获取城市列表失败', icon: 'none' })
+    })
+}
+
+function fetchDistrictList(cityCode) {
+  return fetchDistricts(cityCode)
+    .then((data) => {
+      districts.value = data || []
+    })
+    .catch((error) => {
+      console.error('获取区县列表失败:', error)
+      uni.showToast({ title: '获取区县列表失败', icon: 'none' })
+    })
+}
+
+async function syncPickerByFormData() {
+  if (!formData.provinceCode) {
+    return
+  }
+
+  const provinceIndex = provinces.value.findIndex((item) => item.code === formData.provinceCode)
+  if (provinceIndex > -1) {
+    pickerValue.value[0] = provinceIndex
+    await fetchCityList(formData.provinceCode)
+  }
+
+  const cityIndex = cities.value.findIndex((item) => item.code === formData.cityCode)
+  if (cityIndex > -1) {
+    pickerValue.value[1] = cityIndex
+    await fetchDistrictList(formData.cityCode)
+  }
+
+  const districtIndex = districts.value.findIndex((item) => item.code === formData.districtCode)
+  if (districtIndex > -1) {
+    pickerValue.value[2] = districtIndex
+  }
+}
+
+async function pickerChange(event) {
+  const value = [...event.detail.value]
+  const oldValue = [...pickerValue.value]
+  pickerValue.value = value
+
+  const province = provinces.value[value[0]]
+  if (!province) {
+    return
+  }
+
+  tempRegion.provinceCode = province.code
+  tempRegion.provinceName = province.name
+
+  if (oldValue[0] !== value[0]) {
+    pickerValue.value = [value[0], 0, 0]
+    await fetchCityList(province.code)
+  }
+
+  const city = cities.value[pickerValue.value[1]]
+  if (!city) {
+    return
+  }
+
+  tempRegion.cityCode = city.code
+  tempRegion.cityName = city.name
+
+  if (oldValue[1] !== pickerValue.value[1]) {
+    pickerValue.value = [pickerValue.value[0], pickerValue.value[1], 0]
+    await fetchDistrictList(city.code)
+  }
+
+  const district = districts.value[pickerValue.value[2]]
+  if (district) {
+    tempRegion.districtCode = district.code
+    tempRegion.districtName = district.name
+  }
+}
+
+function confirmRegion() {
+  Object.assign(formData, {
+    provinceCode: tempRegion.provinceCode,
+    provinceName: tempRegion.provinceName,
+    cityCode: tempRegion.cityCode,
+    cityName: tempRegion.cityName,
+    districtCode: tempRegion.districtCode,
+    districtName: tempRegion.districtName
+  })
+  hideRegionPicker()
+}
+
+onLoad(async (options = {}) => {
+  await fetchProvinceList()
+  if (options.id) {
+    isEdit.value = true
+    formData.id = options.id
+    loadAddressDetail(options.id)
+  }
+})
 </script>
 
 <style scoped>

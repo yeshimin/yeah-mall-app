@@ -42,68 +42,46 @@
 	</view>
 </template>
 
-<script>
-	import { queryTracking } from '../../utils/api.js';
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { queryTracking } from '../../utils/api.js'
 
-export default {
-		data() {
-			return {
-				// 加载状态
-				loading: true,
-				// 错误信息
-				error: '',
-				// 物流信息
-				logisticsInfo: {},
-				// 订单号
-				orderNo: '',
-				// 订单ID
-				orderId: '',
-				// 物流单号
-				trackingNo: ''
-			};
-		},
-		onLoad(options) {
-			// 获取订单号和物流单号
-			if (options.orderId) {
-				this.orderId = options.orderId;
-				this.fetchLogisticsInfo();
-			} else if (options.orderNo) {
-				this.orderNo = options.orderNo;
-				this.fetchLogisticsInfo();
-			} else if (options.trackingNo) {
-				// 如果只有trackingNo，也可以调用接口获取物流信息
-				// 这里暂时使用trackingNo作为订单ID参数
-				this.trackingNo = options.trackingNo;
-				this.fetchLogisticsInfo();
-			} else {
-				this.error = '订单号或物流单号不能为空';
-				this.loading = false;
-			}
-		},
-		methods: {
-			// 返回上一页
-			goBack() {
-				uni.navigateBack();
-			},
-			
-			// 获取物流信息
-			async fetchLogisticsInfo() {
-				this.loading = true;
-				this.error = '';
-				try {
-					// 调用物流信息查询接口
-					// 优先使用orderId，其次是orderNo或trackingNo作为orderId参数
-					const logisticsData = await queryTracking(this.orderId || this.orderNo || this.trackingNo);
-					this.logisticsInfo = logisticsData;
-				} catch (err) {
-					console.error('获取物流信息失败:', err);
-					this.error = '获取物流信息失败，请稍后重试';
-				} finally {
-					this.loading = false;
-				}
-			}
-		}
-	};
+const loading = ref(true)
+const error = ref('')
+const logisticsInfo = ref({})
+const orderNo = ref('')
+const orderId = ref('')
+const trackingNo = ref('')
+
+async function fetchLogisticsInfo() {
+  loading.value = true
+  error.value = ''
+  try {
+    logisticsInfo.value = await queryTracking(orderId.value || orderNo.value || trackingNo.value)
+  } catch (err) {
+    console.error('获取物流信息失败:', err)
+    error.value = '获取物流信息失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad((options = {}) => {
+  if (options.orderId) {
+    orderId.value = options.orderId
+    fetchLogisticsInfo()
+  } else if (options.orderNo) {
+    orderNo.value = options.orderNo
+    fetchLogisticsInfo()
+  } else if (options.trackingNo) {
+    trackingNo.value = options.trackingNo
+    fetchLogisticsInfo()
+  } else {
+    error.value = '订单号或物流单号不能为空'
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>

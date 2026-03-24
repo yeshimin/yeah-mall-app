@@ -45,165 +45,161 @@
   </view>
 </template>
 
-<script>
-import { isAuthenticated, handleAuthFailure } from '../../utils/auth.js'
+<script setup>
+import { reactive } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { fetchOrderCounts, fetchUserDetail } from '../../utils/api.js'
-import { BASE_API } from '../../utils/config.js'
+import { handleAuthFailure, isAuthenticated } from '../../utils/auth.js'
+import { getStoragePreviewUrl } from '../../utils/config.js'
 
-export default {
-  name: 'Profile',
-  data() {
-    return {
-      userInfo: {
-        id: '',
-        nickname: '用户名',
-        avatarUrl: '../../static/logo.png',
-        mobile: '',
-        account: '',
-        gender: 0,
-        birthday: ''
-      },
-      orderStats: [
-        { name: '待付款', key: 'waitPayCount', count: 0 },
-        { name: '待发货', key: 'waitShipCount', count: 0 },
-        { name: '待收货', key: 'waitReceiveCount', count: 0 },
-        { name: '待评价', key: 'waitCommentCount', count: 0 },
-        { name: '退款/售后', key: 'refundAndAfterSaleCount', count: 0 }
-      ],
-      functions: [
-        { name: '优惠券', icon: '优惠券' },
-        { name: '积分', icon: '积分' },
-        { name: '收藏', icon: '收藏' },
-        { name: '地址', icon: '地址' }
-      ],
-      settings: [
-        { name: '消息中心' },
-        { name: '客服中心' },
-        { name: '设置' }
-      ]
-    }
-  },
-  onShow() {
-    // 进入页面时校验登录状态
-    if (!isAuthenticated()) {
-      handleAuthFailure()
-      return
-    }
-    // 已登录则拉取用户信息和订单数量
-    this.loadUserInfo()
-    this.loadOrderCounts()
-  },
-  methods: {
-    // 加载用户信息
-    loadUserInfo() {
-      fetchUserDetail()
-        .then(data => {
-          // 处理用户头像URL
-          const avatarUrl = data.avatar ? `${BASE_API}/public/storage/preview?fileKey=${data.avatar}` : '../../static/logo.png'
-          
-          this.userInfo = {
-            id: data.id || '',
-            nickname: data.nickname || data.mobile || '用户名',
-            avatarUrl: avatarUrl,
-            mobile: data.mobile || '',
-            account: data.account || '',
-            gender: data.gender || 0,
-            birthday: data.birthday || ''
-          }
-        })
-        .catch(err => {
-          // 认证失败已在全局处理，这里不再重复提示
-          if (err && err.message === 'AUTH_401') {
-            return
-          }
-          console.error('获取用户信息失败', err)
-          // 保持默认用户信息，不影响页面显示
-        })
-    },
-    
-    // 查看全部订单
-    viewAllOrders() {
-      console.log('查看全部订单')
-      uni.navigateTo({
-        url: '/pages/order/list'
+const userInfo = reactive({
+  id: '',
+  nickname: '用户名',
+  avatarUrl: '../../static/logo.png',
+  mobile: '',
+  account: '',
+  gender: 0,
+  birthday: ''
+})
+
+const orderStats = reactive([
+  { name: '待付款', key: 'waitPayCount', count: 0 },
+  { name: '待发货', key: 'waitShipCount', count: 0 },
+  { name: '待收货', key: 'waitReceiveCount', count: 0 },
+  { name: '待评价', key: 'waitCommentCount', count: 0 },
+  { name: '退款/售后', key: 'refundAndAfterSaleCount', count: 0 }
+])
+
+const functions = [
+  { name: '优惠券', icon: '优惠券' },
+  { name: '积分', icon: '积分' },
+  { name: '收藏', icon: '收藏' },
+  { name: '地址', icon: '地址' }
+]
+
+const settings = [
+  { name: '消息中心' },
+  { name: '客服中心' },
+  { name: '设置' }
+]
+
+function loadUserInfo() {
+  fetchUserDetail()
+    .then((data) => {
+      Object.assign(userInfo, {
+        id: data.id || '',
+        nickname: data.nickname || data.mobile || '用户名',
+        avatarUrl: getStoragePreviewUrl(data.avatar) || '../../static/logo.png',
+        mobile: data.mobile || '',
+        account: data.account || '',
+        gender: data.gender || 0,
+        birthday: data.birthday || ''
       })
-    },
-    
-    // 点击订单状态
-    viewOrdersByStatus(index) {
-      console.log('查看订单状态:', this.orderStats[index].name)
-      // 根据不同状态跳转到订单列表页面，并传递状态参数
-      let status = 0 // 默认为全部
-      if (index === 0) status = 1 // 待付款
-      else if (index === 1) status = 2 // 待发货
-      else if (index === 2) status = 3 // 待收货
-      else if (index === 3) status = 5 // 待评价
-      else if (index === 4) status = 4 // 退款/售后
-      
-      uni.navigateTo({
-        url: `/pages/order/list?status=${status}`
-      })
-    },
-    // 加载个人订单数量
-    loadOrderCounts() {
-      fetchOrderCounts()
-        .then(data => {
-          // data: OrderCountVo
-          this.orderStats = this.orderStats.map(stat => ({
-            ...stat,
-            count: data && data[stat.key] != null ? data[stat.key] : 0
-          }))
-        })
-        .catch(err => {
-          // 认证失败已在全局处理，这里不再重复提示
-          if (err && err.message === 'AUTH_401') {
-            return
-          }
-          console.error('获取订单数量失败', err)
-          uni.showToast({
-            title: '获取订单数量失败',
-            icon: 'none'
-          })
-        })
-    },
-    
-    // 点击功能入口
-    useFunction(index) {
-      console.log('使用功能:', this.functions[index].name)
-      // 跳转到相应的功能页面
-      if (index === 0) {
-        // 优惠券
-        uni.navigateTo({
-          url: '/pages/coupons/list'
-        })
-      } else if (index === 1) {
-        // 积分
-        console.log('跳转到积分页面')
-      } else if (index === 2) {
-        // 收藏
-        console.log('跳转到收藏页面')
-      } else if (index === 3) {
-        // 地址
-        uni.navigateTo({
-          url: '/pages/address/list'
-        })
+    })
+    .catch((error) => {
+      if (error && error.message === 'AUTH_401') {
+        return
       }
-    },
-    
-    // 点击设置项
-    openSetting(index) {
-      console.log('打开设置:', this.settings[index].name)
-      // 这里可以跳转到相应的设置页面
-    },
-    
-    // 编辑个人信息
-    editProfile() {
-      uni.navigateTo({
-        url: '/pages/profile/edit'
+      console.error('获取用户信息失败', error)
+    })
+}
+
+function viewAllOrders() {
+  uni.navigateTo({
+    url: '/pages/order/list'
+  })
+}
+
+function viewOrdersByStatus(index) {
+  let status = 0
+  if (index === 0) status = 1
+  else if (index === 1) status = 2
+  else if (index === 2) status = 3
+  else if (index === 3) status = 5
+  else if (index === 4) status = 4
+
+  uni.navigateTo({
+    url: `/pages/order/list?status=${status}`
+  })
+}
+
+function loadOrderCounts() {
+  fetchOrderCounts()
+    .then((data) => {
+      orderStats.forEach((stat) => {
+        stat.count = data && data[stat.key] != null ? data[stat.key] : 0
       })
-    }
+    })
+    .catch((error) => {
+      if (error && error.message === 'AUTH_401') {
+        return
+      }
+      console.error('获取订单数量失败', error)
+      uni.showToast({
+        title: '获取订单数量失败',
+        icon: 'none'
+      })
+    })
+}
+
+function useFunction(index) {
+  if (index === 0) {
+    uni.navigateTo({
+      url: '/pages/coupons/list'
+    })
+  } else if (index === 1) {
+    uni.showToast({
+      title: '积分功能开发中',
+      icon: 'none'
+    })
+  } else if (index === 2) {
+    uni.showToast({
+      title: '收藏功能开发中',
+      icon: 'none'
+    })
+  } else if (index === 3) {
+    uni.navigateTo({
+      url: '/pages/address/list'
+    })
   }
 }
+
+function openSetting(index) {
+  if (settings[index].name === '客服中心') {
+    uni.navigateTo({
+      url: '/pages/customer-service/index'
+    })
+    return
+  }
+
+  if (settings[index].name === '设置') {
+    uni.navigateTo({
+      url: '/pages/profile/edit'
+    })
+    return
+  }
+
+  uni.showToast({
+    title: '功能开发中',
+    icon: 'none'
+  })
+}
+
+function editProfile() {
+  uni.navigateTo({
+    url: '/pages/profile/edit'
+  })
+}
+
+onShow(() => {
+  if (!isAuthenticated()) {
+    handleAuthFailure()
+    return
+  }
+
+  loadUserInfo()
+  loadOrderCounts()
+})
 </script>
 
 <style scoped>

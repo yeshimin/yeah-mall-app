@@ -108,115 +108,101 @@
 	</view>
 </template>
 
-<script>
-	import { fetchOrderDetail } from '@/utils/api.js';
-	import { BASE_API } from '@/utils/config.js';
+<script setup>
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { fetchOrderDetail } from '@/utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
 
-	export default {
-		data() {
-			return {
-				orderId: '',
-				orderDetail: null
-			};
-		},
-		onLoad(options) {
-			if (options.orderId) {
-				this.orderId = options.orderId;
-				this.loadOrderReviewDetail();
-			} else {
-				uni.showToast({
-					title: '订单参数错误',
-					icon: 'none'
-				});
-				setTimeout(() => uni.navigateBack(), 1500);
-			}
-		},
-		methods: {
-			// 加载订单评价详情
-			loadOrderReviewDetail() {
-				uni.showLoading({ title: '加载中...' });
-				// 这里应该调用获取订单评价详情的API
-				// 暂时使用fetchOrderDetail模拟，实际项目中应该替换为专门的评价详情API
-				fetchOrderDetail(this.orderId).then(data => {
-					// 模拟评价数据
-					this.orderDetail = {
-						orderNo: data.orderNo,
-						reviewTime: data.reviewTime || new Date().toISOString(),
-						isAnonymous: false,
-						descriptionRating: 5,
-						deliveryRating: 5,
-						serviceRating: 5,
-						items: data.shopProducts.map(product => ({
-							orderItemId: product.orderItemId,
-							spuId: product.spuId,
-							skuId: product.skuId,
-							spuName: product.spuName,
-							spuMainImage: product.spuMainImage,
-							specs: product.specs,
-							overallRating: 5,
-							content: '商品质量很好，物流速度快，服务态度好，非常满意！',
-							images: product.spuMainImage ? [product.spuMainImage] : []
-						}))
-					};
-					uni.hideLoading();
-				}).catch(err => {
-					uni.hideLoading();
-					console.error('获取订单评价详情失败', err);
-					uni.showToast({
-						title: '获取评价详情失败',
-						icon: 'none'
-					});
-				});
-			},
-			// 格式化时间
-			formatTime(timeStr) {
-				if (!timeStr) return '';
-				let formattedTimeStr = timeStr;
-				if (timeStr.includes(' ') && !timeStr.includes('T')) {
-					formattedTimeStr = timeStr.replace(/-/g, '/');
-				}
-				const date = new Date(formattedTimeStr);
-				const year = date.getFullYear();
-				const month = String(date.getMonth() + 1).padStart(2, '0');
-				const day = String(date.getDate()).padStart(2, '0');
-				const hours = String(date.getHours()).padStart(2, '0');
-				const minutes = String(date.getMinutes()).padStart(2, '0');
-				return `${year}-${month}-${day} ${hours}:${minutes}`;
-			},
-			// 获取图片URL
-			getImageUrl(path) {
-				if (!path) return 'https://via.placeholder.com/100';
-				if (path.startsWith('http')) return path;
-				return `${BASE_API}/public/storage/preview?fileKey=${path}`;
-			},
-			// 获取规格字符串
-			getSpecString(specs) {
-				if (!specs || !specs.length) return '';
-				return specs.map(s => `${s.specName}:${s.optName}`).join('; ');
-			},
-			// 获取评分文本
-			getRatingText(rating) {
-				switch (rating) {
-					case 1:
-						return '差评';
-					case 3:
-						return '中评';
-					case 5:
-						return '好评';
-					default:
-						return '未评价';
-				}
-			},
-			// 预览图片
-			previewImage(images, current) {
-				const urls = images.map(img => this.getImageUrl(img));
-				uni.previewImage({
-					urls: urls,
-					current: urls[current]
-				});
-			}
-		}
-	};
+const orderId = ref('')
+const orderDetail = ref(null)
+
+function formatTime(timeStr) {
+  if (!timeStr) return ''
+  let formattedTimeStr = timeStr
+  if (timeStr.includes(' ') && !timeStr.includes('T')) {
+    formattedTimeStr = timeStr.replace(/-/g, '/')
+  }
+  const date = new Date(formattedTimeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+function getImageUrl(path) {
+  return getStoragePreviewUrl(path) || '/static/logo.png'
+}
+
+function getSpecString(specs) {
+  if (!specs || !specs.length) return ''
+  return specs.map((spec) => `${spec.specName}:${spec.optName}`).join('; ')
+}
+
+function getRatingText(rating) {
+  if (rating === 1) return '差评'
+  if (rating === 3) return '中评'
+  if (rating === 5) return '好评'
+  return '未评价'
+}
+
+function previewImage(images, current) {
+  const urls = images.map((img) => getImageUrl(img))
+  uni.previewImage({
+    urls,
+    current: urls[current]
+  })
+}
+
+function loadOrderReviewDetail() {
+  uni.showLoading({ title: '加载中...' })
+  fetchOrderDetail(orderId.value)
+    .then((data) => {
+      orderDetail.value = {
+        orderNo: data.orderNo,
+        reviewTime: data.reviewTime || new Date().toISOString(),
+        isAnonymous: false,
+        descriptionRating: 5,
+        deliveryRating: 5,
+        serviceRating: 5,
+        items: (data.shopProducts || []).map((product) => ({
+          orderItemId: product.orderItemId,
+          spuId: product.spuId,
+          skuId: product.skuId,
+          spuName: product.spuName,
+          spuMainImage: product.spuMainImage,
+          specs: product.specs,
+          overallRating: 5,
+          content: '商品质量很好，物流速度快，服务态度好，非常满意！',
+          images: product.spuMainImage ? [product.spuMainImage] : []
+        }))
+      }
+      uni.hideLoading()
+    })
+    .catch((error) => {
+      uni.hideLoading()
+      console.error('获取订单评价详情失败', error)
+      uni.showToast({
+        title: '获取评价详情失败',
+        icon: 'none'
+      })
+    })
+}
+
+onLoad((options = {}) => {
+  if (options.orderId) {
+    orderId.value = options.orderId
+    loadOrderReviewDetail()
+  } else {
+    uni.showToast({
+      title: '订单参数错误',
+      icon: 'none'
+    })
+    setTimeout(() => uni.navigateBack(), 1500)
+  }
+})
 </script>
 
 <style scoped>

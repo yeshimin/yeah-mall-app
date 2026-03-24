@@ -1,5 +1,6 @@
 // WebSocket 管理工具
 import { getToken } from './auth.js';
+import { BASE_WS } from './config.js';
 
 class WebSocketManager {
   constructor() {
@@ -12,18 +13,19 @@ class WebSocketManager {
     this.heartbeatIntervalTime = 30000; // 30秒
     this.baseReconnectDelay = 3000; // 基础重连延迟
     this.reconnectDelay = 3000; // 当前重连延迟
-    // this.url = 'ws://192.168.31.61:8080/ws/ns/default';
-    this.url = 'ws://10.20.31.248:8080/ws/ns/default';
+    this.url = BASE_WS;
     this.messageHandlers = {};
     this.isWechatMiniProgram = typeof wx !== 'undefined' && typeof wx.connectSocket !== 'undefined';
     this.initNetworkListener(); // 初始化网络状态监听
   }
 
+  log() {}
+
   // 初始化 WebSocket 连接
   init() {
     const token = getToken();
     if (!token) {
-      console.log('WebSocket: 未登录，无法连接');
+      this.log('WebSocket: 未登录，无法连接');
       return;
     }
 
@@ -49,7 +51,7 @@ class WebSocketManager {
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
-      console.log('WebSocket: 连接成功');
+      this.log('WebSocket: 连接成功');
       this.isConnected = true;
       this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
@@ -69,7 +71,7 @@ class WebSocketManager {
     };
 
     this.ws.onclose = () => {
-      console.log('WebSocket: 连接关闭');
+      this.log('WebSocket: 连接关闭');
       this.isConnected = false;
       this.stopHeartbeat();
       this.attemptReconnect();
@@ -88,7 +90,7 @@ class WebSocketManager {
     wx.connectSocket({
       url: wsUrl,
       success: () => {
-        console.log('WebSocket: 连接请求发送成功');
+        this.log('WebSocket: 连接请求发送成功');
       },
       fail: (error) => {
         console.error('WebSocket: 连接请求发送失败', error);
@@ -98,7 +100,7 @@ class WebSocketManager {
 
     // 监听 WebSocket 连接打开事件
     wx.onSocketOpen(() => {
-      console.log('WebSocket: 连接成功');
+      this.log('WebSocket: 连接成功');
       this.isConnected = true;
       this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
@@ -121,7 +123,7 @@ class WebSocketManager {
 
     // 监听 WebSocket 连接关闭事件
     wx.onSocketClose(() => {
-      console.log('WebSocket: 连接关闭');
+      this.log('WebSocket: 连接关闭');
       this.isConnected = false;
       this.stopHeartbeat();
       this.attemptReconnect();
@@ -134,11 +136,11 @@ class WebSocketManager {
   // 处理接收到的消息
   handleMessage(message) {
     const { category, command } = message;
-    console.log('WebSocket: 收到消息', message);
+    this.log('WebSocket: 收到消息', message);
 
     // 处理心跳响应
     if (category === 'heartbeat' && command === 'pong') {
-      console.log('WebSocket: 收到心跳响应:', message);
+      this.log('WebSocket: 收到心跳响应:', message);
       return;
     }
 
@@ -164,7 +166,7 @@ class WebSocketManager {
           wx.sendSocketMessage({
             data: messageStr,
             success: () => {
-              console.log('WebSocket: 消息发送成功');
+              this.log('WebSocket: 消息发送成功');
             },
             fail: (error) => {
               console.error('WebSocket: 发送消息失败', error);
@@ -194,7 +196,7 @@ class WebSocketManager {
   // 启动心跳机制
   startHeartbeat() {
     this.stopHeartbeat();
-    console.log('WebSocket: 启动心跳机制，每30秒发送一次心跳包');
+    this.log('WebSocket: 启动心跳机制，每30秒发送一次心跳包');
     this.heartbeatInterval = setInterval(() => {
       this.sendHeartbeat();
     }, this.heartbeatIntervalTime);
@@ -215,7 +217,7 @@ class WebSocketManager {
       command: 'ping',
       payload: {}
     };
-    console.log('WebSocket: 发送心跳包:', heartbeatMessage);
+    this.log('WebSocket: 发送心跳包:', heartbeatMessage);
     this.send(heartbeatMessage);
   }
 
@@ -225,19 +227,19 @@ class WebSocketManager {
       // 微信小程序环境
       wx.onNetworkStatusChange((res) => {
         if (res.isConnected) {
-          console.log('WebSocket: 网络已连接，尝试重连');
+          this.log('WebSocket: 网络已连接，尝试重连');
           if (!this.isConnected && !this.isReconnecting) {
             this.resetReconnectState();
             this.init();
           }
         } else {
-          console.log('WebSocket: 网络已断开');
+          this.log('WebSocket: 网络已断开');
         }
       });
     } else if (typeof window !== 'undefined') {
       // 浏览器环境
       window.addEventListener('online', () => {
-        console.log('WebSocket: 网络已连接，尝试重连');
+        this.log('WebSocket: 网络已连接，尝试重连');
         if (!this.isConnected && !this.isReconnecting) {
           this.resetReconnectState();
           this.init();
@@ -245,7 +247,7 @@ class WebSocketManager {
       });
       
       window.addEventListener('offline', () => {
-        console.log('WebSocket: 网络已断开');
+        this.log('WebSocket: 网络已断开');
       });
     }
   }
@@ -265,7 +267,7 @@ class WebSocketManager {
 
     const token = getToken();
     if (!token) {
-      console.log('WebSocket: 未登录，停止重连');
+      this.log('WebSocket: 未登录，停止重连');
       return;
     }
 
@@ -275,7 +277,7 @@ class WebSocketManager {
     // 使用指数退避策略，每次重连延迟翻倍，最大不超过30秒
     this.reconnectDelay = Math.min(this.baseReconnectDelay * Math.pow(2, Math.min(this.reconnectAttempts - 1, 5)), 30000);
 
-    console.log(`WebSocket: 尝试重连 (${this.reconnectAttempts})，延迟 ${this.reconnectDelay}ms`);
+    this.log(`WebSocket: 尝试重连 (${this.reconnectAttempts})，延迟 ${this.reconnectDelay}ms`);
 
     this.reconnectInterval = setTimeout(() => {
       this.isReconnecting = false;
@@ -306,7 +308,7 @@ class WebSocketManager {
     }
     this.ws = null;
     this.isConnected = false;
-    console.log('WebSocket: 连接已关闭');
+    this.log('WebSocket: 连接已关闭');
   }
 
   // 注册消息处理器

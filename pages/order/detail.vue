@@ -133,331 +133,290 @@
 	</view>
 </template>
 
-<script>
-	import { fetchOrderDetail, confirmReceive } from '../../utils/api.js';
-	import { BASE_API } from '@/utils/config.js';
-	
-export default {
-		data() {
-			return {
-				// 订单详情数据
-				orderInfo: {
-					orderNo: '',
-					orderStatus: 0,
-					statusText: '',
-					shopName: '',
-					address: null,
-					goods: [],
-					totalPrice: 0,
-					shippingFee: 0,
-					actualPayment: 0,
-					createTime: '',
-					paySuccessTime: '',
-					shipTime: '',
-					deliveryTime: '',
-					completeTime: '',
-					logisticsInfo: '',
-					actions: []
-				},
-				// 加载状态
-				loading: true,
-				// 订单状态与文本映射
-			statusMap: {
-				'1': '待付款',
-				'2': '待发货',
-				'3': '待收货',
-				'4': '交易成功',
-				'5': '交易关闭',
-				'6': '退款',
-				'7': '售后'
-			},
-			// 退款子状态与文本映射
-			refundStatusMap: {
-				'1': '申请中',
-				'2': '处理中',
-				'3': '退款成功',
-				'4': '已拒绝',
-				'5': '退款失败'
-			}
-			};
-		},
-		onLoad(options) {
-			// 获取订单号或订单ID
-			if (options.orderId) {
-				this.fetchOrderDetail(options.orderId);
-			} else if (options.orderNo) {
-				this.fetchOrderDetail(options.orderNo);
-			} else {
-				uni.showToast({
-					title: '订单号或订单ID不能为空',
-					icon: 'none'
-				});
-				uni.navigateBack();
-			}
-		},
-		methods: {
-			// 获取订单详情
-			async fetchOrderDetail(orderNo) {
-				this.loading = true;
-				try {
-					// 调用订单详情接口
-					const orderData = await fetchOrderDetail(orderNo);
-					// 处理订单数据
-					this.orderInfo = this.processOrderData(orderData);
-				} catch (error) {
-					console.error('获取订单详情失败:', error);
-					uni.showToast({
-						title: error.message || '获取订单详情失败',
-						icon: 'none'
-					});
-				} finally {
-					this.loading = false;
-				}
-			},
-			
-			// 处理订单数据
-			processOrderData(orderData) {
-				// 根据接口返回的数据结构，orderData是包含order、shopProducts和deliveryTracking的对象
-				const order = orderData.order;
-				const shopProducts = orderData.shopProducts;
-				const deliveryTracking = orderData.deliveryTracking;
-				
-				// 根据订单状态和退款、售后状态确定显示文本
-				let statusText = this.statusMap[order.status] || '未知状态';
-				
-				// 处理退款/售后状态的显示
-				if (order.status === '6' && order.refundStatus && order.refundStatus !== '0') {
-					// 订单状态为退款时，显示具体的退款子状态
-					statusText = this.refundStatusMap[order.refundStatus] || '退款中';
-				} else if (order.refundStatus && order.refundStatus !== '0') {
-					statusText = '退款中';
-				} else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
-					statusText = '售后中';
-				} else if (order.status === '4' && !order.reviewed) {
-					statusText = '待评价';
-				} else if (order.status === '4' && order.reviewed) {
-					statusText = '已完成';
-				}
-				
-				// 处理商品信息
-				const processedGoods = shopProducts ? shopProducts.map(item => ({
-					id: item.spuId,
-					spuId: item.spuId,
-					skuId: item.skuId,
-					name: item.spuName,
-					spec: item.specs && item.specs.length > 0 
-						? item.specs.map(spec => `${spec.specName}:${spec.optName}`).join(';')
-						: item.skuName || '',
-					price: parseFloat(item.price),
-					quantity: parseInt(item.quantity),
-					image: item.spuMainImage && item.spuMainImage.trim() !== '' 
-						? `${BASE_API}/public/storage/preview?fileKey=${item.spuMainImage}`
-						: 'https://via.placeholder.com/100'
-				})) : [];
-				
-				// 订单总金额
-				const totalPrice = parseFloat(order.totalAmount || 0);
-				
-				// 处理地址信息
-				const address = {
-					name: order.receiverName,
-					phone: order.receiverContact,
-					address: order.receiverFullAddress
-				};
-				
-				// 获取订单操作按钮
-				const actions = this.getOrderActions(parseInt(order.status), order.trackingNo);
-				
-				return {
-					orderNo: order.orderNo,
-					orderId: order.id, // 保存订单ID
-					orderStatus: parseInt(order.status),
-					statusText: statusText,
-					shopName: `店铺${order.shopId || 1}`, // 接口返回中没有shopName，使用默认值
-					address: address,
-					totalPrice: totalPrice,
-					shippingFee: 0, // 接口返回中没有shippingFee，使用默认值
-					actualPayment: totalPrice,
-					createTime: order.createTime,
-					paySuccessTime: order.paySuccessTime,
-					shipTime: order.shipTime,
-					deliveryTime: order.receiveTime,
-					completeTime: order.receiveTime,
-					logisticsInfo: deliveryTracking, // 直接传递物流跟踪对象，不转换为字符串
-					trackingNo: order.trackingNo, // 保存物流单号
-					goods: processedGoods,
-					actions: actions
-				};
-			},
-			
-			// 获取订单操作按钮
-			getOrderActions(status, trackingNo) {
-				const actions = [];
-				
-				switch (status) {
-					case 1: // 待付款 (WAIT_PAY)
-						actions.push(
-							{ label: '取消订单', value: 'cancel', type: 'default' },
-							{ label: '付款', value: 'pay', type: 'primary' }
-						);
-						break;
-					case 2: // 待发货 (WAIT_SHIP)
-						actions.push(
-							{ label: '提醒发货', value: 'remind', type: 'default' },
-							{ label: '联系客服', value: 'contact', type: 'default' }
-						);
-						break;
-					case 3: // 待收货 (WAIT_RECEIVE)
-					// 暂时不添加查看物流按钮，使用物流信息区域的入口
-					actions.push(
-						{ label: '确认收货', value: 'confirm', type: 'primary' }
-					);
-					break;
-				case 4: // 交易成功 (COMPLETED)
-					// 暂时不添加查看物流按钮，使用物流信息区域的入口
-					actions.push(
-						{ label: '删除订单', value: 'delete', type: 'default' },
-						{ label: '去评价', value: 'comment', type: 'primary' },
-						{ label: '再次购买', value: 'rebuy', type: 'default' }
-					);
-					break;
-					case 5: // 交易关闭 (CLOSED)
-						actions.push(
-							{ label: '删除订单', value: 'delete', type: 'default' },
-							{ label: '再次购买', value: 'rebuy', type: 'default' }
-						);
-						break;
-					default:
-						break;
-				}
-				
-				return actions;
-			},
-			
-			// 处理订单操作
-			handleAction(action) {
-				switch (action) {
-					case 'cancel':
-					// 取消订单
-					uni.showModal({
-						title: '取消订单',
-						content: '确定要取消该订单吗？',
-						confirmText: '确定',
-						cancelText: '取消',
-						success: (res) => {
-							if (res.confirm) {
-								// 这里应该调用取消订单接口
-								uni.showToast({
-									title: '订单已取消',
-									icon: 'success'
-								});
-								// 重新获取订单详情
-								this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
-							}
-						}
-					});
-					break;
-					case 'pay':
-						// 去付款
-						uni.navigateTo({
-							url: `/pages/order/pay-result?orderNo=${this.orderInfo.orderNo}&payResultType=wait`
-						});
-						break;
-					case 'remind':
-						// 提醒发货
-						uni.showToast({
-							title: '已提醒商家发货',
-							icon: 'success'
-						});
-						break;
-					case 'contact':
-						// 联系客服
-						uni.showToast({
-							title: '联系客服功能待实现',
-							icon: 'none'
-						});
-						break;
-					case 'logistics':
-						// 查看物流
-						uni.navigateTo({
-							url: `/pages/order/logistics?orderId=${this.orderInfo.orderId}`
-						});
-						break;
-					case 'confirm':
-				// 确认收货
-				uni.showModal({
-					title: '确认收货',
-					content: '请确认您已收到商品',
-					confirmText: '确认收货',
-					cancelText: '取消',
-					success: (res) => {
-						if (res.confirm) {
-							// 调用确认收货接口
-							uni.showLoading({
-								title: '处理中...'
-							});
-							confirmReceive(this.orderInfo.orderId)
-								.then(() => {
-									uni.hideLoading();
-									uni.showToast({
-										title: '已确认收货',
-										icon: 'success'
-									});
-									// 重新获取订单详情
-									this.fetchOrderDetail(this.orderInfo.orderId || this.orderInfo.orderNo);
-								})
-								.catch(error => {
-									uni.hideLoading();
-									console.error('确认收货失败:', error);
-									uni.showToast({
-										title: error.message || '确认收货失败',
-										icon: 'none'
-									});
-								});
-						}
-					}
-				});
-				break;
-					case 'delete':
-						// 删除订单
-						uni.showModal({
-							title: '删除订单',
-							content: '确定要删除该订单吗？',
-							confirmText: '确定',
-							cancelText: '取消',
-							success: (res) => {
-								if (res.confirm) {
-									// 这里应该调用删除订单接口
-									uni.showToast({
-										title: '订单已删除',
-										icon: 'success'
-									});
-									// 返回订单列表
-									uni.navigateBack();
-								}
-							}
-						});
-						break;
-					case 'comment':
-						// 去评价
-						console.log('Navigating to review page', this.orderInfo.orderId);
-						uni.navigateTo({
-							url: `/pages/order/review?orderId=${this.orderInfo.orderId}`
-						});
-						break;
-					case 'rebuy':
-						// 再次购买
-						uni.showToast({
-							title: '再次购买功能待实现',
-							icon: 'none'
-						});
-						break;
-					default:
-						break;
-				}
-			}
-		}
-	};
+<script setup>
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { confirmReceive, fetchOrderDetail } from '../../utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
+
+const statusMap = {
+  '1': '待付款',
+  '2': '待发货',
+  '3': '待收货',
+  '4': '交易成功',
+  '5': '交易关闭',
+  '6': '退款',
+  '7': '售后'
+}
+
+const refundStatusMap = {
+  '1': '申请中',
+  '2': '处理中',
+  '3': '退款成功',
+  '4': '已拒绝',
+  '5': '退款失败'
+}
+
+const orderInfo = reactive({
+  orderNo: '',
+  orderId: '',
+  orderStatus: 0,
+  statusText: '',
+  shopName: '',
+  address: null,
+  goods: [],
+  totalPrice: 0,
+  shippingFee: 0,
+  actualPayment: 0,
+  createTime: '',
+  paySuccessTime: '',
+  shipTime: '',
+  deliveryTime: '',
+  completeTime: '',
+  logisticsInfo: '',
+  trackingNo: '',
+  actions: []
+})
+
+const loading = ref(true)
+
+function getOrderActions(status) {
+  const actions = []
+
+  switch (status) {
+    case 1:
+      actions.push(
+        { label: '取消订单', value: 'cancel', type: 'default' },
+        { label: '付款', value: 'pay', type: 'primary' }
+      )
+      break
+    case 2:
+      actions.push(
+        { label: '提醒发货', value: 'remind', type: 'default' },
+        { label: '联系客服', value: 'contact', type: 'default' }
+      )
+      break
+    case 3:
+      actions.push(
+        { label: '确认收货', value: 'confirm', type: 'primary' }
+      )
+      break
+    case 4:
+      actions.push(
+        { label: '删除订单', value: 'delete', type: 'default' },
+        { label: '去评价', value: 'comment', type: 'primary' },
+        { label: '再次购买', value: 'rebuy', type: 'default' }
+      )
+      break
+    case 5:
+      actions.push(
+        { label: '删除订单', value: 'delete', type: 'default' },
+        { label: '再次购买', value: 'rebuy', type: 'default' }
+      )
+      break
+    default:
+      break
+  }
+
+  return actions
+}
+
+function processOrderData(orderData) {
+  const order = orderData.order
+  const shopProducts = orderData.shopProducts || []
+  const deliveryTracking = orderData.deliveryTracking
+
+  let statusText = statusMap[order.status] || '未知状态'
+  if (order.status === '6' && order.refundStatus && order.refundStatus !== '0') {
+    statusText = refundStatusMap[order.refundStatus] || '退款中'
+  } else if (order.refundStatus && order.refundStatus !== '0') {
+    statusText = '退款中'
+  } else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
+    statusText = '售后中'
+  } else if (order.status === '4' && !order.reviewed) {
+    statusText = '待评价'
+  } else if (order.status === '4' && order.reviewed) {
+    statusText = '已完成'
+  }
+
+  Object.assign(orderInfo, {
+    orderNo: order.orderNo,
+    orderId: order.id,
+    orderStatus: parseInt(order.status, 10),
+    statusText,
+    shopName: `店铺${order.shopId || 1}`,
+    address: {
+      name: order.receiverName,
+      phone: order.receiverContact,
+      address: order.receiverFullAddress
+    },
+    goods: shopProducts.map((item) => ({
+      id: item.spuId,
+      spuId: item.spuId,
+      skuId: item.skuId,
+      name: item.spuName,
+      spec: item.specs && item.specs.length > 0
+        ? item.specs.map((spec) => `${spec.specName}:${spec.optName}`).join(';')
+        : item.skuName || '',
+      price: parseFloat(item.price),
+      quantity: parseInt(item.quantity, 10),
+      image: getStoragePreviewUrl(item.spuMainImage) || '/static/logo.png'
+    })),
+    totalPrice: parseFloat(order.totalAmount || 0),
+    shippingFee: 0,
+    actualPayment: parseFloat(order.totalAmount || 0),
+    createTime: order.createTime,
+    paySuccessTime: order.paySuccessTime,
+    shipTime: order.shipTime,
+    deliveryTime: order.receiveTime,
+    completeTime: order.receiveTime,
+    logisticsInfo: deliveryTracking,
+    trackingNo: order.trackingNo,
+    actions: getOrderActions(parseInt(order.status, 10))
+  })
+}
+
+async function loadOrderDetail(orderNo) {
+  loading.value = true
+  try {
+    const orderData = await fetchOrderDetail(orderNo)
+    processOrderData(orderData)
+  } catch (error) {
+    console.error('获取订单详情失败:', error)
+    uni.showToast({
+      title: error.message || '获取订单详情失败',
+      icon: 'none'
+    })
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleAction(action) {
+  switch (action) {
+    case 'cancel':
+      uni.showModal({
+        title: '取消订单',
+        content: '确定要取消该订单吗？',
+        confirmText: '确定',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+          uni.showToast({
+            title: '订单已取消',
+            icon: 'success'
+          })
+          loadOrderDetail(orderInfo.orderId || orderInfo.orderNo)
+        }
+      })
+      break
+    case 'pay':
+      uni.navigateTo({
+        url: `/pages/order/pay-result?orderNo=${orderInfo.orderNo}&payResultType=wait`
+      })
+      break
+    case 'remind':
+      uni.showToast({
+        title: '已提醒商家发货',
+        icon: 'success'
+      })
+      break
+    case 'contact':
+      uni.navigateTo({
+        url: '/pages/customer-service/index'
+      })
+      break
+    case 'logistics':
+      uni.navigateTo({
+        url: `/pages/order/logistics?orderId=${orderInfo.orderId}`
+      })
+      break
+    case 'confirm':
+      submitConfirmReceive()
+      break
+    case 'delete':
+      uni.showModal({
+        title: '删除订单',
+        content: '确定要删除该订单吗？',
+        confirmText: '确定',
+        cancelText: '取消',
+        success: (res) => {
+          if (!res.confirm) {
+            return
+          }
+          uni.showToast({
+            title: '订单已删除',
+            icon: 'success'
+          })
+          uni.navigateBack()
+        }
+      })
+      break
+    case 'comment':
+      uni.navigateTo({
+        url: `/pages/order/review?orderId=${orderInfo.orderId}`
+      })
+      break
+    case 'rebuy':
+      uni.showToast({
+        title: '再次购买功能待实现',
+        icon: 'none'
+      })
+      break
+    default:
+      break
+  }
+}
+
+function submitConfirmReceive() {
+  uni.showModal({
+    title: '确认收货',
+    content: '请确认您已收到商品',
+    confirmText: '确认收货',
+    cancelText: '取消',
+    success: async (res) => {
+      if (!res.confirm) {
+        return
+      }
+
+      uni.showLoading({
+        title: '处理中...'
+      })
+      try {
+        await confirmReceive(orderInfo.orderId)
+        uni.hideLoading()
+        uni.showToast({
+          title: '已确认收货',
+          icon: 'success'
+        })
+        loadOrderDetail(orderInfo.orderId || orderInfo.orderNo)
+      } catch (error) {
+        uni.hideLoading()
+        console.error('确认收货失败:', error)
+        uni.showToast({
+          title: error.message || '确认收货失败',
+          icon: 'none'
+        })
+      }
+    }
+  })
+}
+
+onLoad((options = {}) => {
+  if (options.orderId) {
+    loadOrderDetail(options.orderId)
+  } else if (options.orderNo) {
+    loadOrderDetail(options.orderNo)
+  } else {
+    uni.showToast({
+      title: '订单号或订单ID不能为空',
+      icon: 'none'
+    })
+    uni.navigateBack()
+  }
+})
 </script>
 
 <style scoped>
