@@ -30,23 +30,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { getCurrentInstance, ref } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { BASE_API } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
 
+const instance = getCurrentInstance()
 const availableCoupons = ref([])
 const loading = ref(false)
+const previewItems = ref([])
+
+function createAuthHeader() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${getToken()}`
+  }
+}
 
 function fetchAvailableCoupons() {
+  if (!previewItems.value.length) {
+    uni.showToast({ title: '订单商品信息缺失', icon: 'none' })
+    return
+  }
+
   loading.value = true
   uni.showLoading({ title: '加载中...' })
   uni.request({
     url: `${BASE_API}/app/coupon/availableList`,
-    method: 'GET',
-    header: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`
+    method: 'POST',
+    header: createAuthHeader(),
+    data: {
+      items: previewItems.value
     },
     success: (res) => {
       if (res.statusCode === 200 && res.data.code === 0) {
@@ -80,7 +94,23 @@ function formatDate(dateStr) {
 }
 
 onLoad(() => {
-  fetchAvailableCoupons()
+  const eventChannel = instance?.proxy?.getOpenerEventChannel?.()
+  eventChannel?.on('acceptPreviewItems', (data) => {
+    previewItems.value = Array.isArray(data?.items) ? data.items : []
+    if (previewItems.value.length) {
+      fetchAvailableCoupons()
+    }
+  })
+
+  const storedItems = uni.getStorageSync('couponPreviewItems')
+  if (Array.isArray(storedItems) && storedItems.length) {
+    previewItems.value = storedItems
+    fetchAvailableCoupons()
+  }
+})
+
+onUnload(() => {
+  uni.removeStorageSync('couponPreviewItems')
 })
 </script>
 

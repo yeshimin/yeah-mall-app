@@ -308,8 +308,29 @@ function selectAddress() {
 }
 
 function selectCoupon() {
+  const previewItems = requestItems.value
+    .map((item) => ({
+      skuId: Number(item.skuId),
+      quantity: Number(item.quantity)
+    }))
+    .filter((item) => item.skuId && item.quantity)
+
+  if (previewItems.length === 0) {
+    uni.showToast({
+      title: '没有可用的商品项',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.setStorageSync('couponPreviewItems', previewItems)
   uni.navigateTo({
-    url: '/pages/coupons/select'
+    url: '/pages/coupons/select',
+    success: (res) => {
+      res.eventChannel.emit('acceptPreviewItems', {
+        items: previewItems
+      })
+    }
   })
 }
 
