@@ -9,8 +9,8 @@
       zIndex: '999',
       height: (statusBarInfo.plusHeight) + 'px',
       width: '100%',
-      backgroundColor: transparent ? 'transparent' : backgroundColor,
-      boxShadow: transparent ? 'none' : '0 4rpx 20rpx rgba(0, 0, 0, 0.1)',
+      backgroundColor: navBarBackgroundColor,
+      boxShadow: navBarShadow,
     }"
   >
     <!-- 系统状态栏占位空间 -->
@@ -18,7 +18,7 @@
       class="system-status-bar" 
       :style="{ 
         height: statusBarInfo.sysHeight + 'px', 
-        backgroundColor: transparent ? 'transparent' : backgroundColor,
+        backgroundColor: navBarBackgroundColor,
       }"
     ></view>
     <!-- 标题栏 横着一条 -->
@@ -34,7 +34,7 @@
       <view class="left-content" :style="{
         width: statusBarInfo.leftMaxWidth + 'px',
         height: (statusBarInfo.appHeight) + 'px',
-        backgroundColor: transparent ? 'transparent' : backgroundColor,
+        backgroundColor: navBarBackgroundColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -51,7 +51,7 @@
       <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
         width: statusBarInfo.middleMaxWidth + 'px',
-        backgroundColor: transparent ? 'transparent' : backgroundColor,
+        backgroundColor: navBarBackgroundColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -79,13 +79,13 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 defineOptions({
   name: 'custom-nav-bar'
 })
 
-defineProps({
+const props = defineProps({
   showBack: {
     type: Boolean,
     default: false
@@ -109,6 +109,10 @@ defineProps({
   backgroundColor: {
     type: String,
     default: '#f8f8f8'
+  },
+  backgroundOpacity: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -122,6 +126,52 @@ const statusBarInfo = ref({
   plusHeight: 0,
   middleMaxWidth: 0,
   leftMaxWidth: 0
+})
+
+function clampOpacity(value) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.max(0, Math.min(value, 1))
+}
+
+function hexToRgba(color, opacity) {
+  const normalizedOpacity = clampOpacity(opacity)
+  if (!color || !color.startsWith('#')) {
+    return `rgba(255, 255, 255, ${normalizedOpacity})`
+  }
+
+  let hex = color.replace('#', '')
+  if (hex.length === 3) {
+    hex = hex.split('').map((item) => item + item).join('')
+  }
+
+  const intValue = parseInt(hex, 16)
+  const r = (intValue >> 16) & 255
+  const g = (intValue >> 8) & 255
+  const b = intValue & 255
+
+  return `rgba(${r}, ${g}, ${b}, ${normalizedOpacity})`
+}
+
+const navBarBackgroundColor = computed(() => {
+  if (!props.transparent) {
+    return props.backgroundColor
+  }
+  return hexToRgba(props.backgroundColor, props.backgroundOpacity)
+})
+
+const navBarShadow = computed(() => {
+  if (!props.transparent) {
+    return '0 4rpx 20rpx rgba(0, 0, 0, 0.1)'
+  }
+
+  const opacity = clampOpacity(props.backgroundOpacity)
+  if (opacity <= 0.02) {
+    return 'none'
+  }
+
+  return `0 4rpx 20rpx rgba(0, 0, 0, ${0.04 + opacity * 0.08})`
 })
 
 function calcStatusBarInfo() {

@@ -6,11 +6,40 @@
 			:show-search="false"
 			:title="''"
 			:transparent="true"
+			:background-color="'#ffffff'"
+			:background-opacity="tabsOpacity"
 			@height-calculated="handleNavBarHeightCalculated"
 			@back="goBack"
 		/>
+
+		<view
+			class="floating-section-tabs"
+			:style="{
+				top: `${navBarHeight}px`,
+				opacity: tabsOpacity,
+				pointerEvents: tabsOpacity > 0.1 ? 'auto' : 'none'
+			}"
+		>
+			<view
+				v-for="tab in detailTabs"
+				:key="tab.key"
+				class="floating-tab-item"
+				:class="{ active: currentSection === tab.key }"
+				@click="scrollToSection(tab.key)"
+			>
+				<text>{{ tab.label }}</text>
+			</view>
+		</view>
 		
-		<scroll-view class="detail-scroll" scroll-y :show-scrollbar="false">
+		<scroll-view
+			class="detail-scroll"
+			scroll-y
+			scroll-with-animation
+			:show-scrollbar="false"
+			:scroll-into-view="scrollIntoView"
+			@scroll="handleDetailScroll"
+		>
+			<view id="section-base" class="base-section">
 			<!-- 商品图片轮播 -->
 			<swiper class="product-swiper" indicator-dots autoplay>
 				<swiper-item v-for="(banner, index) in banners" :key="index">
@@ -31,15 +60,11 @@
 			<!-- 商品名称区域 -->
 			<view class="name-section">
 				<text class="product-name">{{ product.name }}</text>
-				<view class="product-tags">
-					<text class="tag">品牌直营</text>
-					<text class="tag">正品保证</text>
-					<text class="tag">7天无理由退换</text>
-				</view>
+			</view>
 			</view>
             
 			<!-- 评价区域 -->
-            <view class="review-section" v-if="reviewSummary.totalCount > 0">
+            <view id="section-review" class="review-section">
                 <view class="review-header">
                     <view class="review-title">
                         <text class="title-text">评价 ({{ reviewSummary.totalCount }})</text>
@@ -47,7 +72,7 @@
                     </view>
                 </view>
                 
-                <view class="review-list">
+                <view class="review-list" v-if="reviewSummary.totalCount > 0">
                     <view class="review-item" v-for="(item, index) in reviewSummary.topReviews" :key="index">
                         <view class="rp-user">
                             <image :src="item.userAvatar || '/static/logo.png'" class="rp-avatar"></image>
@@ -59,10 +84,13 @@
                         </view>
                     </view>
                 </view>
+				<view v-else class="review-empty">
+					<text>暂无评价内容</text>
+				</view>
             </view>
 			
 			<!-- 商品详情介绍图文区域 -->
-			<view class="detail-section">
+			<view id="section-detail" class="detail-section">
 				<text class="section-title">商品详情</text>
 				<view class="detail-content">
 					<rich-text :nodes="product.detailDesc"></rich-text>
@@ -254,12 +282,14 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, getCurrentInstance, nextTick, reactive, ref } from 'vue'
+import { onLoad, onReady } from '@dcloudio/uni-app'
 import CustomNavBar from '../../components/custom-nav-bar.vue'
 import { fetchReviewSummary } from '@/utils/api.js'
 import { authRequest, getToken, getUserId, handleAuthFailure } from '@/utils/auth.js'
 import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
+
+const instance = getCurrentInstance()
 
 const showSpec = ref(false)
 const showCartPopup = ref(false)
@@ -284,6 +314,27 @@ const activityBeginTime = ref('')
 const activityEndTime = ref('')
 const activityId = ref('')
 const navBarHeight = ref(0)
+const scrollIntoView = ref('')
+const currentSection = ref('base')
+const detailScrollTop = ref(0)
+const sectionOffsets = reactive({
+  base: 0,
+  review: 0,
+  detail: 0
+})
+
+const detailTabs = [
+  { key: 'base', label: '宝贝' },
+  { key: 'review', label: '评价' },
+  { key: 'detail', label: '详情' }
+]
+
+const tabsOpacity = computed(() => {
+  const start = 80
+  const end = 220
+  const progress = (detailScrollTop.value - start) / (end - start)
+  return Math.max(0, Math.min(progress, 1))
+})
 
 function request(options) {
   return new Promise((resolve, reject) => {
@@ -336,6 +387,9 @@ function goBack() {
 
 function handleNavBarHeightCalculated(event) {
   navBarHeight.value = event.plusHeight
+  nextTick(() => {
+    measureSections()
+  })
 }
 
 async function loadReviewSummary(productId) {
@@ -344,9 +398,59 @@ async function loadReviewSummary(productId) {
     reviewSummary.totalCount = data.totalCount || 0
     reviewSummary.goodRate = data.goodRate || 0
     reviewSummary.topReviews = data.topReviews || []
+    nextTick(() => {
+      measureSections()
+    })
   } catch (error) {
     console.error('获取商品评价概览失败:', error)
   }
+}
+
+function measureSections() {
+  const query = uni.createSelectorQuery().in(instance?.proxy)
+  query.select('.detail-scroll').boundingClientRect()
+  query.select('#section-base').boundingClientRect()
+  query.select('#section-review').boundingClientRect()
+  query.select('#section-detail').boundingClientRect()
+  query.exec((res) => {
+    const scrollRect = res[0]
+    const baseRect = res[1]
+    const reviewRect = res[2]
+    const detailRect = res[3]
+
+    if (!scrollRect || !baseRect || !reviewRect || !detailRect) {
+      return
+    }
+
+    sectionOffsets.base = baseRect.top - scrollRect.top + detailScrollTop.value
+    sectionOffsets.review = reviewRect.top - scrollRect.top + detailScrollTop.value
+    sectionOffsets.detail = detailRect.top - scrollRect.top + detailScrollTop.value
+    updateCurrentSection(detailScrollTop.value)
+  })
+}
+
+function updateCurrentSection(scrollTop) {
+  const marker = scrollTop + navBarHeight.value + 90
+  if (marker >= sectionOffsets.detail - 20) {
+    currentSection.value = 'detail'
+  } else if (marker >= sectionOffsets.review - 20) {
+    currentSection.value = 'review'
+  } else {
+    currentSection.value = 'base'
+  }
+}
+
+function handleDetailScroll(event) {
+  detailScrollTop.value = event.detail.scrollTop || 0
+  updateCurrentSection(detailScrollTop.value)
+}
+
+function scrollToSection(sectionKey) {
+  currentSection.value = sectionKey
+  scrollIntoView.value = `section-${sectionKey}`
+  setTimeout(() => {
+    scrollIntoView.value = ''
+  }, 300)
 }
 
 function initSelectedSpecs() {
@@ -402,6 +506,10 @@ async function fetchProductDetail(productId, sceneValue) {
       checkCollectStatus()
       loadReviewSummary(product.value.id)
     }
+
+    nextTick(() => {
+      measureSections()
+    })
   } catch (error) {
     console.error('请求商品详情失败:', error)
   }
@@ -926,6 +1034,12 @@ onLoad((options = {}) => {
 
   fetchProductDetail(productId, sceneValue)
 })
+
+onReady(() => {
+  nextTick(() => {
+    measureSections()
+  })
+})
 </script>
 
 <style scoped>
@@ -933,11 +1047,54 @@ onLoad((options = {}) => {
 		height: 100vh;
 		position: relative;
 	}
+
+	.floating-section-tabs {
+		position: fixed;
+		left: 0;
+		right: 0;
+		z-index: 120;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 12rpx 24rpx;
+		background-color: rgba(255, 255, 255, 0.96);
+		border-bottom: 1rpx solid #f1f1f1;
+		transition: opacity 0.2s ease;
+	}
+
+	.floating-tab-item {
+		position: relative;
+		padding: 10rpx 28rpx 14rpx;
+		font-size: 28rpx;
+		color: #666;
+		font-weight: 500;
+	}
+
+	.floating-tab-item.active {
+		color: #111;
+		font-weight: 600;
+	}
+
+	.floating-tab-item.active::after {
+		content: '';
+		position: absolute;
+		left: 50%;
+		bottom: 0;
+		transform: translateX(-50%);
+		width: 42rpx;
+		height: 4rpx;
+		border-radius: 999rpx;
+		background-color: #111;
+	}
 	
 	.detail-scroll {
 		height: 100vh;
 		margin-bottom: 100rpx;
 		padding-top: 0;
+	}
+
+	.base-section {
+		background-color: #fff;
 	}
 	
 	.product-swiper {
@@ -986,20 +1143,7 @@ onLoad((options = {}) => {
 	.product-name {
 		font-size: 32rpx;
 		font-weight: bold;
-		margin-bottom: 20rpx;
-	}
-	
-	.product-tags {
-		display: flex;
-	}
-	
-	.tag {
-		font-size: 20rpx;
-		color: #ff0000;
-		border: 1rpx solid #ff0000;
-		border-radius: 5rpx;
-		padding: 5rpx 10rpx;
-		margin-right: 10rpx;
+		margin-bottom: 0;
 	}
     
     .review-section {
@@ -1045,10 +1189,6 @@ onLoad((options = {}) => {
         margin-left: 6rpx;
     }
     
-    .review-preview {
-        
-    }
-    
     .rp-user {
         display: flex;
         align-items: center;
@@ -1073,6 +1213,12 @@ onLoad((options = {}) => {
         color: #333;
         line-height: 1.4;
     }
+
+	.review-empty {
+		padding: 20rpx 0 10rpx;
+		font-size: 26rpx;
+		color: #999;
+	}
     
     .text-ellipsis {
         overflow: hidden;
