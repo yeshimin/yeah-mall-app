@@ -75,8 +75,8 @@
 			<view class="amount-item coupon-item" @click="selectCoupon">
 				<text>优惠券</text>
 				<view class="coupon-info">
-					<text class="discount-price" v-if="selectedCoupon">-¥{{ coupon }}</text>
-					<text class="discount-price" v-else>-¥{{ coupon }}</text>
+					<text class="discount-price" v-if="selectedCoupon">-¥{{ couponAmount }}</text>
+					<text class="discount-price" v-else>-¥{{ couponAmount }}</text>
 					<text class="coupon-name" v-if="selectedCoupon">{{ selectedCoupon.name }}</text>
 					<text class="select-coupon" v-else>选择优惠券</text>
 					<text class="iconfont arrow">
@@ -117,7 +117,6 @@ const addressLoading = ref(false)
 const groupedOrderGoods = ref([])
 const goodsTotal = ref('0.00')
 const shippingFee = ref('0.00')
-const coupon = ref(0)
 const loading = ref(false)
 const requestItems = ref([])
 const orderSource = ref(1)
@@ -127,8 +126,32 @@ const couponId = ref(null)
 
 let seckillPollTimer = null
 
+function roundAmount(value) {
+  return Number(Number(value || 0).toFixed(2))
+}
+
+const couponAmount = computed(() => {
+  const couponData = selectedCoupon.value
+  const scopeAmount = Number(goodsTotal.value || 0)
+
+  if (!couponData || scopeAmount <= 0) {
+    return '0.00'
+  }
+
+  const couponType = String(couponData.type || '')
+  if (couponType === '2') {
+    const discount = Number(couponData.discount || 1)
+    const discountedScopeAmount = roundAmount(scopeAmount * discount)
+    const reducedAmount = Math.max(0, roundAmount(scopeAmount - discountedScopeAmount))
+    return reducedAmount.toFixed(2)
+  }
+
+  const reducedAmount = Math.max(0, roundAmount(couponData.amount || 0))
+  return reducedAmount.toFixed(2)
+})
+
 const totalAmount = computed(() => {
-  return (Number(goodsTotal.value) + Number(shippingFee.value) - Number(coupon.value)).toFixed(2)
+  return (Number(goodsTotal.value) + Number(shippingFee.value) - Number(couponAmount.value)).toFixed(2)
 })
 
 function clearSeckillPollTimer() {
@@ -308,6 +331,22 @@ function selectAddress() {
 }
 
 function selectCoupon() {
+  const couponItems = requestItems.value
+    .map((item) => ({
+      skuId: Number(item.skuId),
+      quantity: Number(item.quantity)
+    }))
+    .filter((item) => Number.isFinite(item.skuId) && item.skuId > 0 && Number.isFinite(item.quantity) && item.quantity > 0)
+
+  if (couponItems.length === 0) {
+    uni.showToast({
+      title: '订单商品信息缺失',
+      icon: 'none'
+    })
+    return
+  }
+
+  uni.setStorageSync('couponPreviewItems', couponItems)
   uni.navigateTo({
     url: '/pages/coupons/select'
   })
@@ -547,7 +586,6 @@ onShow(() => {
   if (storedCoupon) {
     selectedCoupon.value = storedCoupon
     couponId.value = storedCoupon.id
-    coupon.value = storedCoupon.amount || 0
     uni.removeStorageSync('selectedCoupon')
   }
 })

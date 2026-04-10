@@ -3,7 +3,7 @@
 		<view class="coupon-list">
 			<view class="coupon-item" v-for="coupon in availableCoupons" :key="coupon.id" @click="selectCoupon(coupon)">
 				<view class="coupon-left">
-					<text class="coupon-amount">¥{{ coupon.amount }}</text>
+					<text class="coupon-amount">{{ formatCouponValue(coupon) }}</text>
 					<text class="coupon-condition" v-if="coupon.minAmount > 0">满{{ coupon.minAmount }}元可用</text>
 					<text class="coupon-condition" v-else>无门槛</text>
 				</view>
@@ -30,23 +30,42 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { getCurrentInstance, ref } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { BASE_API } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
 
+const instance = getCurrentInstance()
 const availableCoupons = ref([])
 const loading = ref(false)
+const previewItems = ref([])
+
+function buildRequestItems(items) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => ({
+      skuId: Number(item.skuId),
+      quantity: Number(item.quantity)
+    }))
+    .filter((item) => Number.isFinite(item.skuId) && item.skuId > 0 && Number.isFinite(item.quantity) && item.quantity > 0)
+}
 
 function fetchAvailableCoupons() {
+  if (previewItems.value.length === 0) {
+    uni.showToast({ title: '订单商品信息缺失', icon: 'none' })
+    return
+  }
+
   loading.value = true
   uni.showLoading({ title: '加载中...' })
   uni.request({
     url: `${BASE_API}/app/coupon/availableList`,
-    method: 'GET',
+    method: 'POST',
     header: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${getToken()}`
+    },
+    data: {
+      items: previewItems.value
     },
     success: (res) => {
       if (res.statusCode === 200 && res.data.code === 0) {
@@ -70,6 +89,13 @@ function selectCoupon(coupon) {
   uni.navigateBack()
 }
 
+function formatCouponValue(coupon) {
+  if (coupon.type === 2 && coupon.discount) {
+    return `${(Number(coupon.discount) * 10).toFixed(1).replace(/\.0$/, '')}折`
+  }
+  return `¥${coupon.amount}`
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -80,7 +106,23 @@ function formatDate(dateStr) {
 }
 
 onLoad(() => {
-  fetchAvailableCoupons()
+  const eventChannel = instance?.proxy?.getOpenerEventChannel?.()
+  eventChannel?.on('acceptPreviewItems', (data) => {
+    previewItems.value = buildRequestItems(data?.items)
+    if (previewItems.value.length > 0) {
+      fetchAvailableCoupons()
+    }
+  })
+
+  const storedItems = uni.getStorageSync('couponPreviewItems')
+  previewItems.value = buildRequestItems(storedItems)
+  if (previewItems.value.length > 0) {
+    fetchAvailableCoupons()
+  }
+})
+
+onUnload(() => {
+  uni.removeStorageSync('couponPreviewItems')
 })
 </script>
 
