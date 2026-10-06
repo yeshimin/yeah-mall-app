@@ -68,8 +68,10 @@
 					
 					<!-- 订单金额 -->
 					<view class="order-amount">
-						<text>共{{ order.totalQuantity }}件商品 合计：</text>
-						<text class="total-price">¥{{ order.totalPrice }}</text>
+						<text>共{{ order.totalQuantity }}件商品 商品总额：</text>
+						<text>¥{{ order.totalAmount }}</text>
+						<text v-if="order.discountAmount > 0" class="discount-amount"> 优惠-¥{{ order.discountAmount }}</text>
+						<text class="total-price"> 应付¥{{ order.finalAmount }}</text>
 						<text class="shipping-fee" v-if="order.shippingFee > 0"> (含运费¥{{ order.shippingFee }})</text>
 					</view>
 					
@@ -317,7 +319,10 @@ function processOrderData(orderRecords = []) {
     }))
 
     const totalQuantity = processedGoods.reduce((total, item) => total + item.quantity, 0)
-    const totalPrice = processedGoods.reduce((total, item) => total + item.price * item.quantity, 0)
+    const itemTotal = processedGoods.reduce((total, item) => total + item.price * item.quantity, 0)
+    const totalAmount = Number(order.totalAmount ?? itemTotal)
+    const discountAmount = Number(order.discountAmount ?? 0)
+    const finalAmount = Number(order.finalAmount ?? Math.max(0, totalAmount - discountAmount))
 
     return {
       id: order.orderId || order.id,
@@ -326,7 +331,10 @@ function processOrderData(orderRecords = []) {
       shopName: order.shopName || `店铺${order.shopId}`,
       orderStatus,
       statusText,
-      totalPrice: totalPrice.toFixed(2),
+      totalPrice: totalAmount.toFixed(2),
+      totalAmount: totalAmount.toFixed(2),
+      discountAmount: discountAmount.toFixed(2),
+      finalAmount: finalAmount.toFixed(2),
       totalQuantity,
       shippingFee: parseFloat(order.shippingFee || 0),
       createTime: order.createTime,

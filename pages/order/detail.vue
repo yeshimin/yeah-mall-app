@@ -61,14 +61,18 @@
 				<text>商品总额</text>
 				<text>¥{{ orderInfo.totalPrice }}</text>
 			</view>
-			<view class="amount-item">
-				<text>运费</text>
-				<text>¥{{ orderInfo.shippingFee }}</text>
-			</view>
-			<view class="amount-item total">
-				<text>实付款</text>
-				<text class="total-price">¥{{ orderInfo.actualPayment }}</text>
-			</view>
+				<view class="amount-item">
+					<text>运费</text>
+					<text>¥{{ orderInfo.shippingFee }}</text>
+				</view>
+				<view class="amount-item" v-if="orderInfo.discountAmount > 0">
+					<text>优惠金额</text>
+					<text>-¥{{ orderInfo.discountAmount }}</text>
+				</view>
+				<view class="amount-item total">
+					<text>优惠后应付</text>
+					<text class="total-price">¥{{ orderInfo.actualPayment }}</text>
+				</view>
 		</view>
 		
 		<!-- 订单信息 -->
@@ -164,9 +168,10 @@ const orderInfo = reactive({
   statusText: '',
   shopName: '',
   address: null,
-  goods: [],
-  totalPrice: 0,
-  shippingFee: 0,
+	goods: [],
+	totalPrice: 0,
+	discountAmount: 0,
+	shippingFee: 0,
   actualPayment: 0,
   createTime: '',
   paySuccessTime: '',
@@ -263,8 +268,9 @@ function processOrderData(orderData) {
       image: getStoragePreviewUrl(item.spuMainImage) || '/static/logo.png'
     })),
     totalPrice: parseFloat(order.totalAmount || 0),
+    discountAmount: parseFloat(order.discountAmount || 0),
     shippingFee: 0,
-    actualPayment: parseFloat(order.totalAmount || 0),
+    actualPayment: parseFloat(order.finalAmount ?? order.totalAmount ?? 0),
     createTime: order.createTime,
     paySuccessTime: order.paySuccessTime,
     shipTime: order.shipTime,

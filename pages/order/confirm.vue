@@ -84,8 +84,8 @@
 					</text>
 				</view>
 			</view>
-			<view class="total-amount">
-				<text>合计:</text>
+				<view class="total-amount">
+					<text>优惠后应付:</text>
 				<text class="total-price">¥{{ totalAmount }}</text>
 			</view>
 			<view class="blank">
@@ -95,7 +95,7 @@
 		<!-- 底部操作栏 -->
 		<view class="bottom-bar">
 			<view class="total-info">
-				<text class="total-label">合计:</text>
+					<text class="total-label">优惠后应付:</text>
 				<text class="total-price">¥{{ totalAmount }}</text>
 			</view>
 			<button class="submit-btn" @click="payOrder">付款</button>
@@ -146,12 +146,12 @@ const couponAmount = computed(() => {
     return reducedAmount.toFixed(2)
   }
 
-  const reducedAmount = Math.max(0, roundAmount(couponData.amount || 0))
+  const reducedAmount = Math.min(scopeAmount, Math.max(0, roundAmount(couponData.amount || 0)))
   return reducedAmount.toFixed(2)
 })
 
 const totalAmount = computed(() => {
-  return (Number(goodsTotal.value) + Number(shippingFee.value) - Number(couponAmount.value)).toFixed(2)
+  return Math.max(0, Number(goodsTotal.value) + Number(shippingFee.value) - Number(couponAmount.value)).toFixed(2)
 })
 
 function clearSeckillPollTimer() {
