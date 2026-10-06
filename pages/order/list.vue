@@ -35,8 +35,15 @@
 			</view>
 			
 			<template v-else>
-				<!-- 订单为空状态 -->
-				<view class="empty-state" v-if="orders.length === 0 && !loading">
+					<!-- 订单加载失败状态 -->
+					<view class="empty-state" v-if="loadError && orders.length === 0 && !loading">
+						<text class="empty-icon">⚠️</text>
+						<text class="empty-text">{{ loadError }}</text>
+						<button class="go-shop-btn" @click="retryLoad">重新加载</button>
+					</view>
+
+					<!-- 订单为空状态 -->
+					<view class="empty-state" v-else-if="orders.length === 0 && !loading">
 					<text class="empty-icon">📦</text>
 					<text class="empty-text">暂无订单</text>
 					<button class="go-shop-btn" @click="goToShop">去逛逛</button>
@@ -190,6 +197,7 @@ const scrollLeft = ref(0)
 const orders = ref([])
 const loading = ref(false)
 const refreshing = ref(false)
+const loadError = ref('')
 
 const pageInfo = reactive({
   current: 1,
@@ -275,7 +283,7 @@ function switchTab(value) {
   if (value === 5) {
     activeReviewSubTab.value = 0
   }
-  fetchOrders(true)
+  fetchOrders('reset')
   nextTick(() => {
     setTimeout(() => {
       scrollToActiveTab()
@@ -285,7 +293,7 @@ function switchTab(value) {
 
 function switchReviewSubTab(value) {
   activeReviewSubTab.value = value
-  fetchOrders(true)
+  fetchOrders('reset')
 }
 
 function processOrderData(orderRecords = []) {
@@ -347,163 +355,19 @@ function processOrderData(orderRecords = []) {
   })
 }
 
-function generateMockOrders() {
-  const mockOrders = [
-    {
-      id: 1,
-      orderNo: 'MOCK20260324001',
-      shopId: 1,
-      shopName: '时尚精品店',
-      orderStatus: 1,
-      refundStatus: 0,
-      afterSaleStatus: 0,
-      shippingFee: 10,
-      createTime: '2026-03-24 10:00:00',
-      items: [
-        {
-          spuId: 101,
-          spuName: '时尚连衣裙',
-          spuMainImage: '',
-          skuId: 1001,
-          skuName: '红色-M',
-          specs: [
-            { specName: '颜色', optName: '红色' },
-            { specName: '尺码', optName: 'M' }
-          ],
-          price: 99.5,
-          quantity: 2
-        }
-      ]
-    },
-    {
-      id: 2,
-      orderNo: 'MOCK20260324002',
-      shopId: 2,
-      shopName: '家居生活馆',
-      orderStatus: 2,
-      refundStatus: 0,
-      afterSaleStatus: 0,
-      shippingFee: 0,
-      createTime: '2026-03-23 09:30:00',
-      paySuccessTime: '2026-03-23 09:45:00',
-      items: [
-        {
-          spuId: 201,
-          spuName: '舒适枕头',
-          spuMainImage: '',
-          skuId: 2001,
-          skuName: '记忆棉-单个装',
-          specs: [
-            { specName: '材质', optName: '记忆棉' },
-            { specName: '规格', optName: '单个装' }
-          ],
-          price: 299,
-          quantity: 1
-        }
-      ]
-    },
-    {
-      id: 3,
-      orderNo: 'MOCK20260324003',
-      shopId: 3,
-      shopName: '运动户外店',
-      orderStatus: 3,
-      refundStatus: 0,
-      afterSaleStatus: 0,
-      shippingFee: 15,
-      createTime: '2026-03-22 12:20:00',
-      items: [
-        {
-          spuId: 301,
-          spuName: '运动鞋',
-          spuMainImage: '',
-          skuId: 3001,
-          skuName: '白色-42码',
-          specs: [
-            { specName: '颜色', optName: '白色' },
-            { specName: '尺码', optName: '42码' }
-          ],
-          price: 399,
-          quantity: 1
-        }
-      ]
-    },
-    {
-      id: 4,
-      orderNo: 'MOCK20260324004',
-      shopId: 4,
-      shopName: '美妆护肤店',
-      orderStatus: 4,
-      refundStatus: 0,
-      afterSaleStatus: 0,
-      shippingFee: 0,
-      createTime: '2026-03-21 14:10:00',
-      isReviewed: false,
-      items: [
-        {
-          spuId: 401,
-          spuName: '护肤套装',
-          spuMainImage: '',
-          skuId: 4001,
-          skuName: '补水-套装',
-          specs: [
-            { specName: '功效', optName: '补水' },
-            { specName: '规格', optName: '套装' }
-          ],
-          price: 258,
-          quantity: 1
-        }
-      ]
-    },
-    {
-      id: 5,
-      orderNo: 'MOCK20260324005',
-      shopId: 5,
-      shopName: '电子产品店',
-      orderStatus: 4,
-      refundStatus: 0,
-      afterSaleStatus: 0,
-      shippingFee: 0,
-      createTime: '2026-03-20 08:30:00',
-      isReviewed: true,
-      items: [
-        {
-          spuId: 501,
-          spuName: '无线耳机',
-          spuMainImage: '',
-          skuId: 5001,
-          skuName: '黑色-标准版',
-          specs: [
-            { specName: '颜色', optName: '黑色' },
-            { specName: '版本', optName: '标准版' }
-          ],
-          price: 399,
-          quantity: 1
-        }
-      ]
-    }
-  ]
+async function fetchOrders(mode = 'reset') {
+  const isReset = mode === 'reset'
+  const isRefresh = mode === 'refresh'
+  const isMore = mode === 'more'
+  const targetCurrent = isMore ? pageInfo.current + 1 : 1
+  const previousOrders = orders.value
 
-  let filteredOrders = mockOrders
-  if (activeTab.value === 1) {
-    filteredOrders = mockOrders.filter((order) => order.orderStatus === 1)
-  } else if (activeTab.value === 2) {
-    filteredOrders = mockOrders.filter((order) => order.orderStatus === 2)
-  } else if (activeTab.value === 3) {
-    filteredOrders = mockOrders.filter((order) => order.orderStatus === 3)
-  } else if (activeTab.value === 5) {
-    filteredOrders = mockOrders.filter((order) => order.orderStatus === 4 && (activeReviewSubTab.value === 1 ? order.isReviewed : !order.isReviewed))
-  }
-
-  return processOrderData(filteredOrders)
-}
-
-async function fetchOrders(isRefresh = false) {
-  if (isRefresh) {
-    pageInfo.current = 1
+  if (isReset) {
     orders.value = []
   }
-
+  if (!isMore) {
+    loadError.value = ''
+  }
   loading.value = true
   try {
     let conditions = ''
@@ -511,7 +375,7 @@ async function fetchOrders(isRefresh = false) {
       conditions = `isReviewed:eq:${activeReviewSubTab.value}`
     }
 
-    const response = await fetchOrderList(activeTab.value, pageInfo.current, pageInfo.size, conditions)
+    const response = await fetchOrderList(activeTab.value, targetCurrent, pageInfo.size, conditions)
 
     pageInfo.current = response.current
     pageInfo.size = response.size
@@ -519,7 +383,7 @@ async function fetchOrders(isRefresh = false) {
     pageInfo.pages = response.pages
 
     const processedOrders = processOrderData(response.records)
-    if (pageInfo.current === 1) {
+    if (targetCurrent === 1) {
       orders.value = processedOrders
     } else {
       orders.value = [...orders.value, ...processedOrders]
@@ -531,16 +395,24 @@ async function fetchOrders(isRefresh = false) {
       return
     }
 
-    uni.showToast({
-      title: '获取订单失败，使用模拟数据',
-      icon: 'none'
-    })
-
-    orders.value = generateMockOrders()
-    pageInfo.current = 1
-    pageInfo.size = 10
-    pageInfo.total = orders.value.length
-    pageInfo.pages = 1
+    if (isMore) {
+      uni.showToast({
+        title: '加载更多订单失败，请重试',
+        icon: 'none'
+      })
+    } else if (isRefresh && previousOrders.length > 0) {
+      orders.value = previousOrders
+      uni.showToast({
+        title: '刷新订单失败，请稍后重试',
+        icon: 'none'
+      })
+    } else {
+      orders.value = []
+      pageInfo.current = 1
+      pageInfo.total = 0
+      pageInfo.pages = 0
+      loadError.value = '订单加载失败，请稍后重试'
+    }
   } finally {
     loading.value = false
     if (isRefresh) {
@@ -551,7 +423,7 @@ async function fetchOrders(isRefresh = false) {
 
 function onRefresh() {
   refreshing.value = true
-  fetchOrders(true)
+  fetchOrders('refresh')
 }
 
 function loadMore() {
@@ -559,8 +431,11 @@ function loadMore() {
     return
   }
 
-  pageInfo.current += 1
-  fetchOrders()
+  fetchOrders('more')
+}
+
+function retryLoad() {
+  fetchOrders('reset')
 }
 
 function getOrderActions(status) {
@@ -636,7 +511,7 @@ function startPayment(paymentData, order) {
 }
 
 function refreshCurrentOrders() {
-  fetchOrders(true)
+  fetchOrders('refresh')
 }
 
 function handleOrderAction(action, order) {
@@ -794,7 +669,7 @@ onLoad((options = {}) => {
     activeTab.value = parseInt(options.status, 10)
   }
 
-  fetchOrders()
+  fetchOrders('reset')
   nextTick(() => {
     setTimeout(() => {
       scrollToActiveTab()
