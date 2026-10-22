@@ -101,7 +101,78 @@
 			</view>
 		</scroll-view>
 		
-		<!-- 底部操作栏 -->
+			<view v-if="scene === 'groupBuy'" class="group-buy-choice" @click="openGroupSelector">
+				<view class="group-choice-title">拼团方式</view>
+				<view class="group-choice-summary">
+					<text>{{ groupChoiceText }}</text>
+					<text class="group-choice-link">{{ groupBuyPurchasable ? '选择拼团 ›' : '活动已结束' }}</text>
+				</view>
+			</view>
+
+			<view v-if="showGroupSelector" class="group-selector-popup" @click="closeGroupSelector">
+				<view class="group-selector-content" @click.stop>
+					<view class="group-selector-header">
+						<view>
+							<text class="group-selector-title">选择拼团</text>
+							<text class="group-selector-subtitle">{{ groupLimitText }}</text>
+						</view>
+						<text class="close-btn" @click="closeGroupSelector">×</text>
+					</view>
+					<view v-if="groupOptions.hasJoinedActivity" class="group-joined-tip">你已参与本活动的拼团，可以查看全部团况，但不能再次参团。</view>
+					<view
+						v-if="groupOptions.joinedGroup && !isJoinedGroupListed"
+						class="group-option-card group-my-card"
+					>
+						<view class="group-option-main">
+							<text class="group-leader-name">{{ groupOptions.joinedGroup.leaderMemberName || '团长' }}的团</text>
+							<text class="group-option-progress">已支付 {{ groupOptions.joinedGroup.memberCount }}/{{ groupOptions.joinedGroup.minPeople }} 人 · 已占 {{ groupOptions.joinedGroup.reservedMemberCount }}/{{ groupOptions.joinedGroup.minPeople }} 席</text>
+						</view>
+						<view class="group-option-side">
+							<text class="group-my-label">我参与的团</text>
+							<text class="group-option-status">{{ getGroupStatusText(groupOptions.joinedGroup) }}</text>
+						</view>
+					</view>
+					<view v-if="canRandomJoin" class="group-random-card" @click="selectRandomGroup">
+						<view>
+							<text class="group-card-title">随机加入</text>
+							<text class="group-card-desc">优先加入即将成团的拼团</text>
+						</view>
+						<text class="group-card-action">去拼团</text>
+					</view>
+					<scroll-view scroll-y class="group-list-scroll">
+						<view
+							v-for="group in groupOptions.groups"
+							:key="group.id"
+							class="group-option-card"
+							:class="{
+								active: isGroupJoinable(group) && groupJoinMode === 'specific' && String(groupId) === String(group.id),
+								disabled: !isGroupJoinable(group)
+							}"
+							@click="selectSpecificGroup(group)"
+						>
+							<view class="group-option-main">
+								<text class="group-leader-name">{{ group.leaderMemberName || '团长' }}的团</text>
+								<text class="group-option-progress">已支付 {{ group.memberCount }}/{{ group.minPeople }} 人 · 已占 {{ group.reservedMemberCount }}/{{ group.minPeople }} 席</text>
+							</view>
+							<view class="group-option-side">
+								<text v-if="isJoinedGroup(group)" class="group-my-label">我参与的团</text>
+								<text class="group-option-status">{{ getGroupStatusText(group) }}</text>
+								<text class="group-option-expire">活动结束统一结算</text>
+							</view>
+						</view>
+						<view
+							class="group-create-card"
+							:class="{ disabled: !canCreateGroup }"
+							@click="selectNewGroup"
+						>
+							<text class="group-card-title">+ 发起新团</text>
+							<text class="group-card-desc">{{ groupCreateDescription }}</text>
+						</view>
+					</scroll-view>
+				</view>
+			</view>
+
+			<!-- 底部操作栏 -->
 		<view class="bottom-bar">
 			<view class="bar-item" @click="goToStore">
 				<text class="icon">🏠</text>
@@ -115,7 +186,7 @@
 							<text class="icon">{{ isCollected ? '❤️' : '🤍' }}</text>
 							<text class="bottom-bar-text">{{ isCollected ? '已收藏' : '收藏' }}</text>
 						</view>
-			<view class="bar-item cart-item" @click="addToCart" v-if="scene !== 'seckill'">
+				<view class="bar-item cart-item" @click="addToCart" v-if="scene !== 'seckill' && scene !== 'groupBuy'">
 				<text class="cart-text">加入购物车</text>
 			</view>
 			<view class="bar-item buy-item" @click="buyNow">
@@ -133,13 +204,13 @@
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
-						<text class="popup-spec" v-if="scene !== 'seckill'">已选: {{ getSelectedSpecDesc() }}</text>
+							<text class="popup-spec" v-if="scene !== 'seckill' && scene !== 'groupBuy'">已选: {{ getSelectedSpecDesc() }}</text>
 						<text class="popup-spec" v-else>已选: {{ selectedSku ? selectedSku.name : '请选择规格' }}</text>
 					</view>
 				</view>
 				
 				<!-- 普通场景：规格选择 -->
-				<view v-if="scene !== 'seckill'">
+					<view v-if="scene !== 'seckill' && scene !== 'groupBuy'">
 					<view class="spec-options" v-for="spec in specs" :key="spec.specId">
 						<text class="spec-title">{{ spec.specName }}</text>
 						<view class="spec-list">
@@ -160,7 +231,7 @@
 				</view>
 				
 				<!-- 秒杀场景：直接展示SKU列表 -->
-				<view v-else-if="scene === 'seckill'" class="sku-list">
+					<view v-else-if="scene === 'seckill' || scene === 'groupBuy'" class="sku-list">
 					<text class="spec-title">选择规格</text>
 					<view class="sku-items">
 						<view 
@@ -181,7 +252,7 @@
 					</view>
 				</view>
 				
-				<view class="quantity-selector" v-if="scene !== 'seckill'">
+					<view class="quantity-selector" v-if="scene !== 'seckill' && scene !== 'groupBuy'">
 					<text class="quantity-title">数量</text>
 					<view class="quantity-controls">
 						<text class="control-btn" @click="decreaseQuantity">-</text>
@@ -197,7 +268,7 @@
 						<text class="quantity">1</text>
 					</view>
 				</view>
-				<view class="confirm-btn" @click="confirmSpec">{{ scene === 'seckill' ? '秒杀' : '确定' }}</view>
+					<view class="confirm-btn" @click="confirmSpec">{{ scene === 'seckill' ? '秒杀' : scene === 'groupBuy' ? '去拼团' : '确定' }}</view>
 			</view>
 		</view>
 		
@@ -211,13 +282,13 @@
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
 						<text class="popup-stock out-of-stock" v-else>无货</text>
-						<text class="popup-spec" v-if="scene !== 'seckill'">已选: {{ getSelectedSpecDesc() }}</text>
+							<text class="popup-spec" v-if="scene !== 'seckill' && scene !== 'groupBuy'">已选: {{ getSelectedSpecDesc() }}</text>
 						<text class="popup-spec" v-else>已选: {{ selectedSku ? selectedSku.name : '请选择规格' }}</text>
 					</view>
 				</view>
 				
 				<!-- 普通场景：规格选择 -->
-				<view v-if="scene !== 'seckill'">
+					<view v-if="scene !== 'seckill' && scene !== 'groupBuy'">
 					<view class="spec-options" v-for="spec in specs" :key="spec.specId">
 						<text class="spec-title">{{ spec.specName }}</text>
 						<view class="spec-list">
@@ -238,7 +309,7 @@
 				</view>
 				
 				<!-- 秒杀场景：直接展示SKU列表 -->
-				<view v-else-if="scene === 'seckill'" class="sku-list">
+					<view v-else-if="scene === 'seckill' || scene === 'groupBuy'" class="sku-list">
 					<text class="spec-title">选择规格</text>
 					<view class="sku-items">
 						<view 
@@ -259,7 +330,7 @@
 					</view>
 				</view>
 				
-				<view class="quantity-selector" v-if="scene !== 'seckill'">
+					<view class="quantity-selector" v-if="scene !== 'seckill' && scene !== 'groupBuy'">
 					<text class="quantity-title">数量</text>
 					<view class="quantity-controls">
 						<text class="control-btn" @click="decreaseQuantity">-</text>
@@ -313,6 +384,18 @@ const scene = ref('')
 const activityBeginTime = ref('')
 const activityEndTime = ref('')
 const activityId = ref('')
+const groupId = ref('')
+const groupJoinMode = ref('create')
+const groupBuyPurchasable = ref(true)
+const showGroupSelector = ref(false)
+const groupOptions = reactive({
+  groupLimit: -1,
+  usedGroupCount: 0,
+  remainingGroupCount: -1,
+  hasJoinedActivity: false,
+  joinedGroup: null,
+  groups: []
+})
 const navBarHeight = ref(0)
 const scrollIntoView = ref('')
 const currentSection = ref('base')
@@ -334,6 +417,37 @@ const tabsOpacity = computed(() => {
   const end = 220
   const progress = (detailScrollTop.value - start) / (end - start)
   return Math.max(0, Math.min(progress, 1))
+})
+
+const canCreateGroup = computed(() => !groupOptions.hasJoinedActivity
+  && (Number(groupOptions.remainingGroupCount) < 0 || Number(groupOptions.remainingGroupCount) > 0))
+
+const canRandomJoin = computed(() => !groupOptions.hasJoinedActivity
+  && groupOptions.groups.some((group) => isGroupJoinable(group)))
+
+const isJoinedGroupListed = computed(() => groupOptions.joinedGroup
+  && groupOptions.groups.some((group) => String(group.id) === String(groupOptions.joinedGroup.id)))
+
+const groupCreateDescription = computed(() => {
+  if (groupOptions.hasJoinedActivity) {
+    return '已参团，不可再发起或加入其他团'
+  }
+  return canCreateGroup.value ? '支付后成为团长，邀请好友参团' : '当前活动已达到最大团数'
+})
+
+const groupLimitText = computed(() => Number(groupOptions.groupLimit) < 0
+  ? '不限开团数量'
+  : `已开 ${groupOptions.usedGroupCount}/${groupOptions.groupLimit} 个团`)
+
+const groupChoiceText = computed(() => {
+  if (groupJoinMode.value === 'random') {
+    return '随机加入拼团'
+  }
+  if (groupJoinMode.value === 'specific') {
+    const group = groupOptions.groups.find((item) => String(item.id) === String(groupId.value))
+    return group ? `加入 ${group.memberCount}/${group.minPeople} 人团` : '已选择指定拼团'
+  }
+  return '发起新团'
 })
 
 function request(options) {
@@ -468,7 +582,9 @@ function initSelectedSpecs() {
 async function fetchProductDetail(productId, sceneValue) {
   const url = sceneValue === 'seckill'
     ? `${BASE_API}/app/seckill/queryProductDetail?id=${productId}`
-    : `${BASE_API}/app/product/detail?id=${productId}`
+    : sceneValue === 'groupBuy'
+      ? `${BASE_API}/app/groupBuy/queryProductDetail?id=${productId}`
+      : `${BASE_API}/app/product/detail?id=${productId}`
 
   try {
     const res = await request({
@@ -484,6 +600,7 @@ async function fetchProductDetail(productId, sceneValue) {
 
     const data = res.data.data || {}
     product.value = data.product || {}
+    groupBuyPurchasable.value = sceneValue !== 'groupBuy' || data.activityPurchasable === true
 
     if (product.value.detailDesc) {
       product.value.detailDesc = processRichText(product.value.detailDesc)
@@ -502,9 +619,15 @@ async function fetchProductDetail(productId, sceneValue) {
 
     initSelectedSpecs()
 
-    if (product.value.id) {
+    const sourceSpuId = getSourceSpuId()
+    if (sourceSpuId) {
       checkCollectStatus()
-      loadReviewSummary(product.value.id)
+      loadReviewSummary(sourceSpuId)
+    }
+    if (product.value.id) {
+      if (sceneValue === 'groupBuy' && groupBuyPurchasable.value) {
+        loadGroupOptions(product.value.id)
+      }
     }
 
     nextTick(() => {
@@ -513,6 +636,116 @@ async function fetchProductDetail(productId, sceneValue) {
   } catch (error) {
     console.error('请求商品详情失败:', error)
   }
+}
+
+function loadGroupOptions(groupBuySpuId) {
+  request({
+    url: `${BASE_API}/app/groupBuy/queryGroupOptions?groupBuySpuId=${groupBuySpuId}`,
+    method: 'GET',
+    header: buildAuthHeader()
+  }).then((res) => {
+    if (res.statusCode === 200 && res.data.code === 0) {
+      Object.assign(groupOptions, {
+        groupLimit: -1,
+        usedGroupCount: 0,
+        remainingGroupCount: -1,
+        hasJoinedActivity: false,
+        joinedGroup: null,
+        groups: [],
+        ...(res.data.data || {})
+      })
+    }
+  }).catch(() => {
+    Object.assign(groupOptions, { groups: [] })
+  })
+}
+
+function openGroupSelector() {
+  if (!groupBuyPurchasable.value) {
+    uni.showToast({ title: '拼团活动已结束，仅可查看', icon: 'none' })
+    return
+  }
+  if (product.value.id) {
+    loadGroupOptions(product.value.id)
+  }
+  showGroupSelector.value = true
+}
+
+function closeGroupSelector() {
+  showGroupSelector.value = false
+}
+
+function selectNewGroup() {
+  if (groupOptions.hasJoinedActivity) {
+    uni.showToast({ title: '你已参与本活动的拼团', icon: 'none' })
+    return
+  }
+  if (!canCreateGroup.value) {
+    uni.showToast({ title: '当前活动已达到最大团数', icon: 'none' })
+    return
+  }
+  groupJoinMode.value = 'create'
+  groupId.value = ''
+  closeGroupSelector()
+}
+
+function selectRandomGroup() {
+  if (!canRandomJoin.value) {
+    return
+  }
+  groupJoinMode.value = 'random'
+  groupId.value = ''
+  closeGroupSelector()
+}
+
+function selectSpecificGroup(group) {
+  if (groupOptions.hasJoinedActivity) {
+    uni.showToast({ title: '你已参与本活动的拼团', icon: 'none' })
+    return
+  }
+  if (!isGroupJoinable(group)) {
+    uni.showToast({ title: '该拼团已成团或已满员', icon: 'none' })
+    return
+  }
+  groupJoinMode.value = 'specific'
+  groupId.value = group.id
+  closeGroupSelector()
+}
+
+function hasAvailableGroupSeat(group) {
+  if (String(group.status) !== '2') {
+    return false
+  }
+  const reservedMemberCount = Math.max(Number(group.reservedMemberCount || 0), Number(group.memberCount || 0))
+  return reservedMemberCount < Number(group.minPeople || 0)
+}
+
+function isGroupJoinable(group) {
+  return !groupOptions.hasJoinedActivity && hasAvailableGroupSeat(group)
+}
+
+function isJoinedGroup(group) {
+  return groupOptions.joinedGroup && String(group.id) === String(groupOptions.joinedGroup.id)
+}
+
+function getGroupStatusText(group) {
+  const status = String(group.status)
+  if (status === '1') {
+    return '待团长支付'
+  }
+  if (status === '2') {
+    return hasAvailableGroupSeat(group) ? '可加入' : '拼团中（已满员）'
+  }
+  if (status === '3') {
+    return '已成团'
+  }
+  if (status === '4') {
+    return '拼团失败'
+  }
+  if (status === '5') {
+    return '已关闭'
+  }
+  return '状态未知'
 }
 
 function goToStore() {
@@ -583,7 +816,7 @@ function closeCartPopup() {
 }
 
 function hasCompleteSpecSelection() {
-  if (scene.value === 'seckill') {
+  if (scene.value === 'seckill' || scene.value === 'groupBuy') {
     return !!selectedSku.value
   }
 
@@ -591,9 +824,13 @@ function hasCompleteSpecSelection() {
 }
 
 function validateCurrentSelection() {
-  if (scene.value === 'seckill' && !isWithinActivityTime()) {
+  if (scene.value === 'groupBuy' && !groupBuyPurchasable.value) {
+    uni.showToast({ title: '拼团活动已结束，暂不可购买', icon: 'none' })
+    return false
+  }
+  if ((scene.value === 'seckill' || scene.value === 'groupBuy') && !isWithinActivityTime()) {
     uni.showToast({
-      title: '当前不在秒杀活动时间范围内',
+      title: scene.value === 'seckill' ? '当前不在秒杀活动时间范围内' : '当前不在拼团活动时间范围内',
       icon: 'none'
     })
     return false
@@ -601,7 +838,7 @@ function validateCurrentSelection() {
 
   if (!hasCompleteSpecSelection()) {
     uni.showToast({
-      title: scene.value === 'seckill' ? '请选择商品规格' : '请选择完整的规格',
+      title: scene.value === 'seckill' || scene.value === 'groupBuy' ? '请选择商品规格' : '请选择完整的规格',
       icon: 'none'
     })
     return false
@@ -616,7 +853,7 @@ function validateCurrentSelection() {
     return false
   }
 
-  if (scene.value !== 'seckill' && selectedQuantity.value > currentSkuInfo.stock) {
+  if (scene.value !== 'seckill' && scene.value !== 'groupBuy' && selectedQuantity.value > currentSkuInfo.stock) {
     uni.showToast({
       title: '购买数量超过库存',
       icon: 'none'
@@ -628,9 +865,9 @@ function validateCurrentSelection() {
 }
 
 function addToCart() {
-  if (scene.value === 'seckill' && !isWithinActivityTime()) {
+  if ((scene.value === 'seckill' || scene.value === 'groupBuy') && !isWithinActivityTime()) {
     uni.showToast({
-      title: '当前不在秒杀活动时间范围内',
+      title: scene.value === 'seckill' ? '当前不在秒杀活动时间范围内' : '当前不在拼团活动时间范围内',
       icon: 'none'
     })
     return
@@ -646,9 +883,17 @@ function navigateToOrderConfirm(skuId, quantity, previewData) {
     `quantity=${quantity}`
   ]
 
+  if (scene.value) {
+    params.push(`scene=${scene.value}`)
+  }
+  if (groupId.value) {
+    params.push(`groupId=${groupId.value}`)
+  }
+  if (scene.value === 'groupBuy') {
+    params.push(`groupJoinMode=${groupJoinMode.value}`)
+  }
   if (previewData) {
     params.push(`orderPreview=${encodeURIComponent(JSON.stringify(previewData))}`)
-    params.push(`scene=${scene.value}`)
   }
 
   uni.navigateTo({
@@ -700,7 +945,7 @@ async function confirmAddToCart() {
   }
 
   const currentSkuInfo = getCurrentSkuInfo()
-  const quantity = scene.value === 'seckill' ? 1 : selectedQuantity.value
+  const quantity = scene.value === 'seckill' || scene.value === 'groupBuy' ? 1 : selectedQuantity.value
 
   if (purchaseMode.value === 'buy') {
     closeCartPopup()
@@ -742,6 +987,11 @@ async function confirmAddToCart() {
 }
 
 function buyNow() {
+  if (scene.value === 'groupBuy' && groupOptions.hasJoinedActivity) {
+    uni.showToast({ title: '你已参与本活动的拼团', icon: 'none' })
+    openGroupSelector()
+    return
+  }
   purchaseMode.value = 'buy'
   showSpec.value = true
 }
@@ -761,6 +1011,10 @@ function addToFavorites() {
 }
 
 function addCollect() {
+  const sourceSpuId = getSourceSpuId()
+  if (!sourceSpuId) {
+    return
+  }
   authRequest({
     url: `${BASE_API}/app/productFavorites/add`,
     method: 'POST',
@@ -768,7 +1022,7 @@ function addCollect() {
       'Content-Type': 'application/json'
     },
     data: {
-      id: product.value.id
+      id: sourceSpuId
     }
   }, (res) => {
     if (res.data.code === 0 && res.data.data && res.data.data.success) {
@@ -799,6 +1053,10 @@ function addCollect() {
 }
 
 function cancelCollect() {
+  const sourceSpuId = getSourceSpuId()
+  if (!sourceSpuId) {
+    return
+  }
   authRequest({
     url: `${BASE_API}/app/productFavorites/remove`,
     method: 'POST',
@@ -806,7 +1064,7 @@ function cancelCollect() {
       'Content-Type': 'application/json'
     },
     data: {
-      id: product.value.id
+      id: sourceSpuId
     }
   }, (res) => {
     if (res.data.code === 0 && res.data.data && res.data.data.success) {
@@ -837,12 +1095,13 @@ function cancelCollect() {
 }
 
 function checkCollectStatus() {
-  if (!getUserId() || !product.value.id) {
+  const sourceSpuId = getSourceSpuId()
+  if (!getUserId() || !sourceSpuId) {
     return
   }
 
   authRequest({
-    url: `${BASE_API}/app/productFavorites/status?spuId=${product.value.id}`,
+    url: `${BASE_API}/app/productFavorites/status?spuId=${sourceSpuId}`,
     method: 'GET'
   }, (res) => {
     if (res.statusCode === 200 && res.data.code === 0) {
@@ -855,6 +1114,10 @@ function checkCollectStatus() {
   }, (error) => {
     console.error('检查收藏状态请求失败:', error)
   })
+}
+
+function getSourceSpuId() {
+  return product.value.sourceSpuId || product.value.id
 }
 
 function selectSpecOption(specId, optId) {
@@ -871,7 +1134,7 @@ function selectSku(sku) {
 }
 
 function isWithinActivityTime() {
-  if (scene.value !== 'seckill') {
+  if (scene.value !== 'seckill' && scene.value !== 'groupBuy') {
     return true
   }
 
@@ -907,7 +1170,7 @@ function getSelectedSpecDesc() {
 }
 
 function getCurrentSkuInfo() {
-  if (scene.value === 'seckill') {
+  if (scene.value === 'seckill' || scene.value === 'groupBuy') {
     if (!selectedSku.value) {
       return { id: null, price: null, stock: 0 }
     }
@@ -945,7 +1208,7 @@ function getCurrentSkuInfo() {
 }
 
 function isOptionDisabled(specId, optId) {
-  if (scene.value === 'seckill') {
+  if (scene.value === 'seckill' || scene.value === 'groupBuy') {
     return false
   }
 
@@ -987,7 +1250,7 @@ async function confirmSpec() {
   }
 
   const currentSkuInfo = getCurrentSkuInfo()
-  const quantity = scene.value === 'seckill' ? 1 : selectedQuantity.value
+  const quantity = scene.value === 'seckill' || scene.value === 'groupBuy' ? 1 : selectedQuantity.value
 
   closeSpecPopup()
 
@@ -1018,6 +1281,11 @@ async function confirmSpec() {
     return
   }
 
+  if (scene.value === 'groupBuy') {
+    navigateToOrderConfirm(currentSkuInfo.id, 1)
+    return
+  }
+
   navigateToOrderConfirm(currentSkuInfo.id, quantity)
 }
 
@@ -1026,10 +1294,12 @@ onLoad((options = {}) => {
   const sceneValue = options.scene || ''
   scene.value = sceneValue
 
-  if (sceneValue === 'seckill') {
+  if (sceneValue === 'seckill' || sceneValue === 'groupBuy') {
     activityBeginTime.value = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : ''
     activityEndTime.value = options.activityEndTime ? decodeURIComponent(options.activityEndTime) : ''
     activityId.value = options.activityId || ''
+    groupId.value = options.groupId || ''
+    groupJoinMode.value = options.groupId ? 'specific' : 'create'
   }
 
   fetchProductDetail(productId, sceneValue)
@@ -1043,10 +1313,182 @@ onReady(() => {
 </script>
 
 <style scoped>
-	.product-detail-container {
-		height: 100vh;
-		position: relative;
-	}
+		.product-detail-container {
+			height: 100vh;
+			position: relative;
+		}
+
+		.group-buy-choice {
+			position: fixed;
+			left: 0;
+			right: 0;
+			bottom: 104rpx;
+			z-index: 90;
+			padding: 14rpx 24rpx 18rpx;
+			background: #fff7f0;
+			box-shadow: 0 -4rpx 16rpx rgba(117, 67, 28, 0.08);
+		}
+
+		.group-choice-title {
+			margin-bottom: 10rpx;
+			color: #56351d;
+			font-size: 24rpx;
+			font-weight: 600;
+		}
+
+		.group-choice-summary {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			color: #7e4c2c;
+			font-size: 26rpx;
+		}
+
+		.group-choice-link {
+			color: #dc6430;
+			font-size: 24rpx;
+		}
+
+		.group-selector-popup {
+			position: fixed;
+			z-index: 300;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			display: flex;
+			align-items: flex-end;
+			background: rgba(0, 0, 0, 0.45);
+		}
+
+		.group-selector-content {
+			box-sizing: border-box;
+			width: 100%;
+			max-height: 76vh;
+			padding: 30rpx 28rpx calc(30rpx + env(safe-area-inset-bottom));
+			background: #fffaf6;
+			border-radius: 28rpx 28rpx 0 0;
+		}
+
+		.group-selector-header {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			padding-bottom: 24rpx;
+		}
+
+		.group-selector-title {
+			display: block;
+			color: #392115;
+			font-size: 34rpx;
+			font-weight: 700;
+		}
+
+		.group-selector-subtitle {
+			display: block;
+			margin-top: 8rpx;
+			color: #9a6745;
+			font-size: 24rpx;
+		}
+
+		.group-joined-tip {
+			padding: 24rpx;
+			color: #9a5c21;
+			font-size: 26rpx;
+			line-height: 1.6;
+			background: #fff0d9;
+			border-radius: 16rpx;
+		}
+
+		.group-random-card,
+		.group-option-card,
+		.group-create-card {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			box-sizing: border-box;
+			width: 100%;
+			margin-bottom: 16rpx;
+			padding: 24rpx;
+			background: #fff;
+			border: 2rpx solid #f2ded0;
+			border-radius: 18rpx;
+		}
+
+		.group-random-card {
+			background: linear-gradient(135deg, #fff0e3, #fff8f1);
+			border-color: #f49c66;
+		}
+
+		.group-card-title,
+		.group-leader-name {
+			display: block;
+			color: #4b2818;
+			font-size: 28rpx;
+			font-weight: 600;
+		}
+
+		.group-card-desc,
+		.group-option-progress {
+			display: block;
+			margin-top: 8rpx;
+			color: #9a7b67;
+			font-size: 23rpx;
+		}
+
+		.group-card-action,
+		.group-option-expire {
+			color: #d85d2b;
+			font-size: 24rpx;
+		}
+
+		.group-list-scroll {
+			max-height: 53vh;
+		}
+
+		.group-option-card.active {
+			background: #fff2e9;
+			border-color: #dc6430;
+		}
+
+		.group-option-card.disabled {
+			background: #fafafa;
+			border-color: #e8e2de;
+		}
+
+		.group-my-card {
+			background: #fff4e9;
+			border-color: #e89b61;
+		}
+
+		.group-option-side {
+			display: flex;
+			align-items: flex-end;
+			flex-direction: column;
+			gap: 8rpx;
+		}
+
+		.group-option-status {
+			color: #895536;
+			font-size: 24rpx;
+			font-weight: 600;
+		}
+
+		.group-my-label {
+			padding: 4rpx 10rpx;
+			color: #c65322;
+			font-size: 21rpx;
+			background: #ffe4d0;
+			border-radius: 999rpx;
+		}
+
+		.group-create-card {
+			border-style: dashed;
+		}
+
+		.group-create-card.disabled {
+			opacity: 0.5;
+		}
 
 	.floating-section-tabs {
 		position: fixed;

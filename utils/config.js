@@ -1,4 +1,4 @@
-const DEFAULT_BASE_API = 'http://192.168.31.65:8080'
+const DEFAULT_BASE_API = 'http://192.168.31.59:8088'
 const DEFAULT_WS_PATH = '/ws/ns/default'
 const DEFAULT_UPLOAD_PATH = '/app/storage/upload'
 const DEFAULT_PREVIEW_PATH = '/public/storage/preview'

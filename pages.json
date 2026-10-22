@@ -141,6 +141,12 @@
 			}
 		},
 		{
+			"path": "pages/profile/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
 			"path": "pages/seckill/list",
 			"style": {
 				"navigationBarTitleText": "秒杀活动"
@@ -150,6 +156,18 @@
 			"path": "pages/seckill/product-list",
 			"style": {
 				"navigationBarTitleText": "秒杀商品"
+			}
+		},
+		{
+			"path": "pages/group-buy/list",
+			"style": {
+				"navigationBarTitleText": "拼团活动"
+			}
+		},
+		{
+			"path": "pages/group-buy/product-list",
+			"style": {
+				"navigationBarTitleText": "拼团商品"
 			}
 		},
 		{

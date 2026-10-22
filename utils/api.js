@@ -344,15 +344,10 @@ export const fetchOrderCounts = () => {
 // Function to fetch order list
 export const fetchOrderList = (aggreStatus, page = 1, size = 10, conditions = '') => {
   return new Promise((resolve, reject) => {
-    // 构建conditions_参数
-    let conditionsParam = 'createTime:sort:desc';
+    const params = {};
     if (conditions) {
-      conditionsParam = `${conditions};${conditionsParam}`;
+      params.conditions_ = conditions;
     }
-    
-    const params = {
-      'conditions_': conditionsParam
-    };
     
     // 如果指定了聚合状态，则添加到参数中
     if (aggreStatus && aggreStatus !== 0) {

@@ -39,14 +39,15 @@ const instance = getCurrentInstance()
 const availableCoupons = ref([])
 const loading = ref(false)
 const previewItems = ref([])
+const previewScene = ref('')
 
 function buildRequestItems(items) {
   return (Array.isArray(items) ? items : [])
     .map((item) => ({
-      skuId: Number(item.skuId),
+      skuId: String(item.skuId),
       quantity: Number(item.quantity)
     }))
-    .filter((item) => Number.isFinite(item.skuId) && item.skuId > 0 && Number.isFinite(item.quantity) && item.quantity > 0)
+    .filter((item) => item.skuId && Number.isFinite(item.quantity) && item.quantity > 0)
 }
 
 function fetchAvailableCoupons() {
@@ -58,7 +59,7 @@ function fetchAvailableCoupons() {
   loading.value = true
   uni.showLoading({ title: '加载中...' })
   uni.request({
-    url: `${BASE_API}/app/coupon/availableList`,
+    url: `${BASE_API}/app/coupon/${previewScene.value === 'groupBuy' ? 'availableGroupBuyList' : 'availableList'}`,
     method: 'POST',
     header: {
       'Content-Type': 'application/json',
@@ -115,6 +116,7 @@ onLoad(() => {
   })
 
   const storedItems = uni.getStorageSync('couponPreviewItems')
+  previewScene.value = uni.getStorageSync('couponPreviewScene') || ''
   previewItems.value = buildRequestItems(storedItems)
   if (previewItems.value.length > 0) {
     fetchAvailableCoupons()
@@ -123,6 +125,7 @@ onLoad(() => {
 
 onUnload(() => {
   uni.removeStorageSync('couponPreviewItems')
+  uni.removeStorageSync('couponPreviewScene')
 })
 </script>
 

@@ -121,6 +121,8 @@ const loading = ref(false)
 const requestItems = ref([])
 const orderSource = ref(1)
 const scene = ref('')
+const groupId = ref('')
+const groupJoinMode = ref('create')
 const selectedCoupon = ref(null)
 const couponId = ref(null)
 
@@ -247,10 +249,10 @@ async function fetchOrderPreviewData(items) {
     title: '加载中...'
   })
 
-  if (scene.value === 'seckill') {
+  if (scene.value === 'seckill' || scene.value === 'groupBuy') {
     try {
       const res = await request({
-        url: `${BASE_API}/app/order/previewForSeckill`,
+        url: `${BASE_API}/app/order/${scene.value === 'seckill' ? 'previewForSeckill' : 'previewForGroupBuy'}`,
         method: 'POST',
         header: createAuthHeader(),
         data: {
@@ -263,13 +265,13 @@ async function fetchOrderPreviewData(items) {
         return
       }
 
-      console.error('获取秒杀订单预览失败:', res.data && res.data.message)
+      console.error('获取活动订单预览失败:', res.data && res.data.message)
       uni.showToast({
         title: '获取订单信息失败，请重试',
         icon: 'none'
       })
     } catch (error) {
-      console.error('请求秒杀订单预览失败:', error)
+      console.error('请求活动订单预览失败:', error)
       uni.showToast({
         title: '网络错误，请稍后重试',
         icon: 'none'
@@ -333,10 +335,11 @@ function selectAddress() {
 function selectCoupon() {
   const couponItems = requestItems.value
     .map((item) => ({
-      skuId: Number(item.skuId),
+      // 活动 SKU 使用雪花 ID，必须保留字符串避免 JavaScript 精度丢失。
+      skuId: String(item.skuId),
       quantity: Number(item.quantity)
     }))
-    .filter((item) => Number.isFinite(item.skuId) && item.skuId > 0 && Number.isFinite(item.quantity) && item.quantity > 0)
+    .filter((item) => item.skuId && Number.isFinite(item.quantity) && item.quantity > 0)
 
   if (couponItems.length === 0) {
     uni.showToast({
@@ -347,6 +350,7 @@ function selectCoupon() {
   }
 
   uni.setStorageSync('couponPreviewItems', couponItems)
+  uni.setStorageSync('couponPreviewScene', scene.value)
   uni.navigateTo({
     url: '/pages/coupons/select'
   })
@@ -475,6 +479,39 @@ async function payOrder() {
     return
   }
 
+  if (scene.value === 'groupBuy') {
+    try {
+      const res = await request({
+        url: `${BASE_API}/app/order/submitForGroupBuy`,
+        method: 'POST',
+        header: createAuthHeader(),
+        data: {
+          items,
+          addressId: selectedAddress.value.id,
+          scene: '4',
+          couponId: couponId.value,
+          groupBuySkuId: items[0].skuId,
+          groupId: groupId.value || null,
+          randomJoin: groupJoinMode.value === 'random'
+        }
+      })
+      if (res.statusCode === 200 && res.data.code === 0) {
+        const paymentData = res.data.data
+        startPayment(paymentData, {
+          orderId: paymentData.orderId,
+          orderNo: paymentData.orderNo
+        })
+        return
+      }
+      throw new Error(res.data?.message || '拼团下单失败')
+    } catch (error) {
+      console.error('拼团下单失败:', error)
+      uni.hideLoading()
+      uni.showToast({ title: error.message || '拼团下单失败', icon: 'none' })
+    }
+    return
+  }
+
   try {
     const result = await submitOrder(submitData)
     const paymentData = result.data
@@ -541,11 +578,14 @@ function pollSeckillResult(skuId, retryCount) {
 onLoad((options = {}) => {
   fetchDefaultAddress()
   scene.value = options.scene || ''
+  groupId.value = options.groupId || ''
+  groupJoinMode.value = options.groupJoinMode || (groupId.value ? 'specific' : 'create')
 
   if (options.skuId && options.quantity) {
     orderSource.value = 1
     requestItems.value = [{
-      skuId: parseInt(options.skuId, 10),
+      // 不能转成 Number：拼团/秒杀 SKU ID 可能超过 JavaScript 安全整数范围。
+      skuId: String(options.skuId),
       quantity: parseInt(options.quantity, 10)
     }]
 

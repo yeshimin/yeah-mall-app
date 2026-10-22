@@ -257,7 +257,7 @@ function goToService(link = {}) {
 
 function goToSettings() {
   uni.navigateTo({
-    url: '/pages/profile/edit'
+    url: '/pages/profile/settings'
   })
 }
 
@@ -278,9 +278,7 @@ function goToSeckill() {
 }
 
 function goToGroupBuy() {
-  uni.navigateTo({
-    url: `/pages/product/list?query=${encodeURIComponent('拼团')}`
-  })
+  uni.navigateTo({ url: '/pages/group-buy/list' })
 }
 
 function goToCouponCenter() {
@@ -319,6 +317,10 @@ function getActionForQuickLink(type, target) {
 
   if (target === '/pages/seckill/list') {
     return 'goToSeckill'
+  }
+
+  if (target === '/pages/group-buy/list') {
+    return 'goToGroupBuy'
   }
 
   switch (type) {

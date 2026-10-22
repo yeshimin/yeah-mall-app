@@ -172,7 +172,8 @@ const statusMap = {
   4: '交易成功',
   5: '交易关闭',
   6: '退款',
-  7: '售后'
+  7: '售后',
+  8: '待成团'
 }
 
 const refundStatusMap = {

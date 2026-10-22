@@ -174,7 +174,7 @@ function openSetting(index) {
 
   if (settings[index].name === '设置') {
     uni.navigateTo({
-      url: '/pages/profile/edit'
+      url: '/pages/profile/settings'
     })
     return
   }
