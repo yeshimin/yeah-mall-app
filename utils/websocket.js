@@ -8,6 +8,7 @@ class WebSocketManager {
     this.heartbeatInterval = null;
     this.reconnectInterval = null;
     this.isConnected = false;
+    this.isConnecting = false;
     this.isReconnecting = false;
     this.reconnectAttempts = 0;
     this.heartbeatIntervalTime = 30000; // 30秒
@@ -15,6 +16,8 @@ class WebSocketManager {
     this.reconnectDelay = 3000; // 当前重连延迟
     this.url = BASE_WS;
     this.messageHandlers = {};
+    this.reconnectHandlers = new Set();
+    this.hasConnectedOnce = false;
     this.isWechatMiniProgram = typeof wx !== 'undefined' && typeof wx.connectSocket !== 'undefined';
     this.initNetworkListener(); // 初始化网络状态监听
   }
@@ -28,6 +31,11 @@ class WebSocketManager {
       this.log('WebSocket: 未登录，无法连接');
       return;
     }
+    if (this.isConnected || this.isConnecting) {
+      return;
+    }
+
+    this.isConnecting = true;
 
     // 构建 WebSocket URL，携带 token 参数
     const wsUrl = `${this.url}?token=${token}`;
@@ -41,6 +49,7 @@ class WebSocketManager {
         this.initBrowserWebSocket(wsUrl);
       }
     } catch (error) {
+      this.isConnecting = false;
       console.error('WebSocket: 创建连接失败', error);
       this.attemptReconnect();
     }
@@ -53,8 +62,10 @@ class WebSocketManager {
     this.ws.onopen = () => {
       this.log('WebSocket: 连接成功');
       this.isConnected = true;
+      this.isConnecting = false;
       this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
+      this.notifyConnected();
     };
 
     this.ws.onmessage = (event) => {
@@ -67,12 +78,14 @@ class WebSocketManager {
     };
 
     this.ws.onerror = (error) => {
+      this.isConnecting = false;
       console.error('WebSocket: 错误', error);
     };
 
     this.ws.onclose = () => {
       this.log('WebSocket: 连接关闭');
       this.isConnected = false;
+      this.isConnecting = false;
       this.stopHeartbeat();
       this.attemptReconnect();
     };
@@ -93,6 +106,7 @@ class WebSocketManager {
         this.log('WebSocket: 连接请求发送成功');
       },
       fail: (error) => {
+        this.isConnecting = false;
         console.error('WebSocket: 连接请求发送失败', error);
         this.attemptReconnect();
       }
@@ -102,8 +116,10 @@ class WebSocketManager {
     wx.onSocketOpen(() => {
       this.log('WebSocket: 连接成功');
       this.isConnected = true;
+      this.isConnecting = false;
       this.resetReconnectState(); // 使用新的重置方法
       this.startHeartbeat();
+      this.notifyConnected();
     });
 
     // 监听 WebSocket 接收到服务器的消息事件
@@ -118,6 +134,7 @@ class WebSocketManager {
 
     // 监听 WebSocket 错误事件
     wx.onSocketError((error) => {
+      this.isConnecting = false;
       console.error('WebSocket: 错误', error);
     });
 
@@ -125,6 +142,7 @@ class WebSocketManager {
     wx.onSocketClose(() => {
       this.log('WebSocket: 连接关闭');
       this.isConnected = false;
+      this.isConnecting = false;
       this.stopHeartbeat();
       this.attemptReconnect();
     });
@@ -149,6 +167,14 @@ class WebSocketManager {
     if (this.messageHandlers[handlerKey]) {
       this.messageHandlers[handlerKey](message);
     }
+  }
+
+  // 首次连接由页面初始化加载历史消息，只有重连才通知页面补拉数据。
+  notifyConnected() {
+    if (this.hasConnectedOnce) {
+      this.reconnectHandlers.forEach((handler) => handler());
+    }
+    this.hasConnectedOnce = true;
   }
 
   // 发送消息
@@ -308,6 +334,8 @@ class WebSocketManager {
     }
     this.ws = null;
     this.isConnected = false;
+    this.isConnecting = false;
+    this.hasConnectedOnce = false;
     this.log('WebSocket: 连接已关闭');
   }
 
@@ -321,6 +349,16 @@ class WebSocketManager {
   off(category, command) {
     const handlerKey = `${category}:${command}`;
     delete this.messageHandlers[handlerKey];
+  }
+
+  // 注册重连成功处理器
+  onReconnect(callback) {
+    this.reconnectHandlers.add(callback);
+  }
+
+  // 移除重连成功处理器
+  offReconnect(callback) {
+    this.reconnectHandlers.delete(callback);
   }
 
   // 获取连接状态

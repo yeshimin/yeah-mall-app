@@ -43,7 +43,7 @@
       }">
         <!-- 返回按钮 -->
         <view v-if="showBack" class="back-button" @click="handleBack">
-          <text class="back-icon">←</text>
+          <view class="back-icon"></view>
         </view>
       </view>
 
@@ -322,11 +322,10 @@ onMounted(() => {
 }
 
 .back-icon {
-  font-size: 32rpx;
-  color: #333;
-  font-weight: bold;
-  text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
-  padding-top: 8px;
-  padding-bottom: 8px;
+  width: 16rpx;
+  height: 16rpx;
+  border-bottom: 3rpx solid #333;
+  border-left: 3rpx solid #333;
+  transform: rotate(45deg);
 }
 </style>

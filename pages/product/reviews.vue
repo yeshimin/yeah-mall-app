@@ -25,9 +25,10 @@
 		<scroll-view 
 			scroll-y 
 			class="reviews-list" 
+			:scroll-into-view="scrollToReviewId"
 			@scrolltolower="loadMore"
 		>
-			<view class="review-item" v-for="(item, index) in list" :key="index">
+			<view :id="`review-${item.id}`" class="review-item" v-for="(item, index) in list" :key="index">
 				<view class="user-info">
 					<image 
 						class="avatar" 
@@ -53,23 +54,38 @@
 				</view>
 				
 				<view class="review-images" v-if="item.images && item.images.length">
-					<image 
+					<view
 						v-for="(img, imgIndex) in item.images" 
 						:key="imgIndex"
-						:src="img"
-						mode="aspectFill"
-						class="review-img"
-						@click="previewImage(item.images, imgIndex)"
-					></image>
+						class="review-image-slot"
+					>
+						<image
+							:src="getImageUrl(img)"
+							mode="aspectFill"
+							class="review-img"
+							@click="previewImage(item.images, imgIndex)"
+						></image>
+					</view>
 				</view>
 				
 				<view class="sku-info" v-if="item.skuInfo">
 					<text>{{ item.skuInfo }}</text>
 				</view>
 
-				<view class="merchant-reply" v-if="item.reply">
-					<text class="reply-label">商家回复：</text>
-					<text class="reply-content">{{ item.reply }}</text>
+				<view class="review-replies" v-if="item.replies && item.replies.length">
+					<view v-for="reply in item.replies" :key="reply.id" class="review-reply-item">
+						<text class="reply-label">{{ reply.senderType === 1 ? '买家回复：' : '商家回复：' }}</text>
+						<text class="reply-content">{{ reply.content }}</text>
+						<text class="reply-time">{{ reply.updateTime || reply.createTime }}</text>
+					</view>
+				</view>
+				<text v-if="item.replyStatusText" class="reply-status">{{ item.replyStatusText }}</text>
+
+				<view v-if="item.canReply || item.canEditReply" class="reply-editor">
+					<input v-model="replyDrafts[item.id]" class="reply-input" :placeholder="item.canEditReply ? '修改你的回复' : '回复商家'" maxlength="500" />
+					<button class="reply-button" :loading="replyingReviewId === item.id" @click="submitReply(item)">
+						{{ item.canEditReply ? '保存' : '回复' }}
+					</button>
 				</view>
 			</view>
 			
@@ -83,9 +99,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { fetchProductReviews } from '@/utils/api.js'
+import { fetchProductReviews, fetchReviewSummary, replyProductReview } from '@/utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
 
 const productId = ref('')
 const currentType = ref('all')
@@ -96,6 +113,10 @@ const goodCount = ref(0)
 const page = ref(1)
 const loading = ref(false)
 const noMore = ref(false)
+const replyingReviewId = ref('')
+const replyDrafts = reactive({})
+const replyReviewId = ref('')
+const scrollToReviewId = ref('')
 
 function switchType(type) {
   if (currentType.value === type) {
@@ -119,17 +140,35 @@ function loadData(refresh = false) {
 
   loading.value = true
   fetchProductReviews(productId.value, {
-    page: page.value,
-    type: currentType.value
+    current: page.value,
+    size: 10,
+    hasImage: currentType.value === 'pic' ? true : undefined,
+    goodOnly: currentType.value === 'good' ? true : undefined
   })
     .then((res) => {
-      total.value = res.total || 0
-      picCount.value = Math.floor(total.value * 0.3)
-      goodCount.value = Math.floor(total.value * 0.95)
+      total.value = Number(res.total || 0)
 
-      if (res.list && res.list.length > 0) {
-        list.value = [...list.value, ...res.list]
+      const records = (res.records || []).map((item) => {
+        const replies = item.replies || []
+        const latestReply = replies[replies.length - 1]
+        if (item.canEditReply && latestReply) {
+          replyDrafts[item.id] = latestReply.content
+        }
+        return {
+          ...item,
+          replies,
+          userName: item.nickname,
+          userAvatar: item.avatar,
+          rate: item.overallRating,
+          skuInfo: item.skuName
+        }
+      })
+      if (records.length > 0) {
+        list.value = [...list.value, ...records]
         page.value += 1
+        if (replyReviewId.value && page.value === 2) {
+          scrollToReviewId.value = `review-${replyReviewId.value}`
+        }
       } else {
         noMore.value = true
       }
@@ -149,16 +188,54 @@ function loadMore() {
   loadData()
 }
 
+function loadSummary() {
+  fetchReviewSummary(productId.value)
+    .then((summary) => {
+      total.value = Number(summary.totalCount || 0)
+      picCount.value = Number(summary.imageCount || 0)
+      goodCount.value = Number(summary.goodCount || 0)
+    })
+    .catch(() => {})
+}
+
+async function submitReply(item) {
+  const content = (replyDrafts[item.id] || '').trim()
+  if (!content) {
+    uni.showToast({ title: '请输入回复内容', icon: 'none' })
+    return
+  }
+  replyingReviewId.value = item.id
+  try {
+    await replyProductReview({ id: item.id, replyContent: content })
+    uni.showToast({ title: item.canEditReply ? '回复已修改' : '回复成功', icon: 'success' })
+    loadData(true)
+  } catch (error) {
+    uni.showToast({ title: error.message || '回复失败', icon: 'none' })
+  } finally {
+    replyingReviewId.value = ''
+  }
+}
+
 function previewImage(urls, current) {
+  const previewUrls = urls.map((url) => getImageUrl(url))
   uni.previewImage({
-    urls,
-    current
+    urls: previewUrls,
+    current: previewUrls[current]
   })
+}
+
+/**
+ * 将评价图片的文件标识转换为可访问的预览地址。
+ */
+function getImageUrl(fileKey) {
+  return getStoragePreviewUrl(fileKey) || '/static/logo.png'
 }
 
 onLoad((options = {}) => {
   if (options.productId) {
     productId.value = options.productId
+    replyReviewId.value = options.replyReviewId || ''
+    loadSummary()
     loadData(true)
   }
 })
@@ -271,18 +348,24 @@ onLoad((options = {}) => {
 		margin-bottom: 10rpx;
 	}
 
-	.review-img {
+	.review-image-slot {
 		width: 220rpx;
 		height: 220rpx;
 		margin-right: 15rpx;
 		margin-bottom: 15rpx;
 		border-radius: 8rpx;
-		background-color: #f9f9f9;
+		overflow: hidden;
+		background-color: #f1f1f1;
 	}
     
-    .review-img:nth-child(3n) {
+    .review-image-slot:nth-child(3n) {
         margin-right: 0;
     }
+
+	.review-img {
+		width: 100%;
+		height: 100%;
+	}
 
 	.sku-info {
 		font-size: 24rpx;
@@ -290,12 +373,17 @@ onLoad((options = {}) => {
 		margin-bottom: 20rpx;
 	}
 
-	.merchant-reply {
+	.review-replies {
+		margin-top: 12rpx;
+	}
+
+	.review-reply-item {
 		background-color: #f5f5f5;
 		padding: 20rpx;
 		border-radius: 8rpx;
 		font-size: 26rpx;
 		line-height: 1.4;
+		margin-top: 10rpx;
 	}
 
 	.reply-label {
@@ -305,6 +393,48 @@ onLoad((options = {}) => {
 
 	.reply-content {
 		color: #666;
+	}
+
+	.reply-time {
+		display: block;
+		margin-top: 8rpx;
+		font-size: 22rpx;
+		color: #999;
+	}
+
+	.reply-status {
+		display: block;
+		margin-top: 12rpx;
+		font-size: 22rpx;
+		color: #999;
+	}
+
+	.reply-editor {
+		display: flex;
+		align-items: center;
+		margin-top: 16rpx;
+		padding: 12rpx;
+		background-color: #f7f7f7;
+		border-radius: 8rpx;
+	}
+
+	.reply-input {
+		flex: 1;
+		height: 60rpx;
+		padding: 0 16rpx;
+		background-color: #fff;
+		border-radius: 6rpx;
+		font-size: 24rpx;
+	}
+
+	.reply-button {
+		margin-left: 12rpx;
+		padding: 0 20rpx;
+		font-size: 24rpx;
+		line-height: 60rpx;
+		color: #fff;
+		background-color: #ff5000;
+		border-radius: 6rpx;
 	}
 	
 	.loading-more {

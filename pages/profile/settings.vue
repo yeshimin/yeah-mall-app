@@ -6,7 +6,7 @@
           <text class="setting-title">个人资料</text>
           <text class="setting-desc">头像、昵称、性别和生日</text>
         </view>
-        <text class="arrow">&gt;</text>
+        <view class="arrow"></view>
       </view>
     </view>
 
@@ -81,8 +81,12 @@ onLoad(() => {
 }
 
 .arrow {
+  width: 14rpx;
+  height: 14rpx;
   color: #b0b6c1;
-  font-size: 32rpx;
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  transform: rotate(45deg);
 }
 
 .logout-area {

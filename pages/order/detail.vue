@@ -165,6 +165,7 @@ const refundStatusMap = {
 const orderInfo = reactive({
   orderNo: '',
   orderId: '',
+  shopId: '',
   orderStatus: 0,
   statusText: '',
   shopName: '',
@@ -181,12 +182,13 @@ const orderInfo = reactive({
   completeTime: '',
   logisticsInfo: '',
   trackingNo: '',
+  isReviewed: false,
   actions: []
 })
 
 const loading = ref(true)
 
-function getOrderActions(status) {
+function getOrderActions(status, refundStatus = 0, isReviewed = false) {
   const actions = []
 
   switch (status) {
@@ -201,24 +203,40 @@ function getOrderActions(status) {
         { label: '提醒发货', value: 'remind', type: 'default' },
         { label: '联系客服', value: 'contact', type: 'default' }
       )
+      if (Number(refundStatus) === 0) {
+        actions.push({ label: '退款', value: 'refund', type: 'primary' })
+      }
       break
     case 3:
       actions.push(
         { label: '确认收货', value: 'confirm', type: 'primary' }
       )
+      if (Number(refundStatus) === 0) {
+        actions.push({ label: '退款', value: 'refund', type: 'default' })
+      }
       break
     case 4:
       actions.push(
         { label: '删除订单', value: 'delete', type: 'default' },
-        { label: '去评价', value: 'comment', type: 'primary' },
         { label: '再次购买', value: 'rebuy', type: 'default' }
       )
+      if (!isReviewed) {
+        actions.push(
+          { label: '去评价', value: 'comment', type: 'primary' },
+          ...(Number(refundStatus) === 0 ? [{ label: '退款', value: 'refund', type: 'default' }] : [])
+        )
+      }
       break
     case 5:
       actions.push(
         { label: '删除订单', value: 'delete', type: 'default' },
         { label: '再次购买', value: 'rebuy', type: 'default' }
       )
+      break
+    case 6:
+      if (Number(refundStatus) === 4) {
+        actions.push({ label: '再次申请退款', value: 'refund', type: 'primary' })
+      }
       break
     default:
       break
@@ -235,9 +253,7 @@ function processOrderData(orderData) {
   let statusText = statusMap[order.status] || '未知状态'
   if (order.status === '6' && order.refundStatus && order.refundStatus !== '0') {
     statusText = refundStatusMap[order.refundStatus] || '退款中'
-  } else if (order.refundStatus && order.refundStatus !== '0') {
-    statusText = '退款中'
-  } else if (order.afterSaleStatus && order.afterSaleStatus !== '0') {
+  } else if (order.status === '7' && order.afterSaleStatus && order.afterSaleStatus !== '0') {
     statusText = '售后中'
   } else if (order.status === '4' && !order.reviewed) {
     statusText = '待评价'
@@ -248,6 +264,7 @@ function processOrderData(orderData) {
   Object.assign(orderInfo, {
     orderNo: order.orderNo,
     orderId: order.id,
+    shopId: order.shopId,
     orderStatus: parseInt(order.status, 10),
     statusText,
     shopName: `店铺${order.shopId || 1}`,
@@ -279,7 +296,8 @@ function processOrderData(orderData) {
     completeTime: order.receiveTime,
     logisticsInfo: deliveryTracking,
     trackingNo: order.trackingNo,
-    actions: getOrderActions(parseInt(order.status, 10))
+    isReviewed: !!order.reviewed,
+    actions: getOrderActions(parseInt(order.status, 10), order.refundStatus, !!order.reviewed)
   })
 }
 
@@ -332,7 +350,12 @@ function handleAction(action) {
       break
     case 'contact':
       uni.navigateTo({
-        url: '/pages/customer-service/index'
+        url: `/pages/customer-service/index?shopId=${encodeURIComponent(orderInfo.shopId)}`
+      })
+      break
+    case 'refund':
+      uni.navigateTo({
+        url: `/pages/order/refund-apply?orderId=${orderInfo.orderId}`
       })
       break
     case 'logistics':

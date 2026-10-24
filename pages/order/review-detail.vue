@@ -86,15 +86,37 @@
 					</view>
 					<view class="review-images" v-if="item.images && item.images.length > 0">
 						<view class="image-list">
-							<image 
+							<view
 								v-for="(img, imgIndex) in item.images" 
-								:key="imgIndex" 
-								:src="getImageUrl(img)" 
-								mode="aspectFill" 
-								class="review-image"
-								@click="previewImage(item.images, imgIndex)"
-							></image>
+								:key="imgIndex"
+								class="review-image-slot"
+							>
+								<image
+									:src="getImageUrl(img)"
+									mode="aspectFill"
+									class="review-image"
+									@click="previewImage(item.images, imgIndex)"
+								></image>
+							</view>
 						</view>
+					</view>
+					<view class="review-replies" v-if="item.replies && item.replies.length">
+						<view v-for="reply in item.replies" :key="reply.id" class="review-reply-item">
+							<text class="reply-label">{{ reply.senderType === 1 ? '我的回复：' : '商家回复：' }}</text>
+							<text>{{ reply.content }}</text>
+						</view>
+					</view>
+					<text v-if="item.replyStatusText" class="reply-status">{{ item.replyStatusText }}</text>
+					<view v-if="item.canReply || item.canEditReply" class="reply-editor">
+						<input v-model="replyDrafts[item.id]" class="reply-input" :placeholder="item.canEditReply ? '修改你的回复' : '回复商家'" maxlength="500" />
+						<button
+							class="reply-button"
+							:loading="replyingReviewId === item.id"
+							:disabled="replyingReviewId === item.id"
+							@click="submitReply(item)"
+						>
+							{{ item.canEditReply ? '保存' : '回复' }}
+						</button>
 					</view>
 				</view>
 				<view class="divider" v-if="index < orderDetail.items.length - 1"></view>
@@ -109,13 +131,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { fetchOrderDetail } from '@/utils/api.js'
+import { fetchOrderReviewDetail, replyProductReview } from '@/utils/api.js'
 import { getStoragePreviewUrl } from '@/utils/config.js'
 
 const orderId = ref('')
 const orderDetail = ref(null)
+const replyingReviewId = ref('')
+const replyDrafts = reactive({})
 
 function formatTime(timeStr) {
   if (!timeStr) return ''
@@ -158,26 +182,28 @@ function previewImage(images, current) {
 
 function loadOrderReviewDetail() {
   uni.showLoading({ title: '加载中...' })
-  fetchOrderDetail(orderId.value)
+  fetchOrderReviewDetail(orderId.value)
     .then((data) => {
       orderDetail.value = {
         orderNo: data.orderNo,
-        reviewTime: data.reviewTime || new Date().toISOString(),
-        isAnonymous: false,
-        descriptionRating: 5,
-        deliveryRating: 5,
-        serviceRating: 5,
-        items: (data.shopProducts || []).map((product) => ({
-          orderItemId: product.orderItemId,
-          spuId: product.spuId,
-          skuId: product.skuId,
-          spuName: product.spuName,
-          spuMainImage: product.spuMainImage,
-          specs: product.specs,
-          overallRating: 5,
-          content: '商品质量很好，物流速度快，服务态度好，非常满意！',
-          images: product.spuMainImage ? [product.spuMainImage] : []
-        }))
+        reviewTime: data.reviewTime,
+        isAnonymous: data.isAnonymous,
+        descriptionRating: data.descriptionRating,
+        deliveryRating: data.deliveryRating,
+        serviceRating: data.serviceRating,
+        items: (data.items || []).map((item) => {
+          const replies = item.replies || []
+          const latestReply = replies[replies.length - 1]
+          if (item.canEditReply && latestReply) {
+            replyDrafts[item.id] = latestReply.content
+          }
+          return {
+            ...item,
+            replies,
+            overallRating: item.overallRating,
+            images: item.images || []
+          }
+        })
       }
       uni.hideLoading()
     })
@@ -189,6 +215,24 @@ function loadOrderReviewDetail() {
         icon: 'none'
       })
     })
+}
+
+async function submitReply(item) {
+  const content = (replyDrafts[item.id] || '').trim()
+  if (!content) {
+    uni.showToast({ title: '请输入回复内容', icon: 'none' })
+    return
+  }
+  replyingReviewId.value = item.id
+  try {
+    await replyProductReview({ id: item.id, replyContent: content })
+    uni.showToast({ title: item.canEditReply ? '回复已修改' : '回复成功', icon: 'success' })
+    loadOrderReviewDetail()
+  } catch (error) {
+    uni.showToast({ title: error.message || '回复失败', icon: 'none' })
+  } finally {
+    replyingReviewId.value = ''
+  }
 }
 
 onLoad((options = {}) => {
@@ -389,12 +433,73 @@ onLoad((options = {}) => {
 		flex-wrap: wrap;
 	}
 
-	.review-image {
+	.review-image-slot {
 		width: 160rpx;
 		height: 160rpx;
 		border-radius: 8rpx;
 		margin-right: 15rpx;
 		margin-bottom: 15rpx;
+		overflow: hidden;
+		background-color: #f1f1f1;
+	}
+
+	.review-image {
+		width: 100%;
+		height: 100%;
+	}
+
+	.review-replies {
+		margin-top: 12rpx;
+	}
+
+	.review-reply-item {
+		margin-top: 10rpx;
+		padding: 16rpx;
+		border-radius: 8rpx;
+		background-color: #f5f5f5;
+		font-size: 24rpx;
+		color: #666;
+		line-height: 1.5;
+	}
+
+	.reply-label {
+		color: #333;
+		font-weight: bold;
+	}
+
+	.reply-status {
+		display: block;
+		margin-top: 12rpx;
+		font-size: 22rpx;
+		color: #999;
+	}
+
+	.reply-editor {
+		display: flex;
+		align-items: center;
+		margin-top: 16rpx;
+		padding: 12rpx;
+		background-color: #f7f7f7;
+		border-radius: 8rpx;
+	}
+
+	.reply-input {
+		flex: 1;
+		height: 60rpx;
+		padding: 0 16rpx;
+		background-color: #fff;
+		border-radius: 6rpx;
+		font-size: 24rpx;
+	}
+
+	.reply-button {
+		margin-left: 12rpx;
+		padding: 0 20rpx;
+		font-size: 24rpx;
+		line-height: 60rpx;
+		color: #fff;
+		background-color: #ff5000;
+		border-radius: 6rpx;
 	}
 
 	.divider {

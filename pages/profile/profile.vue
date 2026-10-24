@@ -8,14 +8,14 @@
           <text class="user-name">{{ userInfo.nickname }}</text>
         </view>
       </view>
-      <text class="edit-arrow">&gt;</text>
+      <view class="edit-arrow"></view>
     </view>
     
     <!-- 订单管理 -->
     <view class="section">
       <view class="section-header" @click="viewAllOrders">
         <text class="section-title">我的订单</text>
-        <text class="section-more">查看全部订单 &gt; </text>
+        <view class="section-more">查看全部订单</view>
       </view>
       <view class="order-stats">
         <view class="stat-item" v-for="(stat, index) in orderStats" :key="index" @click="viewOrdersByStatus(index)">
@@ -39,7 +39,7 @@
     <view class="section">
       <view class="list-item" v-for="(setting, index) in settings" :key="index" @click="openSetting(index)">
         <text class="list-item-text">{{ setting.name }}</text>
-        <text class="list-item-arrow">&gt;</text>
+        <view class="list-item-arrow"></view>
       </view>
     </view>
   </view>
@@ -80,6 +80,7 @@ const functions = [
 const settings = [
   { name: '消息中心' },
   { name: '客服中心' },
+  { name: '浏览足迹' },
   { name: '设置' }
 ]
 
@@ -153,10 +154,7 @@ function useFunction(index) {
       icon: 'none'
     })
   } else if (index === 2) {
-    uni.showToast({
-      title: '收藏功能开发中',
-      icon: 'none'
-    })
+    uni.navigateTo({ url: '/pages/profile/favorites' })
   } else if (index === 3) {
     uni.navigateTo({
       url: '/pages/address/list'
@@ -169,6 +167,11 @@ function openSetting(index) {
     uni.navigateTo({
       url: '/pages/customer-service/index'
     })
+    return
+  }
+
+  if (settings[index].name === '浏览足迹') {
+    uni.navigateTo({ url: '/pages/profile/browse-history' })
     return
   }
 
@@ -221,8 +224,12 @@ onShow(() => {
 }
 
 .edit-arrow {
-  font-size: 28rpx;
+  width: 14rpx;
+  height: 14rpx;
   color: #999;
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  transform: rotate(45deg);
 }
 
 .user-name {
@@ -273,8 +280,20 @@ onShow(() => {
 }
 
 .section-more {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   font-size: 24rpx;
   color: #999;
+}
+
+.section-more::after {
+  width: 10rpx;
+  height: 10rpx;
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  content: '';
+  transform: rotate(45deg);
 }
 
 .order-stats {
@@ -349,7 +368,11 @@ onShow(() => {
 }
 
 .list-item-arrow {
-  font-size: 24rpx;
+  width: 12rpx;
+  height: 12rpx;
   color: #999;
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  transform: rotate(45deg);
 }
 </style>

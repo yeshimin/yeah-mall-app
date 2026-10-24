@@ -57,9 +57,7 @@
 							class="message-input" 
 							v-model="inputMessage" 
 							placeholder="请输入您的问题..." 
-							maxlength="500"
-							@focus="onInputFocus"
-							@blur="onInputBlur"
+							maxlength="255"
 						></textarea>
 						<view class="input-actions">
 							<text class="action-btn" @click="chooseImage">
@@ -88,31 +86,12 @@
 							</svg>
 						</text>
 					</view>
-			<button class="send-btn" @click="sendMessage" :disabled="!inputMessage.trim() && !selectedImage">发送</button>
-		</view>
-
-		<!-- 店铺信息弹窗 -->
-		<view class="shop-info-popup" v-if="showShopInfoPopup" @click="closeShopInfoPopup">
-			<view class="popup-content" @click.stop>
-				<text class="close-btn" @click="closeShopInfoPopup">×</text>
-				<view class="popup-header">
-					<image class="popup-avatar" :src="shopInfo.avatar || defaultAvatar80" mode="aspectFill"></image>
-					<view class="popup-shop-info">
-						<text class="popup-shop-name">{{ shopInfo.name || '店铺客服' }}</text>
-						<text class="popup-shop-desc">{{ shopInfo.description || '专业的客服团队，为您提供优质服务' }}</text>
-					</view>
-				</view>
-				<view class="popup-details">
-					<view class="detail-item">
-						<text class="detail-label">服务时间：</text>
-						<text class="detail-value">{{ shopInfo.serviceTime || '09:00-21:00' }}</text>
-					</view>
-					<view class="detail-item">
-						<text class="detail-label">店铺评分：</text>
-						<text class="detail-value">{{ shopInfo.rating || '4.9' }}</text>
-					</view>
-				</view>
-			</view>
+			<button
+				class="send-btn"
+				@click="sendMessage"
+				:loading="sending"
+				:disabled="sending || (!inputMessage.trim() && !selectedImage)"
+			>发送</button>
 		</view>
 	</view>
 </template>
@@ -126,21 +105,17 @@ import { BASE_API, STORAGE_UPLOAD_URL, getStoragePreviewUrl } from '../../utils/
 
 const defaultAvatar50 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
 const defaultAvatar60 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
-const defaultAvatar80 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=='
 
 const shopInfo = reactive({
   name: '店铺客服',
   avatar: '',
-  description: '专业的客服团队，为您提供优质服务',
-  serviceTime: '09:00-21:00',
-  rating: '4.9',
-  shopId: '1',
-  merchantId: '1'
+  shopId: '',
+  merchantId: ''
 })
 
 const userInfo = reactive({
   avatar: '',
-  userId: getUserId() || '1',
+  userId: getUserId() || '',
   nickname: ''
 })
 
@@ -149,38 +124,17 @@ const merchantInfo = reactive({
   avatar: ''
 })
 
-const messages = ref([
-  {
-    content: '您好！欢迎咨询，有什么可以帮助您的吗？',
-    time: '10:01',
-    timestamp: new Date().setHours(10, 1, 0, 0),
-    type: 'service'
-  },
-  {
-    content: '我们的商品支持7天无理由退换，请您放心购买。',
-    time: '10:02',
-    timestamp: new Date().setHours(10, 2, 0, 0),
-    type: 'service'
-  }
-])
+const messages = ref([])
 const userMessages = ref([])
 const inputMessage = ref('')
 const selectedImage = ref(null)
-const showQuickQuestions = ref(false)
-const quickQuestions = [
-  '商品什么时候发货？',
-  '支持7天无理由退换吗？',
-  '商品质量有保障吗？',
-  '可以优惠吗？'
-]
-const showShopInfoPopup = ref(false)
-const isInputFocused = ref(false)
 const conversationInfo = ref(null)
 const conversationId = ref(null)
 const currentPage = ref(1)
 const hasMore = ref(true)
 const loadingMore = ref(false)
 const scrollToView = ref('')
+const sending = ref(false)
 
 const sortedMessages = computed(() => {
   return [...messages.value, ...userMessages.value].sort((a, b) => {
@@ -267,32 +221,74 @@ function formatMessageTime(createTime) {
   return `${hours}:${minutes}`
 }
 
-function sendWsMessage(payload) {
-  const result = wsManager.send(payload)
-  if (!result) {
-    uni.showToast({
-      title: '发送失败，请检查网络连接',
-      icon: 'none'
-    })
+async function sendCustomerServiceMessage(content, type) {
+  if (!ensureAuthenticated()) {
+    throw new Error('请先登录')
   }
-  return result
+
+  const res = await request({
+    url: `${BASE_API}/app/csConversation/sendMessage`,
+    method: 'POST',
+    header: buildAuthHeader(true),
+    data: {
+      category: 'biz-handle',
+      command: 'cs-chat.mem',
+      subCmd: 'msg.mem2mch',
+      payload: {
+        conversationId: conversationId.value,
+        content,
+        type
+      }
+    }
+  })
+
+  if (res.statusCode === 401) {
+    handleAuthFailure()
+    throw new Error('登录状态已失效')
+  }
+  if (res.statusCode !== 200 || !res.data || res.data.code !== 0) {
+    throw new Error(res.data?.message || '发送失败，请稍后重试')
+  }
 }
 
-function sendMessage() {
-  if (selectedImage.value) {
-    sendImageMessage()
-  } else if (inputMessage.value.trim()) {
-    sendTextMessage()
-  }
-}
-
-function sendTextMessage() {
-  if (!conversationId.value) {
-    console.error('发送文本消息失败：会话ID为空')
+async function sendMessage() {
+  if (sending.value || (!selectedImage.value && !inputMessage.value.trim())) {
     return
   }
 
+  sending.value = true
+  try {
+    // 首次发送前确保会话已经建立，后续消息只携带会话ID。
+    if (!conversationId.value) {
+      await initConversation()
+    }
+
+    if (selectedImage.value) {
+      await doSendImageMessage()
+    } else {
+      await sendTextMessage()
+    }
+  } catch (error) {
+    if (!error?.handled) {
+      uni.showToast({
+        title: error?.message || '发送失败，请稍后重试',
+        icon: 'none'
+      })
+    }
+  } finally {
+    sending.value = false
+  }
+}
+
+async function sendTextMessage() {
   const content = inputMessage.value.trim()
+  if (!content) {
+    return
+  }
+
+  await sendCustomerServiceMessage(content, 1)
+
+  // 服务端确认落库后再展示，避免网络异常时产生本地“假消息”。
   const now = new Date()
   userMessages.value.push({
     content,
@@ -300,42 +296,13 @@ function sendTextMessage() {
     timestamp: now.getTime(),
     type: 'user'
   })
-  inputMessage.value = ''
-
-  sendWsMessage({
-    category: 'biz-handle',
-    command: 'cs-chat.mem',
-    subCmd: 'msg.mem2mch',
-    payload: {
-      conversationId: conversationId.value,
-      content,
-      type: 1
-    }
-  })
+  if (inputMessage.value.trim() === content) {
+    inputMessage.value = ''
+  }
 
   nextTick(() => {
     scrollToBottom()
   })
-}
-
-async function sendImageMessage() {
-  if (!selectedImage.value) {
-    return
-  }
-
-  if (!conversationId.value) {
-    try {
-      await initConversation()
-    } catch (error) {
-      uni.showToast({
-        title: '初始化会话失败，无法发送消息',
-        icon: 'none'
-      })
-      return
-    }
-  }
-
-  doSendImageMessage()
 }
 
 async function doSendImageMessage() {
@@ -343,36 +310,35 @@ async function doSendImageMessage() {
     return
   }
 
+  const imagePath = selectedImage.value
+  if (!imagePath) {
+    return
+  }
+
   uni.showLoading({ title: '上传中...' })
   try {
     const uploadRes = await uploadFile({
       url: STORAGE_UPLOAD_URL,
-      filePath: selectedImage.value,
+      filePath: imagePath,
       name: 'file',
       header: {
         Authorization: `Bearer ${getToken()}`
       }
     })
 
-    uni.hideLoading()
     if (uploadRes.statusCode !== 200) {
-      uni.showToast({
-        title: `上传失败: ${uploadRes.statusCode}`,
-        icon: 'none'
-      })
-      return
+      throw new Error(`上传失败: ${uploadRes.statusCode}`)
     }
 
     const response = JSON.parse(uploadRes.data)
     if (response.code !== 0) {
-      uni.showToast({
-        title: `上传失败: ${response.message || '未知错误'}`,
-        icon: 'none'
-      })
-      return
+      throw new Error(`上传失败: ${response.message || '未知错误'}`)
     }
 
     const fileKey = response.data.fileKey
+    await sendCustomerServiceMessage(fileKey, 2)
+
+    // 上传和消息写入都成功后，再清空选择并展示图片消息。
     const now = new Date()
     userMessages.value.push({
       content: '[图片]',
@@ -381,71 +347,16 @@ async function doSendImageMessage() {
       imageUrl: getStoragePreviewUrl(fileKey),
       type: 'user'
     })
-    selectedImage.value = null
-
-    sendWsMessage({
-      category: 'biz-handle',
-      command: 'cs-chat.mem',
-      subCmd: 'msg.mem2mch',
-      payload: {
-        conversationId: conversationId.value,
-        content: fileKey,
-        type: 2
-      }
-    })
+    if (selectedImage.value === imagePath) {
+      selectedImage.value = null
+    }
 
     nextTick(() => {
       scrollToBottom()
     })
-  } catch (error) {
+  } finally {
     uni.hideLoading()
-    uni.showToast({
-      title: `上传失败: ${error.errMsg || '未知错误'}`,
-      icon: 'none'
-    })
   }
-}
-
-async function sendQuickQuestion(question) {
-  if (!conversationId.value) {
-    try {
-      await initConversation()
-    } catch (error) {
-      uni.showToast({
-        title: '初始化会话失败，无法发送消息',
-        icon: 'none'
-      })
-      return
-    }
-  }
-
-  doSendQuickQuestion(question)
-}
-
-function doSendQuickQuestion(question) {
-  const now = new Date()
-  userMessages.value.push({
-    content: question,
-    time: getCurrentTime(),
-    timestamp: now.getTime(),
-    type: 'user'
-  })
-  showQuickQuestions.value = false
-
-  sendWsMessage({
-    category: 'biz-handle',
-    command: 'cs-chat.mem',
-    subCmd: 'msg.mem2mch',
-    payload: {
-      conversationId: conversationId.value,
-      content: question,
-      type: 1
-    }
-  })
-
-  nextTick(() => {
-    scrollToBottom()
-  })
 }
 
 function chooseImage() {
@@ -461,26 +372,6 @@ function chooseImage() {
       console.error('选择图片失败', error)
     }
   })
-}
-
-function showShopInfo() {
-  showShopInfoPopup.value = true
-}
-
-function closeShopInfoPopup() {
-  showShopInfoPopup.value = false
-}
-
-function onInputFocus() {
-  isInputFocused.value = true
-  showQuickQuestions.value = false
-  nextTick(() => {
-    scrollToBottom()
-  })
-}
-
-function onInputBlur() {
-  isInputFocused.value = false
 }
 
 async function loadHistoryMessages(isLoadMore = false) {
@@ -569,9 +460,39 @@ function onScroll(event) {
   }
 }
 
+async function restoreLatestConversation() {
+  const res = await request({
+    url: `${BASE_API}/app/csConversation/query`,
+    method: 'GET',
+    header: buildAuthHeader(),
+    data: {
+      current: 1,
+      size: 1
+    }
+  })
+
+  if (res.statusCode !== 200 || !res.data || res.data.code !== 0) {
+    throw new Error(res.data?.message || '获取客服会话失败')
+  }
+
+  const latestConversation = res.data.data?.records?.[0]
+  if (!latestConversation) {
+    throw new Error('暂无客服会话，请从商品或订单页面联系商家')
+  }
+
+  // 个人中心等无店铺上下文的入口，默认恢复最近一次客服会话。
+  conversationId.value = latestConversation.id
+  shopInfo.shopId = latestConversation.shopId
+  shopInfo.merchantId = latestConversation.mchId
+}
+
 async function initConversation() {
   if (!ensureAuthenticated()) {
     throw new Error('未登录')
+  }
+
+  if (!conversationId.value && !shopInfo.shopId) {
+    throw new Error('缺少客服会话或店铺信息')
   }
 
   uni.showLoading({ title: '初始化会话...' })
@@ -581,7 +502,8 @@ async function initConversation() {
       method: 'POST',
       header: buildAuthHeader(true),
       data: {
-        shopId: shopInfo.shopId
+        conversationId: conversationId.value || undefined,
+        shopId: shopInfo.shopId || undefined
       }
     })
 
@@ -607,6 +529,7 @@ async function initConversation() {
       ...shopInfo,
       name: conversationData.shopName || '店铺客服',
       avatar: getStoragePreviewUrl(conversationData.shopLogo),
+      shopId: conversationData.shopId || shopInfo.shopId,
       merchantId: conversationData.mchId || shopInfo.merchantId
     })
 
@@ -675,7 +598,13 @@ function handleMerchantMessage(message) {
   })
 }
 
-onLoad((options = {}) => {
+function handleWebSocketReconnect() {
+  if (conversationId.value) {
+    loadHistoryMessages()
+  }
+}
+
+onLoad(async (options = {}) => {
   if (!ensureAuthenticated()) {
     return
   }
@@ -690,22 +619,27 @@ onLoad((options = {}) => {
     conversationId.value = options.conversationId
   }
 
-  initConversation()
-    .then(() => {
-      nextTick(() => {
-        scrollToBottom()
-      })
+  try {
+    if (!conversationId.value && !shopInfo.shopId) {
+      await restoreLatestConversation()
+    }
+    await initConversation()
+    nextTick(() => {
+      scrollToBottom()
     })
-    .catch(() => {})
+  } catch (error) {
+    if (!error?.handled && error?.message !== '未登录') {
+      uni.showToast({
+        title: error?.message || '打开客服会话失败',
+        icon: 'none'
+      })
+    }
+  }
 })
 
 onMounted(() => {
   if (!getToken()) {
     return
-  }
-
-  if (getToken() && !wsManager.getConnectionStatus()) {
-    wsManager.init()
   }
 
   nextTick(() => {
@@ -716,10 +650,12 @@ onMounted(() => {
   }, 1000)
 
   wsManager.on('biz-handle', 'cs-chat.mch', handleMerchantMessage)
+  wsManager.onReconnect(handleWebSocketReconnect)
 })
 
 onUnmounted(() => {
   wsManager.off('biz-handle', 'cs-chat.mch')
+  wsManager.offReconnect(handleWebSocketReconnect)
 })
 </script>
 
@@ -1052,82 +988,4 @@ onUnmounted(() => {
 
 	
 
-	.shop-info-popup {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background-color: rgba(0, 0, 0, 0.5);
-		z-index: 100;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.popup-content {
-		width: 80%;
-		background-color: #fff;
-		border-radius: 20rpx;
-		padding: 30rpx;
-		position: relative;
-	}
-
-	.close-btn {
-		position: absolute;
-		top: 20rpx;
-		right: 20rpx;
-		font-size: 40rpx;
-	}
-
-	.popup-header {
-		display: flex;
-		align-items: center;
-		margin-bottom: 30rpx;
-	}
-
-	.popup-avatar {
-		width: 80rpx;
-		height: 80rpx;
-		border-radius: 50%;
-		margin-right: 20rpx;
-		background-color: #f0f0f0;
-	}
-
-	.popup-shop-info {
-		flex: 1;
-	}
-
-	.popup-shop-name {
-		font-size: 32rpx;
-		font-weight: bold;
-		margin-bottom: 10rpx;
-	}
-
-	.popup-shop-desc {
-		font-size: 24rpx;
-		color: #666;
-		line-height: 1.4;
-	}
-
-	.popup-details {
-		margin-top: 20rpx;
-	}
-
-	.detail-item {
-		display: flex;
-		margin-bottom: 15rpx;
-	}
-
-	.detail-label {
-		font-size: 26rpx;
-		color: #666;
-		width: 120rpx;
-	}
-
-	.detail-value {
-		font-size: 26rpx;
-		color: #333;
-		flex: 1;
-	}
 </style>

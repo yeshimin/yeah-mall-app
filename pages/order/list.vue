@@ -100,6 +100,13 @@
 								>
 									去评价
 								</button>
+								<button
+									v-if="order.refundStatus === 0"
+									class="action-btn default"
+									@click="handleOrderAction('refund', order)"
+								>
+									退款
+								</button>
 							</template>
 							<template v-else>
 								<!-- 已评价 -->
@@ -114,7 +121,7 @@
 						<template v-else>
 							<!-- 其他Tab的默认处理 -->
 							<button 
-								v-for="action in getOrderActions(order.orderStatus)" 
+								v-for="action in getOrderActions(order.orderStatus, order.refundStatus, order.isReviewed)"
 								:key="action.value"
 								class="action-btn"
 								:class="action.type"
@@ -181,7 +188,8 @@ const refundStatusMap = {
   1: '申请中',
   2: '处理中',
   3: '退款成功',
-  4: '已拒绝'
+  4: '已拒绝',
+  5: '退款失败'
 }
 
 const afterSaleStatusMap = {
@@ -304,9 +312,9 @@ function processOrderData(orderRecords = []) {
     const afterSaleStatus = Number(order.afterSaleStatus || 0)
 
     let statusText = statusMap[orderStatus] || '未知状态'
-    if (refundStatus !== 0) {
+    if (orderStatus === 6 && refundStatus !== 0) {
       statusText = refundStatusMap[refundStatus] || '退款中'
-    } else if (afterSaleStatus !== 0) {
+    } else if (orderStatus === 7 && afterSaleStatus !== 0) {
       statusText = afterSaleStatusMap[afterSaleStatus] || '售后中'
     } else if (orderStatus === 4 && !order.isReviewed) {
       statusText = '待评价'
@@ -439,7 +447,7 @@ function retryLoad() {
   fetchOrders('reset')
 }
 
-function getOrderActions(status) {
+function getOrderActions(status, refundStatus = 0, isReviewed = false) {
   const actions = []
 
   switch (Number(status)) {
@@ -450,28 +458,41 @@ function getOrderActions(status) {
       )
       break
     case 2:
-      actions.push(
-        { label: '提醒发货', value: 'remind', type: 'default' },
-        { label: '退款', value: 'refund', type: 'primary' }
-      )
+      actions.push({ label: '提醒发货', value: 'remind', type: 'default' })
+      if (Number(refundStatus) === 0) {
+        actions.push({ label: '退款', value: 'refund', type: 'primary' })
+      }
       break
     case 3:
       actions.push(
         { label: '查看物流', value: 'logistics', type: 'default' },
         { label: '确认收货', value: 'confirm', type: 'primary' }
       )
+      if (Number(refundStatus) === 0) {
+        actions.push({ label: '退款', value: 'refund', type: 'default' })
+      }
       break
     case 4:
       actions.push(
         { label: '删除订单', value: 'delete', type: 'default' },
-        { label: '去评价', value: 'comment', type: 'primary' },
         { label: '再次购买', value: 'rebuy', type: 'default' }
       )
+      if (!isReviewed) {
+        actions.push(
+          { label: '去评价', value: 'comment', type: 'primary' },
+          ...(Number(refundStatus) === 0 ? [{ label: '退款', value: 'refund', type: 'default' }] : [])
+        )
+      }
       break
     case 7:
       actions.push(
         { label: '售后详情', value: 'afterSaleDetail', type: 'primary' }
       )
+      break
+    case 6:
+      if (Number(refundStatus) === 4) {
+        actions.push({ label: '再次申请退款', value: 'refund', type: 'primary' })
+      }
       break
     default:
       break

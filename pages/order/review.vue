@@ -38,6 +38,7 @@
 							<text class="rate-text">好评</text>
 						</view>
 					</view>
+					<text v-if="uploadingCount > 0" class="uploading-tip">图片上传中，请稍候发布评价</text>
 				</view>
 
 				<!-- 评价内容 -->
@@ -140,7 +141,9 @@
 		</view>
 
 		<view class="submit-btn-container">
-			<button class="submit-btn" @click="submit">发布评价</button>
+			<button class="submit-btn" :disabled="uploadingCount > 0 || submitting" @click="submit">
+				{{ uploadingCount > 0 ? '图片上传中' : (submitting ? '发布中...' : '发布评价') }}
+			</button>
 		</view>
 	</view>
 </template>
@@ -154,6 +157,8 @@ import { getStoragePreviewUrl } from '@/utils/config.js'
 const orderId = ref('')
 const order = ref(null)
 const uploadedImages = reactive({})
+const uploadingCount = ref(0)
+const submitting = ref(false)
 const form = reactive({
   descriptionRating: 5,
   deliveryRating: 5,
@@ -230,11 +235,12 @@ function chooseGoodsImage(index) {
   })
 }
 
-function uploadImagesInBackground(index, tempFilePaths) {
+async function uploadImagesInBackground(index, tempFilePaths) {
   if (!uploadedImages[index]) {
     uploadedImages[index] = {}
   }
 
+  uploadingCount.value += tempFilePaths.length
   const uploadPromises = tempFilePaths.map(async (tempFilePath) => {
     try {
       const uploadResult = await uploadImage(tempFilePath)
@@ -252,7 +258,8 @@ function uploadImagesInBackground(index, tempFilePaths) {
     }
   })
 
-  Promise.all(uploadPromises).then((results) => {
+  try {
+    const results = await Promise.all(uploadPromises)
     const allSuccess = results.every(Boolean)
     const someSuccess = results.some(Boolean)
 
@@ -263,7 +270,9 @@ function uploadImagesInBackground(index, tempFilePaths) {
     } else {
       uni.showToast({ title: '图片上传失败', icon: 'none' })
     }
-  })
+  } finally {
+    uploadingCount.value -= tempFilePaths.length
+  }
 }
 
 function deleteGoodsImage(index, imgIndex) {
@@ -283,6 +292,16 @@ function toggleAnonymous(event) {
 }
 
 function submit() {
+  if (submitting.value) {
+    return
+  }
+  if (uploadingCount.value > 0) {
+    uni.showToast({
+      title: '图片上传中，请稍候',
+      icon: 'none'
+    })
+    return
+  }
   const hasEmptyReview = form.items.some((item) => item.overallRating < 3 && !item.content)
   if (hasEmptyReview) {
     uni.showToast({
@@ -292,10 +311,22 @@ function submit() {
     return
   }
 
+  const hasUnuploadedImage = form.items.some((item, index) =>
+    item.images.some((image) => !uploadedImages[index]?.[image])
+  )
+  if (hasUnuploadedImage) {
+    uni.showToast({
+      title: '存在未上传完成的图片',
+      icon: 'none'
+    })
+    return
+  }
+
+  submitting.value = true
   uni.showLoading({ title: '提交中...' })
   const submitItems = form.items.map((item, index) => ({
     ...item,
-    images: item.images.map((img) => uploadedImages[index]?.[img] || img)
+    images: item.images.map((img) => uploadedImages[index][img])
   }))
 
   submitReview({
@@ -322,6 +353,9 @@ function submit() {
         title: error.message || '评价失败',
         icon: 'none'
       })
+    })
+    .finally(() => {
+      submitting.value = false
     })
 }
 
@@ -563,6 +597,13 @@ onLoad((options = {}) => {
 		font-size: 20rpx;
 		color: #ccc;
 		margin-top: 5rpx;
+	}
+
+	.uploading-tip {
+		display: block;
+		margin-top: 12rpx;
+		font-size: 22rpx;
+		color: #999;
 	}
 
 	.sub-rates {

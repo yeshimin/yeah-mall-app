@@ -70,6 +70,10 @@
                         <text class="title-text">评价 ({{ reviewSummary.totalCount }})</text>
                         <text class="good-rate">好评度 {{ reviewSummary.goodRate }}%</text>
                     </view>
+                    <view class="review-more" @click="openReviewList()">
+                        <text>查看全部</text>
+                        <text class="arrow">›</text>
+                    </view>
                 </view>
                 
                 <view class="review-list" v-if="reviewSummary.totalCount > 0">
@@ -81,6 +85,30 @@
                         </view>
                         <view class="rp-content">
                             {{ item.content }}
+                        </view>
+                        <view v-if="item.replies && item.replies.length" class="rp-replies">
+                            <view v-for="reply in item.replies" :key="reply.id" class="rp-reply">
+                                <text class="rp-reply-label">{{ reply.senderType === 1 ? '买家回复：' : '商家回复：' }}</text>
+                                <text>{{ reply.content }}</text>
+                            </view>
+                        </view>
+                        <view v-if="item.canReply || item.canEditReply" class="rp-reply-action" @click="openReviewList(item.id)">
+                            {{ item.canEditReply ? '修改我的回复 ›' : '继续回复 ›' }}
+                        </view>
+                        <text v-else-if="item.replyStatusText" class="rp-reply-status">{{ item.replyStatusText }}</text>
+                        <view v-if="item.images && item.images.length" class="rp-images">
+                            <view
+                                v-for="(image, imageIndex) in item.images"
+                                :key="image"
+                                class="rp-image-slot"
+                            >
+                                <image
+                                    class="rp-image"
+                                    :src="getStoragePreviewUrl(image)"
+                                    mode="aspectFill"
+                                    @click="previewReviewImages(item.images, imageIndex)"
+                                ></image>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -357,7 +385,7 @@ import { computed, getCurrentInstance, nextTick, reactive, ref } from 'vue'
 import { onLoad, onReady } from '@dcloudio/uni-app'
 import CustomNavBar from '../../components/custom-nav-bar.vue'
 import { fetchReviewSummary } from '@/utils/api.js'
-import { authRequest, getToken, getUserId, handleAuthFailure } from '@/utils/auth.js'
+import { authRequest, getToken, handleAuthFailure } from '@/utils/auth.js'
 import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 
 const instance = getCurrentInstance()
@@ -511,13 +539,45 @@ async function loadReviewSummary(productId) {
     const data = await fetchReviewSummary(productId)
     reviewSummary.totalCount = data.totalCount || 0
     reviewSummary.goodRate = data.goodRate || 0
-    reviewSummary.topReviews = data.topReviews || []
+    reviewSummary.topReviews = (data.topReviews || []).map((item) => ({
+      ...item,
+      userName: item.nickname,
+      userAvatar: item.avatar,
+      rate: item.overallRating
+    }))
     nextTick(() => {
       measureSections()
     })
   } catch (error) {
     console.error('获取商品评价概览失败:', error)
   }
+}
+
+/**
+ * 预览商品评价图片。
+ */
+function previewReviewImages(images, currentIndex) {
+  const urls = images.map((image) => getStoragePreviewUrl(image)).filter(Boolean)
+  if (!urls.length) {
+    return
+  }
+  uni.previewImage({
+    urls,
+    current: urls[currentIndex] || urls[0]
+  })
+}
+
+/**
+ * 跳转至当前商品的全部评价列表。
+ */
+function openReviewList(replyReviewId = '') {
+  const spuId = getSourceSpuId()
+  if (!spuId) {
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/product/reviews?productId=${spuId}${replyReviewId ? `&replyReviewId=${replyReviewId}` : ''}`
+  })
 }
 
 function measureSections() {
@@ -769,8 +829,15 @@ async function contactService() {
     return
   }
 
-  const shopId = shop.value.shopId || '1'
-  const mchId = shop.value.mchId || '1'
+  const shopId = shop.value.shopId
+  const mchId = shop.value.mchId
+  if (!shopId) {
+    uni.showToast({
+      title: '暂无店铺信息',
+      icon: 'none'
+    })
+    return
+  }
 
   uni.showLoading({ title: '初始化会话...' })
   try {
@@ -997,8 +1064,7 @@ function buyNow() {
 }
 
 function addToFavorites() {
-  const userId = getUserId()
-  if (!userId) {
+  if (!getToken()) {
     handleAuthFailure()
     return
   }
@@ -1096,7 +1162,7 @@ function cancelCollect() {
 
 function checkCollectStatus() {
   const sourceSpuId = getSourceSpuId()
-  if (!getUserId() || !sourceSpuId) {
+  if (!getToken() || !sourceSpuId) {
     return
   }
 
@@ -1119,6 +1185,7 @@ function checkCollectStatus() {
 function getSourceSpuId() {
   return product.value.sourceSpuId || product.value.id
 }
+
 
 function selectSpecOption(specId, optId) {
   if (selectedSpecs[specId] === optId) {
@@ -1654,6 +1721,62 @@ onReady(() => {
         font-size: 26rpx;
         color: #333;
         line-height: 1.4;
+    }
+
+    .rp-replies {
+        margin-top: 14rpx;
+    }
+
+    .rp-reply {
+        padding: 14rpx 16rpx;
+        border-radius: 8rpx;
+        background-color: #f7f7f7;
+        color: #666;
+        font-size: 24rpx;
+        line-height: 1.5;
+    }
+
+    .rp-reply + .rp-reply {
+        margin-top: 10rpx;
+    }
+
+    .rp-reply-label {
+        color: #333;
+        font-weight: 600;
+    }
+
+    .rp-reply-action {
+        display: inline-block;
+        margin-top: 14rpx;
+        color: #ff5000;
+        font-size: 24rpx;
+    }
+
+    .rp-reply-status {
+        display: block;
+        margin-top: 14rpx;
+        color: #999;
+        font-size: 22rpx;
+    }
+
+    .rp-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12rpx;
+        margin-top: 16rpx;
+    }
+
+    .rp-image-slot {
+        width: 160rpx;
+        height: 160rpx;
+        border-radius: 8rpx;
+        overflow: hidden;
+        background-color: #f1f1f1;
+    }
+
+    .rp-image {
+        width: 100%;
+        height: 100%;
     }
 
 	.review-empty {

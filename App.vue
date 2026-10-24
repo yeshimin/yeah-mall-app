@@ -1,17 +1,23 @@
 <script setup>
-import { onHide, onLaunch, onShow } from '@dcloudio/uni-app'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
+import wsManager from '@/utils/websocket.js'
+
+function ensureRealtimeConnection() {
+  if (uni.getStorageSync('token') && !wsManager.getConnectionStatus()) {
+    wsManager.init()
+  }
+}
 
 onLaunch(() => {
-  console.log('App Launch')
+  // 刷新或冷启动恢复登录态后，立即恢复客服长连接。
+  ensureRealtimeConnection()
 })
 
 onShow(() => {
-  console.log('App Show')
+  // 从后台回到前台时检查连接，系统回收连接后可自动恢复。
+  ensureRealtimeConnection()
 })
 
-onHide(() => {
-  console.log('App Hide')
-})
 </script>
 
 <style>

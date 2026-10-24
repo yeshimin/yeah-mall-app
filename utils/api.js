@@ -869,90 +869,90 @@ export const uploadImage = (filePath) => {
 // 获取商品评价列表
 export const fetchProductReviews = (productId, params) => {
   return new Promise((resolve, reject) => {
-    // 模拟评价列表数据
-    const mockReviews = [
-      {
-        id: 1,
-        userId: 101,
-        userName: '用户8888',
-        userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-        rate: 5, // 综合评分
-        content: '非常好的商品，物流很快，包装也很严实，值得购买！',
-        images: [
-           'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=300&auto=format&fit=crop',
-           'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=300&auto=format&fit=crop'
-        ],
-        skuInfo: '颜色:红色;尺码:M',
-        createTime: '2023-10-25 14:30:00',
-        reply: '感谢您的支持，我们会继续努力！'
-      },
-      {
-        id: 2,
-        userId: 102,
-        userName: '匿名用户',
-        userAvatar: '', // 匿名默认头像
-        rate: 4,
-        content: '总体不错，就是稍微有点色差，不过可以接受。',
-        images: [],
-        skuInfo: '颜色:蓝色;尺码:L',
-        createTime: '2023-10-24 09:15:00',
-        reply: ''
-      },
-       {
-        id: 3,
-        userId: 103,
-        userName: '小***猫',
-        userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Coco',
-        rate: 5,
-        content: '回购好几次了，一如既往的好，强烈推荐！',
-        images: ['https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=300&auto=format&fit=crop'],
-        skuInfo: '颜色:红色;尺码:S',
-        createTime: '2023-10-20 18:20:00',
-        reply: ''
-      }
-    ];
-    
-    setTimeout(() => {
-        resolve({
-            total: 100,
-            list: mockReviews,
-            goodRate: 98 // 好评率
-        });
-    }, 500);
-
-    // 实际对接后端时请解开以下代码
-    /*
     uni.request({
-      url: `${BASE_API}/app/product/review/list?productId=${productId}`,
+      url: `${BASE_API}/app/review/list?spuId=${productId}`,
       method: 'GET',
       data: params,
-      // ...
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data?.message || '获取评价失败'))
+        }
+      },
+      fail: reject
     });
-    */
   });
 };
 
 // 获取商品评价概览（用于详情页展示）
 export const fetchReviewSummary = (productId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                totalCount: 128,
-                goodRate: 98,
-                topReviews: [
-                     {
-                        id: 1,
-                        userName: '用户8888',
-                        userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-                        rate: 5,
-                        content: '非常好的商品，物流很快，包装也很严实，值得购买！',
-                         createTime: '2023-10-25'
-                     }
-                ]
-            });
-        }, 300);
-    });
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/review/summary?spuId=${productId}`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data?.message || '获取评价摘要失败'))
+        }
+      },
+      fail: reject
+    })
+  })
 };
+
+// 回复商品评价
+export const replyProductReview = (data) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/review/reply`,
+      method: 'POST',
+      data,
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data?.message || '回复失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
+// 获取订单评价详情
+export const fetchOrderReviewDetail = (orderId) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/review/orderDetail?orderId=${orderId}`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${getToken()}`
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data?.message || '获取评价详情失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
 
 // 获取用户信息
 export const fetchUserDetail = () => {
