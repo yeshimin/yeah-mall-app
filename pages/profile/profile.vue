@@ -81,6 +81,8 @@ const settings = [
   { name: '消息中心' },
   { name: '客服中心' },
   { name: '浏览足迹' },
+  { name: '意见反馈' },
+  { name: '关于我们' },
   { name: '设置' }
 ]
 
@@ -149,10 +151,7 @@ function useFunction(index) {
       url: '/pages/coupons/list'
     })
   } else if (index === 1) {
-    uni.showToast({
-      title: '积分功能开发中',
-      icon: 'none'
-    })
+    uni.navigateTo({ url: '/pages/profile/points' })
   } else if (index === 2) {
     uni.navigateTo({ url: '/pages/profile/favorites' })
   } else if (index === 3) {
@@ -179,6 +178,16 @@ function openSetting(index) {
     uni.navigateTo({
       url: '/pages/profile/settings'
     })
+    return
+  }
+
+  if (settings[index].name === '意见反馈') {
+    uni.navigateTo({ url: '/pages/profile/feedback' })
+    return
+  }
+
+  if (settings[index].name === '关于我们') {
+    uni.navigateTo({ url: '/pages/profile/about' })
     return
   }
 

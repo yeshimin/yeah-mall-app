@@ -866,6 +866,76 @@ export const uploadImage = (filePath) => {
   });
 };
 
+// 提交意见反馈
+export const submitFeedback = (data) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/feedback/submit`,
+      method: 'POST',
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      data,
+      success: (res) => {
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure()
+          reject(new Error('AUTH_401'))
+          return
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data.message || '提交反馈失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
+// 查询我的反馈
+export const fetchFeedbackList = (current = 1, size = 20) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/feedback/query?current=${current}&size=${size}`,
+      method: 'GET',
+      header: { 'Authorization': `Bearer ${getToken()}` },
+      success: (res) => {
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure()
+          reject(new Error('AUTH_401'))
+          return
+        }
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error(res.data.message || '获取反馈记录失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
+// 查询关于我们内容
+export const fetchAboutContent = () => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/content/about`,
+      method: 'GET',
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          resolve(res.data.data || '')
+        } else {
+          reject(new Error(res.data.message || '获取关于我们内容失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
 // 获取商品评价列表
 export const fetchProductReviews = (productId, params) => {
   return new Promise((resolve, reject) => {
@@ -983,6 +1053,79 @@ export const fetchUserDetail = () => {
     });
   });
 };
+
+// 获取积分概览
+export const fetchPointsOverview = () => requestWithAuth('/app/memberPoints/overview')
+
+// 获取积分流水
+export const fetchPointsLedger = (params) => requestWithAuth('/app/memberPoints/ledger', params)
+
+// 获取积分规则
+export const fetchPointsRules = () => requestWithAuth('/app/memberPoints/rules')
+
+// 获取积分商品分类
+export const fetchPointsMallCategories = () => requestWithAuth('/app/pointsMall/categories')
+
+// 获取积分商品列表
+export const fetchPointsMallProducts = (params) => requestWithAuth('/app/pointsMall/products', params)
+
+// 获取积分商品详情
+export const fetchPointsMallDetail = (id) => requestWithAuth('/app/pointsMall/detail', { id })
+
+// 获取积分商品规格
+export const fetchPointsMallSkus = (spuId) => requestWithAuth('/app/pointsMall/skus', { spuId })
+
+// 获取积分订单列表
+export const fetchPointsOrders = (params) => requestWithAuth('/app/pointsMall/orders', params)
+
+// 获取积分订单详情
+export const fetchPointsOrderDetail = (id) => requestWithAuth('/app/pointsMall/order/detail', { id })
+
+// 兑换积分商品
+export const exchangePointsProduct = (data) => requestWithAuth('/app/pointsMall/exchange', data, 'POST')
+
+// 取消积分订单
+export const cancelPointsOrder = (id) => requestWithAuth(`/app/pointsMall/cancel?id=${encodeURIComponent(id)}`, {}, 'POST')
+
+// 确认收货
+export const confirmPointsOrder = (id) => requestWithAuth(`/app/pointsMall/confirm?id=${encodeURIComponent(id)}`, {}, 'POST')
+
+function requestWithAuth(path, data = {}, method = 'GET') {
+  const requestData = method === 'GET' ? compactQueryParams(data) : data
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}${path}`,
+      method,
+      data: requestData,
+      header: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
+          handleAuthFailure()
+          reject(new Error('AUTH_401'))
+          return
+        }
+        if (res.statusCode === 200 && res.data.code === 0) resolve(res.data.data)
+        else reject(new Error(res.data?.message || '请求失败'))
+      },
+      fail: reject
+    })
+  })
+}
+
+// uni.request 在部分运行端会把 undefined 序列化成字符串，后端数值参数会因此转换失败。
+function compactQueryParams(params) {
+  const result = {}
+  Object.keys(params || {}).forEach((key) => {
+    const value = params[key]
+    if (value !== undefined && value !== null && value !== '') {
+      result[key] = value
+    }
+  })
+  return result
+}
 
 // 更新个人信息
 export const updateProfile = (data) => {

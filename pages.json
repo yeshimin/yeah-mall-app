@@ -38,6 +38,43 @@
 			}
 		},
 		{
+			"path": "pages/profile/points",
+			"style": {
+				"navigationBarTitleText": "我的积分"
+			}
+		},
+		{
+			"path": "pages/points-mall/list",
+			"style": {
+				"navigationBarTitleText": "积分商城",
+				"enablePullDownRefresh": true
+			}
+		},
+		{
+			"path": "pages/points-mall/detail",
+			"style": {
+				"navigationBarTitleText": "积分商品"
+			}
+		},
+		{
+			"path": "pages/points-mall/confirm",
+			"style": {
+				"navigationBarTitleText": "确认兑换"
+			}
+		},
+		{
+			"path": "pages/points-mall/orders",
+			"style": {
+				"navigationBarTitleText": "兑换记录"
+			}
+		},
+		{
+			"path": "pages/points-mall/order-detail",
+			"style": {
+				"navigationBarTitleText": "积分订单详情"
+			}
+		},
+		{
 			"path": "pages/login/index",
 			"style": {
 				"navigationBarTitleText": "登录"
@@ -156,6 +193,18 @@
 			"path": "pages/profile/browse-history",
 			"style": {
 				"navigationBarTitleText": "浏览足迹"
+			}
+		},
+		{
+			"path": "pages/profile/feedback",
+			"style": {
+				"navigationBarTitleText": "意见反馈"
+			}
+		},
+		{
+			"path": "pages/profile/about",
+			"style": {
+				"navigationBarTitleText": "关于我们"
 			}
 		},
 		{

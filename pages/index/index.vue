@@ -214,6 +214,7 @@ function handleQuickLinkClick(link) {
     goToNewArrivals,
     goToMember,
     goToPoints,
+    goToPointsMall,
     goToService,
     goToSettings,
     handleDefaultQuickLink,
@@ -242,10 +243,11 @@ function goToMember() {
 }
 
 function goToPoints() {
-  uni.showToast({
-    title: '积分功能开发中',
-    icon: 'none'
-  })
+  uni.navigateTo({ url: '/pages/profile/points' })
+}
+
+function goToPointsMall() {
+  uni.navigateTo({ url: '/pages/points-mall/list' })
 }
 
 function goToService(link = {}) {
@@ -321,6 +323,10 @@ function getActionForQuickLink(type, target) {
 
   if (target === '/pages/group-buy/list') {
     return 'goToGroupBuy'
+  }
+
+  if (target === '/pages/points-mall/list') {
+    return 'goToPointsMall'
   }
 
   switch (type) {
