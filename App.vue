@@ -92,13 +92,45 @@ onShow(() => {
 		border: 0;
 	}
 
-	image {
+	/*
+	 * App 内的卡片、图标和操作文本不需要被选中。统一关闭长按选择、
+	 * H5 系统呼出菜单和点击高亮，避免每个页面重复处理。
+	 */
+	view,
+	text,
+	image,
+	button,
+	uni-view,
+	uni-text,
+	uni-image,
+	uni-button {
+		-webkit-tap-highlight-color: transparent;
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	image,
+	uni-image {
 		background-color: #edf1ee;
+		-webkit-user-drag: none;
 	}
 
 	input,
 	textarea {
 		box-sizing: border-box;
 		color: var(--ym-ink-secondary);
+	}
+
+	/* 输入与富文本内容保留光标、选择和复制能力。 */
+	input,
+	textarea,
+	rich-text,
+	uni-input,
+	uni-textarea,
+	uni-rich-text {
+		-webkit-touch-callout: default;
+		-webkit-user-select: text;
+		user-select: text;
 	}
 </style>

@@ -4,15 +4,16 @@
     <custom-nav-bar
       :show-search="true"
       :show-brand="true"
+      background-color="#f4f6f3"
       :search-placeholder="'搜索商品'"
       @search="handleSearch"
+      @brand="goToAbout"
       @height-calculated="handleNavBarHeightCalculated"
     />
 
     <!-- Banner滚动区域 -->
     <view class="banner-section">
-      <view v-if="bannersLoading" class="banner-loading">正在加载 Banner...</view>
-      <swiper v-else-if="banners.length" class="banner-swiper" :autoplay="true" :interval="3000" :duration="500" :circular="true" :indicator-dots="true" :indicator-color="'rgba(255,255,255,0.5)'" :indicator-active-color="'#fff'">
+      <swiper v-if="banners.length" class="banner-swiper" :autoplay="true" :interval="3000" :duration="500" :circular="true" :indicator-dots="true" :indicator-color="'rgba(255,255,255,0.5)'" :indicator-active-color="'#fff'">
         <swiper-item
           v-for="(banner, index) in banners"
           :key="banner.id || index"
@@ -20,23 +21,19 @@
         >
           <image
             class="banner-image"
+            :class="{ 'is-loaded': banner.imageLoaded }"
             :src="banner.image"
             mode="aspectFill"
+            @load="handleBannerImageLoad(banner)"
             @error="handleBannerImageError(banner)"
           />
         </swiper-item>
       </swiper>
-      <view v-else class="banner-empty" @click="retryHomeData">
-        <text class="banner-empty-title">Banner 暂未加载</text>
-        <text class="banner-empty-hint">网络恢复后会自动重试 · 点击立即重试</text>
-      </view>
+      <view v-else class="banner-placeholder"></view>
     </view>
 
     <!-- 快捷入口 -->
-    <view 
-      v-if="!quickLinksLoading && quickLinks.length > 0"
-      class="quick-links" 
-    >
+    <view v-if="quickLinks.length > 0" class="quick-links">
       <!-- 快捷入口列表 -->
       <view>
         <!-- 遍历每一行 -->
@@ -52,18 +49,35 @@
             :class="'quick-link-tone-' + ((linkIndex % 5) + 1)"
             v-for="(link, linkIndex) in row.items"
             :key="link.id"
+            hover-class="none"
             @click="handleQuickLinkClick(link)"
+            @longpress.stop="handleQuickLinkLongPress"
             :style="{ width: `${100 / row.maxCount}%`, boxSizing: 'border-box', padding: '0 10rpx' }"
           >
             <view class="quick-link-icon-shell">
+              <view
+                v-if="!quickLinksReady || (link.icon && !link.iconLoaded && !link.iconFailed)"
+                class="quick-link-icon-skeleton"
+              ></view>
               <image
-                class="quick-link-icon"
-                :src="link.icon && !link.iconFailed ? link.icon : link.fallbackIcon"
+                class="quick-link-icon quick-link-icon--fallback"
+                :class="{ 'is-hidden': !quickLinksReady || (link.icon && !link.iconFailed) }"
+                :src="link.fallbackIcon"
                 mode="aspectFit"
+                :draggable="false"
+              />
+              <image
+                v-if="link.icon && !link.iconFailed"
+                class="quick-link-icon quick-link-icon--configured"
+                :class="{ 'is-loaded': link.iconLoaded }"
+                :src="link.icon"
+                mode="aspectFit"
+                :draggable="false"
+                @load="handleQuickLinkIconLoad(link)"
                 @error="handleQuickLinkIconError(link)"
               />
             </view>
-            <text class="quick-link-text">{{ link.name }}</text>
+            <text class="quick-link-text" :user-select="false">{{ link.name }}</text>
           </view>
           <!-- 填充空白项，确保对齐 -->
           <view 
@@ -80,10 +94,22 @@
       <view class="mall-section-heading">
         <view class="mall-section-title-wrap">
           <view class="mall-section-mark"></view>
-          <text class="mall-section-title">商品列表</text>
+          <text class="mall-section-title">精选好物</text>
         </view>
-        <text class="mall-section-subtitle">按销量推荐</text>
       </view>
+      <scroll-view class="home-category-scroll" scroll-x :show-scrollbar="false">
+        <view class="home-category-row">
+          <view
+            v-for="category in homeCategories"
+            :key="category.id"
+            class="home-category-item"
+            :class="{ active: activeHomeCategory === category.id }"
+            @click="selectHomeCategory(category)"
+          >
+            {{ category.name }}
+          </view>
+        </view>
+      </scroll-view>
       <view v-if="hotProductsLoading && hotProducts.length === 0" class="home-product-state">
         <text>正在加载精选商品...</text>
       </view>
@@ -101,20 +127,22 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <image class="product-image" :src="product.image" v-if="product.image" />
+            <view class="product-image-shell">
+              <image
+                v-if="product.image && !product.imageFailed"
+                class="product-image"
+                :src="product.image"
+                mode="aspectFill"
+                @error="handleProductImageError(product)"
+              />
+              <view v-else class="product-image-placeholder"></view>
+            </view>
             <view class="product-info">
               <text class="product-name">{{ product.name }}</text>
-              <!-- 标签区域 -->
-              <view class="product-tags" v-if="product.tags && product.tags.length > 0">
-                <text 
-                  v-for="(tag, index) in product.tags.slice(0, 3)" 
-                  :key="index"
-                  class="product-tag"
-                >{{ tag }}</text>
-              </view>
+              <text class="product-subtitle">{{ product.subtitle }}</text>
               <view class="price-sales-container">
-                <text class="product-price">￥{{ product.price }}</text>
-                <text class="product-sales">已售{{ product.sales }}件</text>
+                <text class="product-price">¥{{ product.price }}</text>
+                <text class="product-sales">已售 {{ product.sales }}</text>
               </view>
             </view>
           </view>
@@ -126,24 +154,30 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <image class="product-image" :src="product.image" v-if="product.image" />
+            <view class="product-image-shell">
+              <image
+                v-if="product.image && !product.imageFailed"
+                class="product-image"
+                :src="product.image"
+                mode="aspectFill"
+                @error="handleProductImageError(product)"
+              />
+              <view v-else class="product-image-placeholder"></view>
+            </view>
             <view class="product-info">
               <text class="product-name">{{ product.name }}</text>
-              <!-- 标签区域 -->
-              <view class="product-tags" v-if="product.tags && product.tags.length > 0">
-                <text 
-                  v-for="(tag, index) in product.tags.slice(0, 3)" 
-                  :key="index"
-                  class="product-tag"
-                >{{ tag }}</text>
-              </view>
+              <text class="product-subtitle">{{ product.subtitle }}</text>
               <view class="price-sales-container">
-                <text class="product-price">￥{{ product.price }}</text>
-                <text class="product-sales">已售{{ product.sales }}件</text>
+                <text class="product-price">¥{{ product.price }}</text>
+                <text class="product-sales">已售 {{ product.sales }}</text>
               </view>
             </view>
           </view>
         </view>
+      </view>
+      <view v-if="hotProducts.length" class="home-product-more">
+        <text v-if="hotProductsLoading">正在加载更多...</text>
+        <text v-else-if="!hasMore">已经到底了</text>
       </view>
     </view>
 
@@ -165,7 +199,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import CustomNavBar from '../../components/custom-nav-bar.vue'
 import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
@@ -196,14 +230,17 @@ const defaultQuickLinks = [
   ...link,
   icon: '',
   iconFailed: false,
+  iconLoaded: false,
   fallbackIcon: quickLinkFallbackIcons[link.action]
 }))
 
 const banners = ref([])
 const bannersLoading = ref(false)
-const bannersLoadFailed = ref(false)
 const quickLinks = ref([...defaultQuickLinks])
 const quickLinksLoading = ref(false)
+const quickLinksReady = ref(false)
+const homeCategories = ref([{ id: 'recommend', name: '推荐' }])
+const activeHomeCategory = ref('recommend')
 const hotProducts = ref([])
 const hotProductsLoading = ref(false)
 const hotProductsLoadFailed = ref(false)
@@ -256,6 +293,12 @@ function createRequestHeader() {
 function handleSearch() {
   uni.navigateTo({
     url: '/pages/product/list'
+  })
+}
+
+function goToAbout() {
+  uni.navigateTo({
+    url: '/pages/profile/about'
   })
 }
 
@@ -357,7 +400,12 @@ function initWaterfall() {
   leftColumnProducts.value = []
   rightColumnProducts.value = []
 
-  hotProducts.value.forEach((product, index) => {
+  const selectedCategory = homeCategories.value.find((item) => item.id === activeHomeCategory.value)
+  const visibleProducts = activeHomeCategory.value === 'recommend'
+    ? hotProducts.value
+    : hotProducts.value.filter((product) => product.categoryName === selectedCategory?.name)
+
+  visibleProducts.forEach((product, index) => {
     if (index % 2 === 0) {
       leftColumnProducts.value.push(product)
     } else {
@@ -418,13 +466,86 @@ function handleDefaultQuickLink() {
 
 function handleQuickLinkIconError(link) {
   link.iconFailed = true
+  link.iconLoaded = false
+}
+
+function handleQuickLinkIconLoad(link) {
+  link.iconLoaded = true
+}
+
+function scheduleQuickLinkFallback(links) {
+  links.forEach((link) => {
+    if (!link.icon || link.iconLoaded) {
+      return
+    }
+    const linkId = link.id
+    const icon = link.icon
+    setTimeout(() => {
+      const currentLink = quickLinks.value.find((item) => item.id === linkId && item.icon === icon)
+      if (currentLink && !currentLink.iconLoaded) {
+        currentLink.iconFailed = true
+      }
+    }, 1500)
+  })
+}
+
+function handleQuickLinkLongPress() {
+  // 消费长按事件，避免小程序和 H5 显示原生选中高亮。
+}
+
+function handleProductImageError(product) {
+  product.imageFailed = true
+}
+
+function createProductSubtitle(item) {
+  const directSubtitle = item.subtitle || item.sellingPoint || item.brief
+  if (directSubtitle) {
+    return String(directSubtitle).trim()
+  }
+
+  const tags = item.tags || item.labelList || []
+  if (tags.length) {
+    return tags.slice(0, 2).join(' · ')
+  }
+
+  const detailText = String(item.detailDesc || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return detailText ? detailText.slice(0, 28) : '更多商品信息请查看详情'
+}
+
+function selectHomeCategory(category) {
+  activeHomeCategory.value = category.id
+  initWaterfall()
+}
+
+function syncHomeCategories() {
+  const categoryNames = [...new Set(hotProducts.value
+    .map((product) => product.categoryName)
+    .filter(Boolean))]
+  homeCategories.value = [
+    { id: 'recommend', name: '推荐' },
+    ...categoryNames.map((name) => ({ id: `category:${name}`, name }))
+  ]
+  if (!homeCategories.value.some((item) => item.id === activeHomeCategory.value)) {
+    activeHomeCategory.value = 'recommend'
+  }
 }
 
 function handleBannerImageError(banner) {
-  banners.value = banners.value.filter((item) => item !== banner)
-  if (banners.value.length === 0) {
-    bannersLoadFailed.value = true
-  }
+  banner.imageLoaded = false
+  banner.imageFailed = true
+}
+
+function handleBannerImageLoad(banner) {
+  banner.imageLoaded = true
+  banner.imageFailed = false
+}
+
+function hasUsableBanner() {
+  return banners.value.some((banner) => !banner.imageFailed)
 }
 
 function handleCustomQuickLink(link) {
@@ -440,136 +561,158 @@ function handleCustomQuickLink(link) {
 
 function fetchQuickLinks() {
   if (quickLinksLoading.value) {
-    return
+    return Promise.resolve()
   }
   quickLinksLoading.value = true
-  uni.request({
-    url: `${BASE_API}/app/platQuickEntry/query`,
-    method: 'GET',
-    header: {
-      'Content-Type': 'application/json'
-    },
-    success: (res) => {
-      if (res.statusCode === 200 && res.data.code === 0) {
-        quickLinks.value = (res.data.data || []).slice(0, 10).map((link, index) => {
-          const action = getActionForQuickLink(link.type, link.target)
-          return {
-            id: index + 1,
-            name: link.name,
-            icon: getStoragePreviewUrl(link.icon),
-            type: link.type,
-            target: link.target,
-            action,
-            iconFailed: false,
-            fallbackIcon: quickLinkFallbackIcons[action] || quickLinkFallbackIcons.handleDefaultQuickLink
-          }
-        })
-        return
-      }
+  return new Promise((resolve) => {
+    uni.request({
+      url: `${BASE_API}/app/platQuickEntry/query`,
+      method: 'GET',
+      header: {
+        'Content-Type': 'application/json'
+      },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          const previousIconMap = new Map(quickLinks.value
+            .filter((link) => link.icon)
+            .map((link) => [link.icon, link]))
+          const nextLinks = (res.data.data || []).slice(0, 10).map((link, index) => {
+            const action = getActionForQuickLink(link.type, link.target)
+            const icon = getStoragePreviewUrl(link.icon)
+            const previousIcon = previousIconMap.get(icon)
+            return {
+              id: index + 1,
+              name: link.name,
+              icon,
+              type: link.type,
+              target: link.target,
+              action,
+              iconFailed: false,
+              iconLoaded: previousIcon?.iconLoaded || false,
+              fallbackIcon: quickLinkFallbackIcons[action] || quickLinkFallbackIcons.handleDefaultQuickLink
+            }
+          })
+          quickLinks.value = nextLinks
+          scheduleQuickLinkFallback(quickLinks.value)
+          return
+        }
 
-      console.error('获取快捷入口失败:', res.data && res.data.message)
-    },
-    fail: (error) => {
-      console.error('请求快捷入口失败:', error)
-    },
-    complete: () => {
-      quickLinksLoading.value = false
-    }
+        console.error('获取快捷入口失败:', res.data && res.data.message)
+      },
+      fail: (error) => {
+        console.error('请求快捷入口失败:', error)
+      },
+      complete: () => {
+        quickLinksLoading.value = false
+        quickLinksReady.value = true
+        resolve()
+      }
+    })
   })
 }
 
 function fetchBanners() {
   if (bannersLoading.value) {
-    return
+    return Promise.resolve()
   }
   bannersLoading.value = true
-  bannersLoadFailed.value = false
-  uni.request({
-    url: `${BASE_API}/app/platBanner/query`,
-    method: 'GET',
-    header: createRequestHeader(),
-    success: (res) => {
-      if (res.statusCode === 200 && res.data.code === 0) {
-        const nextBanners = (res.data.data || []).map((banner, index) => ({
-          id: index + 1,
-          image: getStoragePreviewUrl(banner.imageUrl)
-        })).filter((banner) => banner.image)
-        banners.value = nextBanners
-        bannersLoadFailed.value = nextBanners.length === 0
-        return
-      }
+  return new Promise((resolve) => {
+    uni.request({
+      url: `${BASE_API}/app/platBanner/query`,
+      method: 'GET',
+      header: createRequestHeader(),
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          const previousBannerMap = new Map(banners.value.map((banner) => [banner.image, banner]))
+          const nextBanners = (res.data.data || []).map((banner, index) => ({
+            id: index + 1,
+            image: getStoragePreviewUrl(banner.imageUrl),
+            imageLoaded: previousBannerMap.get(getStoragePreviewUrl(banner.imageUrl))?.imageLoaded || false,
+            imageFailed: false
+          })).filter((banner) => banner.image)
+          banners.value = nextBanners
+          return
+        }
 
-      console.error('获取平台 Banner 失败:', res.data && res.data.message)
-      bannersLoadFailed.value = true
-    },
-    fail: (error) => {
-      console.error('请求平台 Banner 失败:', error)
-      bannersLoadFailed.value = true
-    },
-    complete: () => {
-      bannersLoading.value = false
-    }
+        console.error('获取平台 Banner 失败:', res.data && res.data.message)
+      },
+      fail: (error) => {
+        console.error('请求平台 Banner 失败:', error)
+      },
+      complete: () => {
+        bannersLoading.value = false
+        resolve()
+      }
+    })
   })
 }
 
-function fetchHotProducts() {
-  if (!hasMore.value || hotProductsLoading.value) {
-    return
+function fetchHotProducts(reset = false) {
+  if ((!reset && !hasMore.value) || hotProductsLoading.value) {
+    return Promise.resolve()
   }
 
   hotProductsLoading.value = true
   hotProductsLoadFailed.value = false
   const params = ['pageSize=10']
-  if (scrollToken.value) {
+  if (!reset && scrollToken.value) {
     params.push(`scrollToken=${encodeURIComponent(scrollToken.value)}`)
   }
 
-  uni.request({
-    url: `${BASE_API}/app/product/queryHot?${params.join('&')}`,
-    method: 'GET',
-    header: createRequestHeader(),
-    success: (res) => {
-      if (res.statusCode === 200 && res.data.code === 0) {
-        const responseData = res.data.data || {}
-        scrollToken.value = responseData.scrollToken || null
-        hasMore.value = !!responseData.hasMore
+  return new Promise((resolve) => {
+    uni.request({
+      url: `${BASE_API}/app/product/queryHot?${params.join('&')}`,
+      method: 'GET',
+      header: createRequestHeader(),
+      success: (res) => {
+        if (res.statusCode === 200 && res.data.code === 0) {
+          const responseData = res.data.data || {}
+          scrollToken.value = responseData.scrollToken || null
+          hasMore.value = !!responseData.hasMore
 
-        const productsWithDetails = (responseData.data || []).map((item) => ({
-          ...item,
-          id: item.id,
-          name: item.name,
-          price: Number(item.minPrice || 0).toFixed(2),
-          sales: item.sales !== undefined ? item.sales : 0,
-          tags: item.tags || item.labelList || [],
-          image: getStoragePreviewUrl(item.mainImage)
-        }))
+          const productsWithDetails = (responseData.data || []).map((item) => ({
+            ...item,
+            id: item.id,
+            name: item.name,
+            price: Number(item.minPrice || 0).toFixed(2),
+            sales: item.sales !== undefined ? item.sales : 0,
+            categoryName: item.categoryName || '',
+            tags: item.tags || item.labelList || [],
+            subtitle: createProductSubtitle(item),
+            image: getStoragePreviewUrl(item.mainImage),
+            imageFailed: false
+          }))
 
-        hotProducts.value = [...hotProducts.value, ...productsWithDetails]
-        initWaterfall()
-        return
+          const mergedProducts = reset
+            ? productsWithDetails
+            : [...hotProducts.value, ...productsWithDetails]
+          hotProducts.value = [...new Map(mergedProducts.map((item) => [String(item.id), item])).values()]
+          syncHomeCategories()
+          initWaterfall()
+          return
+        }
+
+        console.error('获取热门商品列表失败:', res.data && res.data.message)
+        hotProductsLoadFailed.value = true
+      },
+      fail: (error) => {
+        console.error('请求热门商品列表失败:', error)
+        hotProductsLoadFailed.value = true
+      },
+      complete: () => {
+        hotProductsLoading.value = false
+        resolve()
       }
-
-      console.error('获取热门商品列表失败:', res.data && res.data.message)
-      hotProductsLoadFailed.value = true
-    },
-    fail: (error) => {
-      console.error('请求热门商品列表失败:', error)
-      hotProductsLoadFailed.value = true
-    },
-    complete: () => {
-      hotProductsLoading.value = false
-    }
+    })
   })
 }
 
 function retryHomeData() {
-  if (!banners.value.length) {
+  if (!hasUsableBanner()) {
     fetchBanners()
   }
   if (!hotProducts.value.length) {
-    scrollToken.value = null
-    hasMore.value = true
-    fetchHotProducts()
+    fetchHotProducts(true)
   }
   fetchQuickLinks()
 }
@@ -583,14 +726,28 @@ function handleNetworkStatusChange(status) {
 onMounted(() => {
   fetchBanners()
   fetchQuickLinks()
-  fetchHotProducts()
+  fetchHotProducts(true)
   homeInitialized.value = true
   uni.onNetworkStatusChange(handleNetworkStatusChange)
 })
 
 onShow(() => {
-  if (homeInitialized.value && (!banners.value.length || !hotProducts.value.length)) {
+  if (homeInitialized.value && (!hasUsableBanner() || !hotProducts.value.length)) {
     retryHomeData()
+  }
+})
+
+onPullDownRefresh(async () => {
+  try {
+    await Promise.all([fetchBanners(), fetchQuickLinks(), fetchHotProducts(true)])
+  } finally {
+    uni.stopPullDownRefresh()
+  }
+})
+
+onReachBottom(() => {
+  if (hasMore.value) {
+    fetchHotProducts()
   }
 })
 
@@ -908,53 +1065,37 @@ onUnmounted(() => {
 }
 
 .banner-section {
-  margin: 18rpx 24rpx 24rpx;
+  margin: 18rpx 24rpx 16rpx;
   overflow: hidden;
   border-radius: var(--ym-radius-card);
-  background: var(--ym-brand-strong);
+  background: #e6ebe8;
   box-shadow: none;
 }
 
 .banner-swiper {
   height: 360rpx;
+  background: #e6ebe8;
 }
 
-.banner-loading {
-  display: flex;
+.banner-placeholder {
   height: 360rpx;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.72);
-  background: var(--ym-brand-strong);
-  font-size: 24rpx;
+  background: #e6ebe8;
 }
 
-.banner-empty {
-  display: flex;
-  height: 360rpx;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  color: #fff;
-  background: linear-gradient(135deg, var(--ym-ink), var(--ym-brand));
+.banner-image {
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.banner-empty-title {
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.banner-empty-hint {
-  margin-top: 12rpx;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 22rpx;
+.banner-image.is-loaded {
+  opacity: 1;
 }
 
 .quick-links {
   margin: 0;
   padding: 12rpx 18rpx 20rpx;
   border-radius: 0;
-  background: var(--ym-surface);
+  background: var(--ym-paper);
   box-shadow: none;
 }
 
@@ -965,9 +1106,22 @@ onUnmounted(() => {
 .quick-link-item {
   gap: 10rpx;
   margin-bottom: 10rpx;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.quick-link-item,
+.quick-link-item view,
+.quick-link-item text,
+.quick-link-item image {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .quick-link-icon-shell {
+  position: relative;
   display: flex;
   width: 88rpx;
   height: 88rpx;
@@ -986,6 +1140,34 @@ onUnmounted(() => {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  transition: opacity 0.16s ease;
+}
+
+.quick-link-icon-skeleton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 14rpx;
+  background: rgba(101, 114, 106, 0.14);
+  transform: translate(-50%, -50%);
+}
+
+.quick-link-icon--fallback.is-hidden {
+  opacity: 0;
+}
+
+.quick-link-icon--configured {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.quick-link-icon--configured.is-loaded {
+  opacity: 1;
 }
 
 .quick-link-tone-2 .quick-link-icon-shell {
@@ -1046,6 +1228,39 @@ onUnmounted(() => {
   font-size: 22rpx;
 }
 
+.home-category-scroll {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 24rpx 20rpx;
+  white-space: nowrap;
+}
+
+.home-category-row {
+  display: inline-flex;
+  gap: 12rpx;
+}
+
+.home-category-item {
+  min-width: 108rpx;
+  height: 64rpx;
+  box-sizing: border-box;
+  padding: 0 22rpx;
+  color: var(--ym-muted);
+  border: 1rpx solid transparent;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+  font-size: 24rpx;
+  line-height: 62rpx;
+  text-align: center;
+}
+
+.home-category-item.active {
+  color: var(--ym-brand);
+  border-color: #bed1c6;
+  background: var(--ym-brand-soft);
+  font-weight: 700;
+}
+
 .waterfall-container {
   gap: 18rpx;
   min-height: 0;
@@ -1070,10 +1285,25 @@ onUnmounted(() => {
   box-shadow: none;
 }
 
+.product-image-shell {
+  width: 100%;
+  height: 280rpx;
+  overflow: hidden;
+  border-bottom: 1rpx solid var(--ym-line);
+  background: #edf1ee;
+}
+
 .product-image {
+  display: block;
+  width: 100%;
   height: 280rpx;
   object-fit: cover;
-  border-bottom-color: var(--ym-line);
+}
+
+.product-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #e6ebe8;
 }
 
 .product-info {
@@ -1081,25 +1311,25 @@ onUnmounted(() => {
 }
 
 .product-name {
+  display: block;
+  overflow: hidden;
   margin-bottom: 10rpx;
   color: var(--ym-ink);
   font-size: 28rpx;
   line-height: 1.45;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.product-tags {
-  margin-bottom: 8rpx;
-}
-
-.product-tag {
-  margin-right: 8rpx;
-  margin-bottom: 6rpx;
-  padding: 4rpx 10rpx;
-  color: var(--ym-price);
-  border-color: #edc6bd;
-  border-radius: 8rpx;
-  background: var(--ym-price-soft);
-  font-size: 20rpx;
+.product-subtitle {
+  display: block;
+  overflow: hidden;
+  min-height: 34rpx;
+  color: var(--ym-muted);
+  font-size: 22rpx;
+  line-height: 34rpx;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .product-price {
@@ -1133,5 +1363,14 @@ onUnmounted(() => {
   margin-top: 8rpx;
   color: var(--ym-muted);
   font-size: 22rpx;
+}
+
+.home-product-more {
+  min-height: 64rpx;
+  padding: 6rpx 24rpx 30rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+  line-height: 64rpx;
+  text-align: center;
 }
 </style>

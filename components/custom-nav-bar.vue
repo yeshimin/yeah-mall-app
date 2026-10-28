@@ -58,7 +58,14 @@
         // 居中
         margin: '0'
       }">
-        <view v-if="showSearch && showBrand" class="mall-wordmark" aria-label="Yeah Mall">
+        <view
+          v-if="showSearch && showBrand"
+          class="mall-wordmark"
+          aria-label="Yeah Mall"
+          role="button"
+          hover-class="mall-wordmark--pressed"
+          @click="handleBrandClick"
+        >
           <text>YEAH</text>
           <text>MALL</text>
         </view>
@@ -81,7 +88,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 defineOptions({
   name: 'custom-nav-bar'
@@ -122,7 +129,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['height-calculated', 'search', 'back'])
+const emit = defineEmits(['height-calculated', 'search', 'back', 'brand'])
 
 const statusBarInfo = ref({
   sysHeight: 0,
@@ -172,7 +179,7 @@ const navBarBackgroundColor = computed(() => {
 
 const navBarShadow = computed(() => {
   if (!props.transparent) {
-    return '0 4rpx 20rpx rgba(0, 0, 0, 0.1)'
+    return 'none'
   }
 
   const opacity = clampOpacity(props.backgroundOpacity)
@@ -197,14 +204,24 @@ function calcStatusBarInfo() {
       : null
   }
 
-  if (!menuButtonInfo) {
+  const viewportWidth = Number(systemInfo.windowWidth || systemInfo.screenWidth || 375)
+  const hasValidMenuButton = menuButtonInfo
+    && Number.isFinite(Number(menuButtonInfo.left))
+    && Number.isFinite(Number(menuButtonInfo.top))
+    && Number.isFinite(Number(menuButtonInfo.bottom))
+    && Number.isFinite(Number(menuButtonInfo.width))
+    && Number(menuButtonInfo.left) > 0
+    && Number(menuButtonInfo.width) > 0
+    && Number(menuButtonInfo.bottom) > Number(menuButtonInfo.top)
+
+  if (!hasValidMenuButton) {
     const sysHeight = systemInfo.statusBarHeight || 0
     const appHeight = 44
     const plusHeight = sysHeight + appHeight
-    const leftMaxWidth = Math.max((systemInfo.screenWidth || 375) * 0.2, 72)
-    const middleMaxWidth = (systemInfo.screenWidth || 375) - leftMaxWidth * 2
-    const searchLeftWidth = 12
-    const searchMaxWidth = (systemInfo.screenWidth || 375) - searchLeftWidth * 2
+    const leftMaxWidth = Math.max(viewportWidth * 0.2, 72)
+    const middleMaxWidth = viewportWidth - leftMaxWidth * 2
+    const searchLeftWidth = 14
+    const searchMaxWidth = Math.max(viewportWidth - searchLeftWidth * 2, 120)
 
     statusBarInfo.value = {
       sysHeight,
@@ -228,9 +245,9 @@ function calcStatusBarInfo() {
   const sysBottom = (systemInfo.screenTop || 0) + sysHeight
   const appBottom = sysBottom + appHeight
   const plusHeight = sysHeight + appHeight
-  const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2
-  const leftMaxWidth = (systemInfo.screenWidth - middleMaxWidth) / 2
-  const searchLeftWidth = 12
+  const middleMaxWidth = (menuButtonInfo.left - viewportWidth / 2) * 2
+  const leftMaxWidth = (viewportWidth - middleMaxWidth) / 2
+  const searchLeftWidth = 14
   const searchGap = 8
   const searchMaxWidth = Math.max(menuButtonInfo.left - searchLeftWidth - searchGap, 120)
 
@@ -254,12 +271,25 @@ function handleSearch() {
   emit('search', {})
 }
 
+function handleBrandClick() {
+  emit('brand')
+}
+
 function handleBack() {
   emit('back')
 }
 
 onMounted(() => {
   calcStatusBarInfo()
+  if (typeof uni.onWindowResize === 'function') {
+    uni.onWindowResize(calcStatusBarInfo)
+  }
+})
+
+onUnmounted(() => {
+  if (typeof uni.offWindowResize === 'function') {
+    uni.offWindowResize(calcStatusBarInfo)
+  }
 })
 </script>
 
@@ -269,6 +299,10 @@ onMounted(() => {
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* 系统状态栏占位 */
@@ -278,21 +312,27 @@ onMounted(() => {
 
 /* 应用状态栏 */
 .app-status-bar {
-  gap: 16rpx;
+  gap: 28rpx;
   width: 100%;
   box-sizing: border-box;
 }
 
 .mall-wordmark {
   display: flex;
-  width: 112rpx;
-  flex: 0 0 112rpx;
+  flex: 0 0 auto;
   flex-direction: column;
   color: var(--ym-ink, #17251f);
   font-size: 22rpx;
   font-weight: 800;
   letter-spacing: 1rpx;
   line-height: 1.02;
+  white-space: nowrap;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.mall-wordmark--pressed {
+  opacity: 0.68;
+  transform: scale(0.96);
 }
 
 .mall-wordmark text:last-child {
@@ -314,6 +354,7 @@ onMounted(() => {
 .search-box {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14rpx;
   box-sizing: border-box;
   padding: 0 22rpx;
@@ -347,11 +388,14 @@ onMounted(() => {
 }
 
 .search-hint {
-  flex: 1;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
   color: var(--ym-muted, #65726a);
   font-size: 26rpx;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* 标题样式 */

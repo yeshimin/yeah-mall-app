@@ -498,6 +498,10 @@ function getOrderActions(status, refundStatus = 0, isReviewed = false) {
       break
   }
 
+  if (Number(refundStatus) !== 0) {
+    actions.unshift({ label: '退款进度', value: 'refundDetail', type: 'default' })
+  }
+
   return actions
 }
 
@@ -661,6 +665,10 @@ function handleOrderAction(action, order) {
       })
       break
     case 'refundDetail':
+      uni.navigateTo({
+        url: `/pages/order/refund-detail?orderId=${order.id}`
+      })
+      break
     case 'afterSaleDetail':
       uni.navigateTo({
         url: `/pages/order/detail?orderId=${order.id}`

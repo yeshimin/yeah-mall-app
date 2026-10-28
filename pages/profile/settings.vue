@@ -8,6 +8,20 @@
         </view>
         <view class="arrow"></view>
       </view>
+      <view class="setting-row" @click="openNotifications">
+        <view>
+          <text class="setting-title">消息通知</text>
+          <text class="setting-desc">订单、活动和客服提醒偏好</text>
+        </view>
+        <view class="arrow"></view>
+      </view>
+      <view class="setting-row" @click="openPrivacy">
+        <view>
+          <text class="setting-title">隐私设置</text>
+          <text class="setting-desc">推荐与浏览足迹记录偏好</text>
+        </view>
+        <view class="arrow"></view>
+      </view>
     </view>
 
     <view class="logout-area">
@@ -22,6 +36,14 @@ import { clearAuthInfo, handleAuthFailure, isAuthenticated } from '../../utils/a
 
 function openProfileEdit() {
   uni.navigateTo({ url: '/pages/profile/edit' })
+}
+
+function openNotifications() {
+  uni.navigateTo({ url: '/pages/profile/notifications' })
+}
+
+function openPrivacy() {
+  uni.navigateTo({ url: '/pages/profile/privacy' })
 }
 
 function confirmLogout() {
@@ -61,11 +83,22 @@ onLoad(() => {
 }
 
 .setting-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 116rpx;
   padding: 20rpx 28rpx;
+}
+
+.setting-row:not(:last-child)::after {
+  position: absolute;
+  right: 28rpx;
+  bottom: 0;
+  left: 28rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
 }
 
 .setting-title {

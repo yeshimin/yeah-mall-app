@@ -21,6 +21,7 @@
 		
 		<!-- 右侧区域 -->
 		<view class="secondary-container">
+			<template v-if="secondaryCategories.length">
 			<!-- 二级分类 tab -->
 			<view class="secondary-tabs-wrapper">
 				<scroll-view 
@@ -45,22 +46,32 @@
 			</view>
 			
 			<!-- 三级分类 -->
-			<scroll-view class="tertiary-category" scroll-y :scroll-top="tertiaryScrollTop" ref="tertiaryScrollView">
+			<scroll-view class="tertiary-category" scroll-y scroll-with-animation :scroll-top="tertiaryScrollTop" @scroll="handleTertiaryScroll" ref="tertiaryScrollView">
 				<view class="tertiary-section" v-for="(secondary, sIndex) in secondaryCategories" :key="secondary.id" :id="'secondarySection' + sIndex" :ref="'secondarySection' + sIndex">
 					<view class="secondary-title">{{ secondary.name }}</view>
-					<view class="tertiary-grid">
+					<view v-if="secondary.children && secondary.children.length" class="tertiary-grid">
 						<view 
 							class="tertiary-item" 
 							v-for="(item, index) in secondary.children" 
 							:key="item.id"
 							@click="goToProductList(item)"
 						>
-							<image class="tertiary-icon" :src="item.icon || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
+							<image v-if="item.image && !item.imageFailed" class="tertiary-icon" :src="item.image" mode="aspectFit" @error="handleCategoryImageError(item)"></image>
+							<view v-else class="tertiary-icon-placeholder">{{ item.name.slice(0, 1) }}</view>
 							<text class="tertiary-name">{{ item.name }}</text>
 						</view>
 					</view>
+					<view v-else class="tertiary-empty">
+						<text class="tertiary-empty-title">暂未配置子分类</text>
+						<text class="tertiary-empty-hint">该分类下暂时没有可浏览内容</text>
+					</view>
 				</view>
 			</scroll-view>
+			</template>
+			<view v-else class="secondary-empty-state">
+				<text class="secondary-empty-title">暂未配置二级分类</text>
+				<text class="secondary-empty-hint">该分类下暂无可浏览内容</text>
+			</view>
 		</view>
 		</template>
 	</view>
@@ -69,6 +80,7 @@
 <script setup>
 import { getCurrentInstance, nextTick, onMounted, ref } from 'vue'
 import { fetchProductCategoryTree } from '../../utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
 
 const instance = getCurrentInstance()
 
@@ -78,14 +90,16 @@ const categoryLoading = ref(true)
 const primaryCategories = ref([])
 const secondaryCategories = ref([])
 const tertiaryScrollTop = ref(0)
+const secondaryOffsets = ref([])
 
 function selectPrimaryCategory(index) {
   currentPrimaryIndex.value = index
   const selectedCategory = primaryCategories.value[index]
   secondaryCategories.value = (selectedCategory && selectedCategory.children) || []
   currentSecondaryIndex.value = 0
+	tertiaryScrollTop.value = 0
   nextTick(() => {
-    scrollToSecondary(0)
+		updateSecondaryOffsets()
   })
 }
 
@@ -97,6 +111,12 @@ function selectSecondaryCategory(index) {
 }
 
 function scrollToSecondary(index) {
+	const targetOffset = secondaryOffsets.value[index]
+	if (Number.isFinite(targetOffset)) {
+		tertiaryScrollTop.value = targetOffset
+		return
+	}
+
   nextTick(() => {
     const query = uni.createSelectorQuery().in(instance?.proxy)
     query.select('.tertiary-category').boundingClientRect()
@@ -112,19 +132,62 @@ function scrollToSecondary(index) {
   })
 }
 
+function updateSecondaryOffsets() {
+	nextTick(() => {
+		const query = uni.createSelectorQuery().in(instance?.proxy)
+		query.selectAll('.tertiary-section').boundingClientRect()
+		query.exec((res) => {
+			const sections = res[0] || []
+			if (!sections.length) {
+				secondaryOffsets.value = []
+				return
+			}
+			const firstTop = sections[0].top
+			secondaryOffsets.value = sections.map((section) => Math.max(section.top - firstTop, 0))
+		})
+	})
+}
+
+function handleTertiaryScroll(event) {
+	const scrollTop = event.detail.scrollTop || 0
+	let activeIndex = 0
+	secondaryOffsets.value.forEach((offset, index) => {
+		if (scrollTop + 24 >= offset) {
+			activeIndex = index
+		}
+	})
+	currentSecondaryIndex.value = activeIndex
+}
+
 function goToProductList(item) {
   uni.navigateTo({
-    url: `/pages/product/list?categoryId=${item.id}&categoryName=${encodeURIComponent(item.name)}&searchKeyword=${encodeURIComponent(item.name)}`
+    url: `/pages/product/list?categoryName=${encodeURIComponent(item.name)}&searchKeyword=${encodeURIComponent(item.name)}`
   })
+}
+
+function handleCategoryImageError(item) {
+	item.imageFailed = true
+}
+
+function resolveCategoryImages(nodes) {
+	return (nodes || []).map((item) => ({
+		...item,
+		image: item.image ? getStoragePreviewUrl(item.image) : '',
+		imageFailed: false,
+		children: resolveCategoryImages(item.children),
+	}))
 }
 
 function loadCategoryTree() {
   categoryLoading.value = true
   fetchProductCategoryTree()
     .then((data) => {
-      primaryCategories.value = data || []
+      primaryCategories.value = resolveCategoryImages(data)
       if (primaryCategories.value.length > 0) {
         secondaryCategories.value = primaryCategories.value[0].children || []
+			nextTick(() => {
+				updateSecondaryOffsets()
+			})
       }
     })
     .catch((error) => {
@@ -291,23 +354,25 @@ onMounted(() => {
 .primary-category {
   width: 176rpx;
   height: 100%;
-  background: var(--ym-paper);
+  background: #eef2ef;
 }
 
 .primary-item {
   position: relative;
   height: 96rpx;
-  justify-content: flex-start;
+  justify-content: center;
   box-sizing: border-box;
-  padding-left: 42rpx;
+  padding: 0 12rpx;
   color: var(--ym-muted);
   border-bottom: 0;
   font-size: 28rpx;
+  text-align: center;
+  transition: color 0.18s ease, background-color 0.18s ease;
 }
 
 .primary-item.active {
   color: var(--ym-brand);
-  border-left: 8rpx solid var(--ym-brand);
+  border-left: 6rpx solid var(--ym-brand);
   background: var(--ym-surface);
   font-weight: 700;
 }
@@ -320,7 +385,7 @@ onMounted(() => {
 
 .secondary-tabs-wrapper {
   height: 88rpx;
-  border-bottom-color: var(--ym-line);
+  border-bottom: 0;
 }
 
 .secondary-tabs-content {
@@ -334,9 +399,9 @@ onMounted(() => {
 .secondary-tab {
   min-width: 128rpx;
   height: 88rpx;
-  margin: 0 8rpx;
+  margin: 0 12rpx;
   color: var(--ym-muted);
-  font-size: 27rpx;
+  font-size: 26rpx;
   line-height: 88rpx;
 }
 
@@ -356,43 +421,94 @@ onMounted(() => {
 }
 
 .tertiary-section {
-  margin-bottom: 12rpx;
+  margin-bottom: 0;
 }
 
 .secondary-title {
-  padding: 24rpx;
+  padding: 20rpx 24rpx 10rpx;
   color: var(--ym-ink);
-  border-bottom-color: var(--ym-line);
-  background: var(--ym-surface);
+  border: 0;
+  background: transparent;
   font-size: 30rpx;
 }
 
 .tertiary-grid {
-  gap: 12rpx 0;
-  padding: 12rpx 16rpx 28rpx;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20rpx 0;
+  padding: 8rpx 16rpx 30rpx;
 }
 
 .tertiary-item {
-  margin-bottom: 12rpx;
-  padding: 8rpx;
+  width: auto;
+  margin: 0;
+  padding: 4rpx;
   box-sizing: border-box;
 }
 
 .tertiary-icon {
-  width: 116rpx;
-  height: 116rpx;
-  margin-bottom: 12rpx;
-  border-radius: 20rpx;
-  background: var(--ym-paper);
+  width: 128rpx;
+  height: 96rpx;
+  margin-bottom: 10rpx;
+  border-radius: 0;
+  background: transparent;
+}
+
+.tertiary-icon-placeholder {
+  display: flex;
+  width: 128rpx;
+  height: 96rpx;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 10rpx;
+  color: var(--ym-brand);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand-soft);
+  font-size: 34rpx;
+  font-weight: 700;
 }
 
 .tertiary-name {
-  max-width: 150rpx;
+  max-width: 160rpx;
   overflow: hidden;
   color: var(--ym-ink-secondary);
   font-size: 24rpx;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.tertiary-empty,
+.secondary-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--ym-muted);
+  text-align: center;
+}
+
+.tertiary-empty {
+  min-height: 260rpx;
+  padding-bottom: 24rpx;
+}
+
+.secondary-empty-state {
+  flex: 1;
+  min-height: 0;
+}
+
+.tertiary-empty-title,
+.secondary-empty-title {
+  color: var(--ym-ink);
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.tertiary-empty-hint,
+.secondary-empty-hint {
+  margin-top: 8rpx;
+  color: var(--ym-muted);
+  font-size: 22rpx;
 }
 
 .category-state {

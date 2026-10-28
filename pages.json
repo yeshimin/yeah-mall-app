@@ -4,13 +4,23 @@
 			"path": "pages/index/index",
 			"style": {
 				"navigationBarTitleText": "首页",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"onReachBottomDistance": 120
 			}
 		},
 		{
 			"path": "pages/category/category",
 			"style": {
 				"navigationBarTitleText": "分类"
+			}
+		},
+		{
+			"path": "pages/shop/list",
+			"style": {
+				"navigationBarTitleText": "店铺列表",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
@@ -136,6 +146,12 @@
 			}
 		},
 		{
+			"path": "pages/order/refund-detail",
+			"style": {
+				"navigationBarTitleText": "退款详情"
+			}
+		},
+		{
 			"path": "pages/customer-service/index",
 			"style": {
 				"navigationBarTitleText": "客服聊天"
@@ -175,6 +191,18 @@
 			"path": "pages/profile/settings",
 			"style": {
 				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/profile/notifications",
+			"style": {
+				"navigationBarTitleText": "消息通知"
+			}
+		},
+		{
+			"path": "pages/profile/privacy",
+			"style": {
+				"navigationBarTitleText": "隐私设置"
 			}
 		},
 		{

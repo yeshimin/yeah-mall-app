@@ -198,7 +198,6 @@ import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
 
 const categoryName = ref('')
-const categoryId = ref('')
 const currentSort = ref('default-asc')
 const isGridView = ref(true)
 const searchKeyword = ref('')
@@ -422,9 +421,6 @@ function fetchProducts() {
 }
 
 onLoad((options = {}) => {
-  if (options.categoryId) {
-    categoryId.value = String(options.categoryId)
-  }
   if (options.categoryName) {
     categoryName.value = decodeURIComponent(options.categoryName)
   }

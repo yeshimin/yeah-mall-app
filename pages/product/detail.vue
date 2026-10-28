@@ -387,6 +387,7 @@ import CustomNavBar from '../../components/custom-nav-bar.vue'
 import { fetchReviewSummary } from '@/utils/api.js'
 import { authRequest, getToken, handleAuthFailure } from '@/utils/auth.js'
 import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
+import { getPrivacyPreferences } from '@/utils/preferences.js'
 
 const instance = getCurrentInstance()
 
@@ -644,7 +645,7 @@ async function fetchProductDetail(productId, sceneValue) {
     ? `${BASE_API}/app/seckill/queryProductDetail?id=${productId}`
     : sceneValue === 'groupBuy'
       ? `${BASE_API}/app/groupBuy/queryProductDetail?id=${productId}`
-      : `${BASE_API}/app/product/detail?id=${productId}`
+      : `${BASE_API}/app/product/detail?id=${productId}&recordBrowse=${getPrivacyPreferences().browseHistory !== false}`
 
   try {
     const res = await request({

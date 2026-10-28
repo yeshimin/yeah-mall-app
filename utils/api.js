@@ -54,6 +54,25 @@ export const fetchShopDetail = (shopId) => {
   });
 };
 
+// 分页查询店铺
+export const fetchShops = (params = {}) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/shop/query`,
+      method: 'GET',
+      data: params,
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && res.data.code === 0) {
+          resolve(res.data.data)
+        } else {
+          reject(new Error((res.data && res.data.message) || '获取店铺列表失败'))
+        }
+      },
+      fail: reject
+    })
+  })
+}
+
 // 分页查询店铺商品
 export const fetchShopProducts = (shopId, current = 1, size = 10) => {
   return new Promise((resolve, reject) => {

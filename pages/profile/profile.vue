@@ -84,7 +84,8 @@ const functions = [
 ]
 
 const settings = [
-  { name: '消息中心' },
+  { name: '消息通知' },
+  { name: '店铺列表' },
   { name: '客服中心' },
   { name: '浏览足迹' },
   { name: '意见反馈' },
@@ -168,6 +169,16 @@ function useFunction(index) {
 }
 
 function openSetting(index) {
+  if (settings[index].name === '消息通知') {
+    uni.navigateTo({ url: '/pages/profile/notifications' })
+    return
+  }
+
+  if (settings[index].name === '店铺列表') {
+    uni.navigateTo({ url: '/pages/shop/list' })
+    return
+  }
+
   if (settings[index].name === '客服中心') {
     uni.navigateTo({
       url: '/pages/customer-service/index'
