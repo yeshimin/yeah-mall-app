@@ -91,7 +91,147 @@ onLoad(async ({ id }) => { orderId = id; try { await load() } catch (error) { un
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 24rpx 24rpx 150rpx; box-sizing: border-box; background: #f4f1eb; color: #322e29; }.status-card { display: flex; flex-direction: column; gap: 12rpx; padding: 38rpx 32rpx; color: #fff; border-radius: 24rpx; background: linear-gradient(135deg, #b96b31, #d99b4a); }.status-card.points-status-shipped { background: linear-gradient(135deg, #32636a, #52928c); }.status-card.points-status-completed { background: linear-gradient(135deg, #30463a, #668265); }.status-card.points-status-canceled { background: linear-gradient(135deg, #74716c, #9a958e); }.status-title { font-size: 38rpx; font-weight: 800; }.status-card text:last-child { font-size: 23rpx; opacity: .85; }
-.goods-card, .info-card { margin-top: 20rpx; padding: 26rpx; border-radius: 22rpx; background: #fff; box-shadow: 0 6rpx 20rpx rgba(62,51,40,.05); }.goods-card { display: flex; gap: 20rpx; }.goods-card image { width: 150rpx; height: 150rpx; flex: 0 0 150rpx; border-radius: 14rpx; background: #eee; }.goods-card > view { display: flex; flex-direction: column; gap: 10rpx; }.name { font-size: 29rpx; font-weight: 700; }.sku { color: #8d857b; font-size: 23rpx; }.points { margin-top: auto; color: #c65029; font-size: 30rpx; font-weight: 800; }.card-title { display: block; margin-bottom: 16rpx; font-size: 28rpx; font-weight: 800; }.info-card view { display: flex; justify-content: space-between; gap: 30rpx; padding: 12rpx 0; color: #756d64; font-size: 24rpx; line-height: 1.5; }.info-card view text:last-child { max-width: 70%; color: #3f3a34; text-align: right; word-break: break-all; }.link { color: #bd542e !important; }
-.bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; padding: 18rpx 26rpx calc(18rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -8rpx 24rpx rgba(60,50,40,.08); }.bottom-bar button { width: 100%; color: #fff; border-radius: 42rpx; font-size: 28rpx; }.cancel-btn { background: #806b5b; }.confirm-btn { background: #30463a; }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 164rpx;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 36rpx 32rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-card);
+  background: linear-gradient(135deg, #7a521d, var(--ym-warning));
+}
+
+.status-card.points-status-shipped {
+  background: linear-gradient(135deg, #275861, #3d7a78);
+}
+
+.status-card.points-status-completed {
+  background: linear-gradient(135deg, var(--ym-brand-strong), var(--ym-brand));
+}
+
+.status-card.points-status-canceled {
+  background: linear-gradient(135deg, #59645e, #78827c);
+}
+
+.status-title {
+  font-size: 38rpx;
+  font-weight: 800;
+}
+
+.status-card text:last-child {
+  font-size: 23rpx;
+  opacity: 0.84;
+}
+
+.goods-card,
+.info-card {
+  margin-top: 20rpx;
+  padding: 26rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.goods-card {
+  display: flex;
+  gap: 20rpx;
+}
+
+.goods-card image {
+  width: 150rpx;
+  height: 150rpx;
+  flex: 0 0 150rpx;
+  border-radius: var(--ym-radius-control);
+}
+
+.goods-card > view {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.name {
+  color: var(--ym-ink);
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.sku {
+  color: var(--ym-muted);
+  font-size: 23rpx;
+}
+
+.points {
+  margin-top: auto;
+  color: var(--ym-price);
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.card-title {
+  display: block;
+  margin-bottom: 16rpx;
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.info-card view {
+  display: flex;
+  justify-content: space-between;
+  gap: 30rpx;
+  padding: 12rpx 0;
+  color: var(--ym-muted);
+  font-size: 24rpx;
+  line-height: 1.55;
+}
+
+.info-card view text:last-child {
+  max-width: 70%;
+  color: var(--ym-ink-secondary);
+  text-align: right;
+  word-break: break-all;
+}
+
+.link {
+  color: var(--ym-brand) !important;
+}
+
+.bottom-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.bottom-bar button {
+  width: 100%;
+  height: 88rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  font-size: 28rpx;
+  line-height: 88rpx;
+}
+
+.cancel-btn {
+  background: #59665f;
+}
+
+.confirm-btn {
+  background: var(--ym-brand);
+}
 </style>

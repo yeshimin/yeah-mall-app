@@ -68,6 +68,124 @@ onReachBottom(() => loadOrders())
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 0 22rpx 40rpx; background: #f5f1ea; }.tabs { position: sticky; top: 0; z-index: 2; padding: 20rpx 0; white-space: nowrap; background: rgba(245,241,234,.96); }.tab-row { display: inline-flex; gap: 12rpx; }.tab { padding: 13rpx 26rpx; color: #7d7469; border-radius: 30rpx; background: #fff; font-size: 24rpx; }.tab.active { color: #fff; background: #31463b; }
-.order-card { margin-bottom: 18rpx; padding: 24rpx; border-radius: 22rpx; background: #fff; box-shadow: 0 7rpx 24rpx rgba(61,50,39,.05); }.order-head, .order-foot { display: flex; justify-content: space-between; align-items: center; color: #989086; font-size: 21rpx; }.status { font-size: 24rpx; font-weight: 700; }.points-status-pending { color: #c16a29; }.points-status-shipped { color: #326a73; }.points-status-completed { color: #39704e; }.points-status-canceled { color: #999; }.goods-row { display: flex; gap: 18rpx; margin: 22rpx 0; }.goods-row image { width: 132rpx; height: 132rpx; flex: 0 0 132rpx; border-radius: 14rpx; background: #eee; }.goods-copy { display: flex; flex: 1; flex-direction: column; gap: 9rpx; font-size: 26rpx; }.goods-copy text:first-child { font-weight: 700; }.goods-copy text:nth-child(2) { color: #8b8379; font-size: 22rpx; }.goods-copy text:last-child { margin-top: auto; color: #c44f28; font-weight: 800; }.order-foot { padding-top: 18rpx; border-top: 1rpx solid #eee9e2; }.empty, .state { padding: 120rpx 0; color: #9a9288; text-align: center; font-size: 25rpx; }.state { padding: 34rpx 0; }
+.page {
+  min-height: 100vh;
+  padding: 0 24rpx 40rpx;
+  background: var(--ym-paper);
+}
+
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 20rpx 0;
+  white-space: nowrap;
+  background: rgba(244, 246, 243, 0.96);
+}
+
+.tab-row {
+  display: inline-flex;
+  gap: 12rpx;
+}
+
+.tab {
+  min-height: 56rpx;
+  box-sizing: border-box;
+  padding: 12rpx 24rpx;
+  color: var(--ym-muted);
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+  font-size: 24rpx;
+}
+
+.tab.active {
+  color: #fff;
+  border-color: var(--ym-brand);
+  background: var(--ym-brand);
+}
+
+.order-card {
+  margin-bottom: 18rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.order-head,
+.order-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  color: var(--ym-muted);
+  font-size: 21rpx;
+}
+
+.status {
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.points-status-pending { color: var(--ym-warning); }
+.points-status-shipped { color: #326a73; }
+.points-status-completed { color: var(--ym-brand); }
+.points-status-canceled { color: var(--ym-muted); }
+
+.goods-row {
+  display: flex;
+  gap: 18rpx;
+  margin: 22rpx 0;
+}
+
+.goods-row image {
+  width: 132rpx;
+  height: 132rpx;
+  flex: 0 0 132rpx;
+  border-radius: var(--ym-radius-control);
+}
+
+.goods-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 9rpx;
+  color: var(--ym-ink-secondary);
+  font-size: 26rpx;
+}
+
+.goods-copy text:first-child {
+  color: var(--ym-ink);
+  font-weight: 700;
+}
+
+.goods-copy text:nth-child(2) {
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.goods-copy text:last-child {
+  margin-top: auto;
+  color: var(--ym-price);
+  font-weight: 800;
+}
+
+.order-foot {
+  padding-top: 18rpx;
+  border-top: 1rpx solid var(--ym-line);
+}
+
+.empty,
+.state {
+  padding: 120rpx 0;
+  color: var(--ym-muted);
+  text-align: center;
+  font-size: 26rpx;
+}
+
+.state {
+  padding: 36rpx 0;
+}
 </style>

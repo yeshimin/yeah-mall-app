@@ -1093,12 +1093,12 @@ onUnload(() => {
 
 .submit-btn {
   width: 220rpx;
-  height: 80rpx;
+  height: 88rpx;
   color: #fff;
   border-radius: var(--ym-radius-control);
   background: var(--ym-brand);
   box-shadow: none;
-  line-height: 80rpx;
+  line-height: 88rpx;
 }
 
 .submit-btn:active {

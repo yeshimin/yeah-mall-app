@@ -82,9 +82,136 @@ onPullDownRefresh(async () => { await loadBase(); await loadProducts(true); uni.
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 24rpx 24rpx 140rpx; box-sizing: border-box; background: #f4f0e8; color: #2d2a25; }
-.category-scroll { margin-bottom: 22rpx; white-space: nowrap; }.category-row { display: inline-flex; gap: 14rpx; }.category-chip { padding: 14rpx 28rpx; color: #756d63; border-radius: 30rpx; background: #fff; font-size: 24rpx; }.category-chip.active { color: #fff; background: #c45a31; box-shadow: 0 8rpx 20rpx rgba(196,90,49,.22); }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20rpx; }.card { overflow: hidden; border-radius: 22rpx; background: #fff; box-shadow: 0 8rpx 24rpx rgba(68,54,41,.07); }.card-image { width: 100%; height: 310rpx; background: #e8e1d5; }.card-body { padding: 20rpx; }.card-name, .card-subtitle { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }.card-name { font-size: 28rpx; font-weight: 700; }.card-subtitle { margin-top: 9rpx; color: #93897d; font-size: 21rpx; }.card-footer { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 22rpx; }.points { color: #c64d25; font-size: 34rpx; font-weight: 800; }.points text { margin-left: 4rpx; font-size: 19rpx; font-weight: 500; }.stock { color: #a39c92; font-size: 19rpx; }
-.state, .more-state { padding: 90rpx 0; color: #9b9287; text-align: center; font-size: 25rpx; }.more-state { padding: 34rpx 0; }
-.orders-entry { position: fixed; right: 28rpx; bottom: 44rpx; padding: 18rpx 28rpx; color: #fff; border-radius: 36rpx; background: #2d4038; font-size: 24rpx; box-shadow: 0 10rpx 28rpx rgba(45,64,56,.28); }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 152rpx;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.category-scroll {
+  margin-bottom: 22rpx;
+  white-space: nowrap;
+}
+
+.category-row {
+  display: inline-flex;
+  gap: 12rpx;
+}
+
+.category-chip {
+  min-height: 56rpx;
+  box-sizing: border-box;
+  padding: 12rpx 26rpx;
+  color: var(--ym-muted);
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+  font-size: 24rpx;
+}
+
+.category-chip.active {
+  color: #fff;
+  border-color: var(--ym-brand);
+  background: var(--ym-brand);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18rpx;
+}
+
+.card {
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.card:active {
+  opacity: 0.82;
+}
+
+.card-image {
+  width: 100%;
+  height: 310rpx;
+}
+
+.card-body {
+  padding: 20rpx;
+}
+
+.card-name,
+.card-subtitle {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-name {
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.card-subtitle {
+  margin-top: 8rpx;
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10rpx;
+  margin-top: 20rpx;
+}
+
+.points {
+  color: var(--ym-price);
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.points text,
+.stock {
+  color: var(--ym-muted);
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.points text {
+  margin-left: 4rpx;
+  color: var(--ym-price);
+}
+
+.state,
+.more-state {
+  padding: 96rpx 0;
+  color: var(--ym-muted);
+  text-align: center;
+  font-size: 26rpx;
+}
+
+.more-state {
+  padding: 36rpx 0;
+}
+
+.orders-entry {
+  position: fixed;
+  right: 24rpx;
+  bottom: calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 10;
+  padding: 18rpx 28rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  box-shadow: 0 10rpx 28rpx rgba(23, 75, 59, 0.22);
+  font-size: 24rpx;
+  font-weight: 600;
+}
 </style>

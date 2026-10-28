@@ -413,3 +413,102 @@ onLoad((options = {}) => {
   color: #999999;
 }
 </style>
+
+<style scoped>
+.container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx;
+  background: var(--ym-paper);
+}
+
+.activity-info-section {
+  margin-bottom: 18rpx;
+  padding: 26rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-card);
+  background: linear-gradient(135deg, var(--ym-brand-strong), var(--ym-brand));
+  box-shadow: none;
+}
+
+.activity-name {
+  color: #fff;
+  font-size: 32rpx;
+}
+
+.activity-description,
+.activity-time,
+.time-text {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.activity-status,
+.activity-status.active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.28);
+  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.seckill-products {
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.section-title {
+  margin-bottom: 16rpx;
+  padding: 4rpx 0 16rpx;
+  color: var(--ym-ink);
+  border-bottom-color: var(--ym-line);
+  font-size: 30rpx;
+}
+
+.product-item {
+  margin-bottom: 18rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.product-image-container {
+  width: 210rpx;
+  height: 210rpx;
+  margin-right: 20rpx;
+}
+
+.product-image {
+  border-radius: var(--ym-radius-control);
+}
+
+.seckill-tag {
+  color: #fff;
+  border-radius: 8rpx;
+  background: var(--ym-price);
+}
+
+.product-name {
+  color: var(--ym-ink);
+  font-size: 28rpx;
+}
+
+.mch-name,
+.shop-name,
+.session-name {
+  color: var(--ym-muted);
+  border-radius: 8rpx;
+  background: var(--ym-surface-subtle);
+}
+
+.price-symbol,
+.price-value {
+  color: var(--ym-price);
+}
+
+.original-price,
+.loading-container,
+.empty-container {
+  color: var(--ym-muted);
+}
+</style>

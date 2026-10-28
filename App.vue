@@ -48,6 +48,8 @@ onShow(() => {
 		--ym-muted: #65726a;
 		--ym-muted-light: #6b776f;
 		--ym-warning: #986019;
+		--ym-danger: #b6403a;
+		--ym-surface-subtle: #f8faf8;
 		--ym-radius-card: 24rpx;
 		--ym-radius-control: 16rpx;
 		--ym-shadow-card: 0 8rpx 24rpx rgba(18, 38, 29, 0.06);
@@ -80,5 +82,23 @@ onShow(() => {
 		bottom: 0;
 		z-index: 100;
 		background-color: #fff;
+	}
+
+	button {
+		box-sizing: border-box;
+	}
+
+	button::after {
+		border: 0;
+	}
+
+	image {
+		background-color: #edf1ee;
+	}
+
+	input,
+	textarea {
+		box-sizing: border-box;
+		color: var(--ym-ink-secondary);
 	}
 </style>

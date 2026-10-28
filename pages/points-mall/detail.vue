@@ -86,9 +86,219 @@ onLoad(async ({ id }) => {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding-bottom: 150rpx; background: #eee9e1; color: #2d2925; }.cover { width: 100%; height: 750rpx; background: #ded7cc; }.content-card { position: relative; margin-top: -34rpx; padding: 34rpx 28rpx 50rpx; border-radius: 34rpx 34rpx 0 0; background: #fff; }
-.title-row { display: flex; justify-content: space-between; gap: 20rpx; }.name, .subtitle { display: block; }.name { font-family: Georgia, serif; font-size: 42rpx; font-weight: 700; }.subtitle { margin-top: 10rpx; color: #8e867c; font-size: 24rpx; }.type-tag { align-self: flex-start; padding: 9rpx 14rpx; color: #8d4c2e; border-radius: 10rpx; background: #f6e9dc; font-size: 21rpx; }.section-title { display: block; margin: 38rpx 0 20rpx; font-size: 29rpx; font-weight: 700; }
-.sku-list { display: flex; flex-direction: column; gap: 14rpx; }.sku-card { display: flex; align-items: center; gap: 16rpx; padding: 14rpx; border: 2rpx solid #eee9e2; border-radius: 18rpx; }.sku-card.active { border-color: #c35a32; background: #fff9f5; }.sku-card.disabled { opacity: .42; }.sku-image { width: 84rpx; height: 84rpx; border-radius: 12rpx; background: #eee; }.sku-copy { display: flex; flex: 1; flex-direction: column; gap: 8rpx; font-size: 25rpx; }.sku-copy text:last-child { color: #c45128; font-weight: 700; }.sku-stock { color: #999; font-size: 21rpx; }
-.quantity-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28rpx; padding: 24rpx 0; border-top: 1rpx solid #eee8e1; }.stepper { display: flex; overflow: hidden; border: 1rpx solid #ddd5ca; border-radius: 10rpx; }.stepper text { min-width: 64rpx; padding: 8rpx 0; text-align: center; border-right: 1rpx solid #ddd5ca; }.stepper text:last-child { border: 0; }.rules { display: flex; flex-direction: column; gap: 12rpx; margin-top: 20rpx; padding: 24rpx; color: #756d63; border-radius: 16rpx; background: #f7f3ed; font-size: 23rpx; line-height: 1.5; }.rules text:first-child { color: #342f2a; font-weight: 700; }.description { color: #504a43; font-size: 25rpx; line-height: 1.7; }
-.bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; align-items: center; padding: 18rpx 26rpx calc(18rpx + env(safe-area-inset-bottom)); background: rgba(255,255,255,.96); box-shadow: 0 -8rpx 26rpx rgba(50,43,35,.08); }.total-label { color: #8e867d; font-size: 21rpx; }.total-points { display: block; color: #c74f28; font-size: 34rpx; font-weight: 800; }.exchange-btn { width: 260rpx; margin: 0; color: #fff; border-radius: 40rpx; background: #2e4439; font-size: 28rpx; }.exchange-btn[disabled] { opacity: .4; }
+.page {
+  min-height: 100vh;
+  padding-bottom: 164rpx;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.cover {
+  width: 100%;
+  height: 720rpx;
+}
+
+.content-card {
+  position: relative;
+  margin: 20rpx 24rpx 0;
+  padding: 30rpx 28rpx 44rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.title-row > view {
+  min-width: 0;
+  flex: 1;
+}
+
+.name,
+.subtitle {
+  display: block;
+}
+
+.name {
+  color: var(--ym-ink);
+  font-size: 38rpx;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.subtitle {
+  margin-top: 10rpx;
+  color: var(--ym-muted);
+  font-size: 24rpx;
+}
+
+.type-tag {
+  align-self: flex-start;
+  padding: 8rpx 14rpx;
+  color: var(--ym-brand);
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+  font-size: 21rpx;
+  white-space: nowrap;
+}
+
+.section-title {
+  display: block;
+  margin: 38rpx 0 20rpx;
+  color: var(--ym-ink);
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.sku-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.sku-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 14rpx;
+  border: 2rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+}
+
+.sku-card.active {
+  border-color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.sku-card.disabled {
+  opacity: 0.45;
+}
+
+.sku-image {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 12rpx;
+}
+
+.sku-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8rpx;
+  color: var(--ym-ink-secondary);
+  font-size: 25rpx;
+}
+
+.sku-copy text:last-child {
+  color: var(--ym-price);
+  font-weight: 700;
+}
+
+.sku-stock {
+  color: var(--ym-muted);
+  font-size: 21rpx;
+}
+
+.quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28rpx;
+  padding: 24rpx 0;
+  border-top: 1rpx solid var(--ym-line);
+}
+
+.stepper {
+  display: grid;
+  width: 232rpx;
+  height: 72rpx;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line-strong);
+  border-radius: var(--ym-radius-control);
+  background: #fff;
+}
+
+.stepper text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1rpx solid var(--ym-line);
+  font-size: 27rpx;
+}
+
+.stepper text:last-child {
+  border: 0;
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 20rpx;
+  padding: 24rpx;
+  color: var(--ym-muted);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface-subtle);
+  font-size: 23rpx;
+  line-height: 1.55;
+}
+
+.rules text:first-child {
+  color: var(--ym-ink);
+  font-weight: 700;
+}
+
+.description {
+  color: var(--ym-ink-secondary);
+  font-size: 26rpx;
+  line-height: 1.75;
+}
+
+.bottom-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.total-label {
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.total-points {
+  display: block;
+  color: var(--ym-price);
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.exchange-btn {
+  width: 260rpx;
+  height: 88rpx;
+  margin: 0;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  font-size: 28rpx;
+  line-height: 88rpx;
+}
+
+.exchange-btn[disabled] {
+  background: #a9b4ae;
+  opacity: 1;
+}
 </style>

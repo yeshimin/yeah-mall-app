@@ -809,7 +809,7 @@ onShow(() => {
 
 .checkout-btn {
   width: 210rpx;
-  height: 80rpx;
+  height: 88rpx;
   border-radius: var(--ym-radius-control);
   background: var(--ym-brand);
   font-size: 28rpx;

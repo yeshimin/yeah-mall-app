@@ -246,13 +246,13 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarTitleText": "Yeah Mall",
+		"navigationBarBackgroundColor": "#F4F6F3",
+		"backgroundColor": "#F4F6F3"
 	},
 	"uniIdRouter": {},
 	"tabBar": {
-		"color": "#7A7E83",
+		"color": "#65726a",
 		"selectedColor": "#24634f",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",

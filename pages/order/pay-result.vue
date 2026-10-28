@@ -488,9 +488,9 @@ onUnload(() => {
 }
 
 .btn {
-  height: 80rpx;
+  height: 88rpx;
   border-radius: var(--ym-radius-control);
-  line-height: 80rpx;
+  line-height: 88rpx;
 }
 
 .btn.primary {

@@ -84,13 +84,80 @@ onReachBottom(() => loadActivities())
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 24rpx; background: linear-gradient(180deg, #fff6ec 0, #f7f8fa 40%); box-sizing: border-box; }
-.activity-list { display: flex; flex-direction: column; gap: 22rpx; }
-.activity-card { display: flex; padding: 18rpx; background: #fff; border-radius: 20rpx; box-shadow: 0 10rpx 28rpx rgba(118, 65, 19, .08); }
-.cover { width: 180rpx; height: 180rpx; flex: 0 0 180rpx; border-radius: 14rpx; background: #f4e4d4; }
-.content { display: flex; min-width: 0; flex: 1; flex-direction: column; padding: 8rpx 8rpx 4rpx 20rpx; }
-.title { overflow: hidden; color: #2b1b0e; font-size: 32rpx; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.desc { display: -webkit-box; overflow: hidden; margin-top: 14rpx; color: #7d6654; font-size: 25rpx; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.meta { margin-top: auto; color: #d95a22; font-size: 24rpx; }
-.state { padding-top: 180rpx; color: #958679; font-size: 28rpx; text-align: center; }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx;
+  background: var(--ym-paper);
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.activity-card {
+  display: flex;
+  padding: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.activity-card:active {
+  opacity: 0.82;
+}
+
+.cover {
+  width: 180rpx;
+  height: 180rpx;
+  flex: 0 0 180rpx;
+  border-radius: var(--ym-radius-control);
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 8rpx 8rpx 4rpx 20rpx;
+}
+
+.title {
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 32rpx;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.desc {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 14rpx;
+  color: var(--ym-muted);
+  font-size: 25rpx;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.meta {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 6rpx 12rpx;
+  color: var(--ym-brand);
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+  font-size: 22rpx;
+}
+
+.state {
+  padding-top: 180rpx;
+  color: var(--ym-muted);
+  font-size: 28rpx;
+  text-align: center;
+}
 </style>

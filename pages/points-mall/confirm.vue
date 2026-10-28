@@ -118,8 +118,182 @@ onShow(() => {
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 24rpx 24rpx 150rpx; box-sizing: border-box; background: #f4f1eb; color: #302c27; }.address-card, .order-card, .summary-card, .notice { margin-bottom: 20rpx; padding: 28rpx; border-radius: 22rpx; background: #fff; box-shadow: 0 6rpx 20rpx rgba(62,51,40,.05); }.address-card { position: relative; }.address-head { display: flex; gap: 22rpx; font-size: 29rpx; font-weight: 700; }.address-detail { display: block; margin-top: 12rpx; padding-right: 36rpx; color: #716960; font-size: 25rpx; line-height: 1.5; }.address-empty { color: #b05632; font-weight: 700; }.arrow { position: absolute; right: 24rpx; top: 50%; color: #aaa; font-size: 42rpx; transform: translateY(-50%); }
-.order-card { display: flex; gap: 22rpx; }.image { width: 170rpx; height: 170rpx; flex: 0 0 170rpx; border-radius: 16rpx; background: #eee; }.product-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }.name { font-size: 29rpx; font-weight: 700; }.sku { margin-top: 12rpx; color: #938a80; font-size: 23rpx; }.points { margin-top: auto; color: #c54f28; font-size: 30rpx; font-weight: 800; }
-.summary-card view { display: flex; justify-content: space-between; padding: 14rpx 0; color: #6f675e; font-size: 25rpx; }.summary-card .remaining { margin-top: 12rpx; padding-top: 24rpx; color: #302c27; border-top: 1rpx solid #eee8e1; font-size: 29rpx; font-weight: 700; }.points-cost { color: #c64f2a; }.notice { display: flex; flex-direction: column; gap: 12rpx; color: #81786e; font-size: 23rpx; line-height: 1.5; }.notice text:first-child { color: #34302b; font-size: 27rpx; font-weight: 700; }
-.bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; align-items: center; padding: 18rpx 26rpx calc(18rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -8rpx 24rpx rgba(60,50,40,.08); }.bottom-bar view text { display: block; }.bottom-bar view text:first-child { color: #8d857b; font-size: 20rpx; }.bottom-bar view text:last-child { color: #c54f29; font-size: 34rpx; font-weight: 800; }.bottom-bar button { width: 270rpx; margin: 0; color: #fff; border-radius: 42rpx; background: #2e4439; font-size: 28rpx; }.bottom-bar button[disabled] { opacity: .45; }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24rpx 24rpx 164rpx;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.address-card,
+.order-card,
+.summary-card,
+.notice {
+  margin-bottom: 20rpx;
+  padding: 28rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.address-card {
+  position: relative;
+}
+
+.address-head {
+  display: flex;
+  gap: 22rpx;
+  color: var(--ym-ink);
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.address-detail {
+  display: block;
+  margin-top: 12rpx;
+  padding-right: 36rpx;
+  color: var(--ym-muted);
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.address-empty {
+  color: var(--ym-brand);
+  font-weight: 700;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  right: 24rpx;
+  color: var(--ym-muted);
+  font-size: 42rpx;
+  transform: translateY(-50%);
+}
+
+.order-card {
+  display: flex;
+  gap: 22rpx;
+}
+
+.image {
+  width: 170rpx;
+  height: 170rpx;
+  flex: 0 0 170rpx;
+  border-radius: var(--ym-radius-control);
+}
+
+.product-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.name {
+  color: var(--ym-ink);
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.sku {
+  margin-top: 12rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+}
+
+.points {
+  margin-top: auto;
+  color: var(--ym-price);
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.summary-card view {
+  display: flex;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  color: var(--ym-muted);
+  font-size: 25rpx;
+}
+
+.summary-card view text:last-child {
+  color: var(--ym-ink-secondary);
+}
+
+.summary-card .remaining {
+  margin-top: 12rpx;
+  padding-top: 24rpx;
+  color: var(--ym-ink);
+  border-top: 1rpx solid var(--ym-line);
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.points-cost,
+.summary-card .remaining text:last-child {
+  color: var(--ym-price) !important;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  color: var(--ym-muted);
+  background: var(--ym-surface-subtle);
+  font-size: 23rpx;
+  line-height: 1.55;
+}
+
+.notice text:first-child {
+  color: var(--ym-ink);
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.bottom-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.bottom-bar view text {
+  display: block;
+}
+
+.bottom-bar view text:first-child {
+  color: var(--ym-muted);
+  font-size: 21rpx;
+}
+
+.bottom-bar view text:last-child {
+  color: var(--ym-price);
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.bottom-bar button {
+  width: 270rpx;
+  height: 88rpx;
+  margin: 0;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  font-size: 28rpx;
+  line-height: 88rpx;
+}
+
+.bottom-bar button[disabled] {
+  background: #a9b4ae;
+  opacity: 1;
+}
 </style>

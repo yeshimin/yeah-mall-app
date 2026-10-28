@@ -750,8 +750,9 @@ onLoad((options = {}) => {
 }
 
 .submit-btn {
-  height: 80rpx;
+  height: 88rpx;
   border-radius: var(--ym-radius-control);
   background: var(--ym-brand);
+  line-height: 88rpx;
 }
 </style>

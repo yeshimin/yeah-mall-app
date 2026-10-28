@@ -801,7 +801,7 @@ onLoad((options = {}) => {
   right: 0;
   bottom: 0;
   max-height: 82%;
-  padding: 30rpx 24rpx 24rpx;
+  padding: 30rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
   border-top-left-radius: 22rpx;
   border-top-right-radius: 22rpx;
   background: var(--search-surface);

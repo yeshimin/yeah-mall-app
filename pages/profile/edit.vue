@@ -377,9 +377,10 @@ onLoad(() => {
 }
 
 .save-btn {
-  height: 80rpx;
+  height: 88rpx;
   color: #fff;
   border-radius: var(--ym-radius-control);
   background: var(--ym-brand);
+  line-height: 88rpx;
 }
 </style>

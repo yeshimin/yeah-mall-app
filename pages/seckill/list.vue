@@ -448,3 +448,65 @@ onLoad(() => {
   color: #999999;
 }
 </style>
+
+<style scoped>
+.container,
+.activity-list {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: var(--ym-paper);
+}
+
+.activity-list {
+  padding: 24rpx;
+}
+
+.activity-item {
+  margin-bottom: 18rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.activity-image-container {
+  width: 190rpx;
+  height: 190rpx;
+  margin-right: 20rpx;
+}
+
+.activity-image {
+  border-radius: var(--ym-radius-control);
+}
+
+.activity-name {
+  color: var(--ym-ink);
+  font-size: 30rpx;
+}
+
+.activity-description,
+.activity-time,
+.time-text {
+  color: var(--ym-muted);
+}
+
+.activity-status {
+  color: var(--ym-muted);
+  border-color: var(--ym-line);
+  border-radius: 8rpx;
+  background: var(--ym-surface-subtle);
+}
+
+.activity-status.active {
+  color: var(--ym-brand);
+  border-color: var(--ym-brand-soft);
+  background: var(--ym-brand-soft);
+}
+
+.loading-container,
+.empty-container {
+  color: var(--ym-muted);
+  background: transparent;
+}
+</style>

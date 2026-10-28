@@ -521,4 +521,152 @@ onLoad((options = {}) => {
 		font-size: 28rpx;
 		color: #999;
 	}
+
+	/* Unified review detail finish. Keep the existing structure and business bindings intact. */
+	.review-detail-container {
+		min-height: 100vh;
+		box-sizing: border-box;
+		padding: 24rpx;
+		background: var(--ym-paper);
+	}
+
+	.order-info,
+	.order-review,
+	.goods-reviews,
+	.empty-review {
+		margin: 0 0 20rpx;
+		padding: 26rpx;
+		border: 1rpx solid var(--ym-line);
+		border-radius: var(--ym-radius-card);
+		background: var(--ym-surface);
+	}
+
+	.order-label,
+	.order-time,
+	.rate-score,
+	.goods-spec,
+	.reply-status,
+	.empty-text {
+		color: var(--ym-muted);
+	}
+
+	.order-value,
+	.header-title,
+	.section-title,
+	.goods-name {
+		color: var(--ym-ink);
+	}
+
+	.anonymous-tag {
+		padding: 6rpx 14rpx;
+		color: var(--ym-muted);
+		border-radius: 8rpx;
+		background: var(--ym-surface-subtle);
+	}
+
+	.star-icon {
+		color: #d8dfda;
+	}
+
+	.star-icon.active {
+		color: #c98b2e;
+	}
+
+	.goods-reviews {
+		padding: 0;
+		overflow: hidden;
+	}
+
+	.review-section-header {
+		padding: 24rpx 26rpx;
+		border-bottom-color: var(--ym-line);
+	}
+
+	.goods-review-item {
+		padding: 26rpx;
+	}
+
+	.goods-image {
+		border-radius: var(--ym-radius-control);
+		background: #edf1ee;
+	}
+
+	.review-text {
+		padding: 20rpx;
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-surface-subtle);
+	}
+
+	.review-text text {
+		color: var(--ym-ink-secondary);
+		line-height: 1.6;
+	}
+
+	.image-list {
+		gap: 14rpx;
+	}
+
+	.review-image-slot {
+		margin: 0;
+		border: 1rpx solid var(--ym-line);
+		border-radius: var(--ym-radius-control);
+		background: #edf1ee;
+	}
+
+	.review-reply-item {
+		padding: 18rpx;
+		color: var(--ym-ink-secondary);
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-brand-soft);
+		line-height: 1.55;
+	}
+
+	.reply-label {
+		color: var(--ym-brand);
+	}
+
+	.reply-editor {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 116rpx;
+		gap: 12rpx;
+		padding: 12rpx;
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-surface-subtle);
+	}
+
+	.reply-input {
+		width: 100%;
+		height: 68rpx;
+		box-sizing: border-box;
+		padding: 0 16rpx;
+		border: 1rpx solid var(--ym-line);
+		border-radius: 12rpx;
+		background: #fff;
+	}
+
+	.reply-button {
+		width: 116rpx;
+		height: 68rpx;
+		margin: 0;
+		padding: 0;
+		border-radius: 12rpx;
+		background: var(--ym-brand);
+		line-height: 68rpx;
+	}
+
+	.divider {
+		margin: 24rpx -26rpx 0;
+		background: var(--ym-line);
+	}
+
+	.empty-review {
+		min-height: 240rpx;
+		box-sizing: border-box;
+	}
+
+	@media (max-width: 360px) {
+		.review-content {
+			margin-left: 0;
+		}
+	}
 </style>
