@@ -807,3 +807,159 @@ onLoad((options = {}) => {
 		border: 1rpx solid #ddd;
 	}
 </style>
+
+<style scoped>
+.order-detail {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.order-status-section,
+.order-status-section[class*='status-'] {
+  margin-bottom: 0;
+  padding: 38rpx 28rpx 64rpx;
+  color: #fff;
+  background: var(--ym-ink);
+}
+
+.status-text {
+  font-size: 38rpx;
+}
+
+.order-no {
+  color: rgba(255, 255, 255, 0.64);
+  opacity: 1;
+}
+
+.address-section,
+.goods-section,
+.amount-section,
+.info-section,
+.logistics-section {
+  margin: 18rpx 24rpx 0;
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.address-section {
+  margin-top: -30rpx;
+}
+
+.section-title {
+  padding: 22rpx 24rpx;
+  color: var(--ym-ink);
+  border-bottom-color: #edf0ed;
+  background: var(--ym-surface);
+}
+
+.section-title .iconfont {
+  color: var(--ym-brand);
+}
+
+.address-content,
+.goods-item,
+.shop-header,
+.amount-item,
+.info-item,
+.logistics-entrance {
+  padding-right: 24rpx;
+  padding-left: 24rpx;
+}
+
+.address-info .name,
+.shop-header,
+.goods-name,
+.logistics-company {
+  color: var(--ym-ink);
+}
+
+.address-info .phone,
+.address-full,
+.no-address,
+.goods-spec,
+.goods-quantity,
+.amount-item,
+.info-item,
+.info-item .label {
+  color: var(--ym-muted);
+}
+
+.goods-item,
+.shop-header,
+.amount-item.total {
+  border-color: #edf0ed;
+}
+
+.goods-image {
+  overflow: hidden;
+  border-radius: 18rpx;
+  background: var(--ym-paper);
+}
+
+.goods-price,
+.total-price {
+  color: var(--ym-price);
+}
+
+.status-signed {
+  color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.status-transit {
+  color: var(--ym-warning);
+  background: #fbf1df;
+}
+
+.logistics-status {
+  border-radius: 8rpx;
+}
+
+.order-actions {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  min-height: 116rpx;
+  box-sizing: border-box;
+  justify-content: flex-end;
+  gap: 12rpx;
+  margin: 0;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -8rpx 24rpx rgba(18, 38, 29, 0.06);
+}
+
+.action-btn {
+  min-width: 144rpx;
+  width: auto;
+  height: 68rpx;
+  padding: 0 22rpx;
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+  line-height: 68rpx;
+}
+
+.action-btn.primary {
+  color: #fff;
+  border-color: var(--ym-brand);
+  background: var(--ym-brand);
+}
+
+.action-btn.default {
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  background: var(--ym-surface);
+}
+</style>

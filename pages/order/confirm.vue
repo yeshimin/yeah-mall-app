@@ -994,3 +994,114 @@ onUnload(() => {
 		height: 100rpx;
 	}
 </style>
+
+<style scoped>
+.order-confirm {
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  padding: 20rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.address-section,
+.goods-section,
+.order-amount,
+.empty-state {
+  margin-top: 18rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.address-section {
+  margin-top: 0;
+}
+
+.location-icon,
+.shop-icon {
+  color: var(--ym-brand);
+}
+
+.address-text,
+.shop-name,
+.goods-name,
+.total-amount,
+.total-label {
+  color: var(--ym-ink);
+}
+
+.address-content {
+  padding: 20rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+
+.address-info .phone,
+.address-full,
+.no-address,
+.goods-spec,
+.goods-quantity,
+.amount-item,
+.coupon-name,
+.loading-text,
+.empty-text {
+  color: var(--ym-muted);
+}
+
+.shop-header,
+.goods-item,
+.amount-item {
+  border-color: #edf0ed;
+}
+
+.goods-image {
+  overflow: hidden;
+  border-radius: 18rpx;
+  background: var(--ym-paper);
+}
+
+.goods-price,
+.subtotal-price,
+.total-price,
+.total-info .total-price {
+  color: var(--ym-price);
+}
+
+.select-coupon,
+.discount-price {
+  color: var(--ym-brand);
+}
+
+.blank {
+  display: none;
+}
+
+.bottom-bar {
+  min-height: 116rpx;
+  height: auto;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top-color: var(--ym-line);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -8rpx 24rpx rgba(18, 38, 29, 0.06);
+}
+
+.submit-btn {
+  width: 220rpx;
+  height: 80rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  box-shadow: none;
+  line-height: 80rpx;
+}
+
+.submit-btn:active {
+  background: var(--ym-brand-strong);
+}
+</style>

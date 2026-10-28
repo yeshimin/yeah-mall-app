@@ -38,7 +38,8 @@
           <!-- 遍历行内每个快捷入口 -->
           <view 
             class="quick-link-item" 
-            v-for="link in row.items" 
+            :class="'quick-link-tone-' + ((linkIndex % 5) + 1)"
+            v-for="(link, linkIndex) in row.items"
             :key="link.id"
             @click="handleQuickLinkClick(link)"
             :style="{ width: `${100 / row.maxCount}%`, boxSizing: 'border-box', padding: '0 10rpx' }"
@@ -58,7 +59,21 @@
 
     <!-- 热门商品 -->
     <view class="section">
-      <view class="waterfall-container">
+      <view class="mall-section-heading">
+        <view class="mall-section-title-wrap">
+          <view class="mall-section-mark"></view>
+          <text class="mall-section-title">精选好物</text>
+        </view>
+        <text class="mall-section-subtitle">按销量与口碑推荐</text>
+      </view>
+      <view v-if="hotProductsLoading && hotProducts.length === 0" class="home-product-state">
+        <text>正在加载精选商品...</text>
+      </view>
+      <view v-else-if="hotProducts.length === 0" class="home-product-state">
+        <text class="home-product-state-title">暂无推荐商品</text>
+        <text class="home-product-state-hint">商品上架后会展示在这里</text>
+      </view>
+      <view v-else class="waterfall-container">
         <view class="waterfall-column">
           <view 
             class="product-item" 
@@ -113,7 +128,7 @@
     </view>
 
     <!-- 促销活动 -->
-    <view class="section">
+    <view v-if="promotions.length > 0" class="section">
       <scroll-view class="promotion-list" scroll-x>
         <view 
           class="promotion-item" 
@@ -150,6 +165,7 @@ const bannersLoading = ref(false)
 const quickLinks = ref([...defaultQuickLinks])
 const quickLinksLoading = ref(false)
 const hotProducts = ref([])
+const hotProductsLoading = ref(true)
 const promotions = ref([])
 const leftColumnProducts = ref([])
 const rightColumnProducts = ref([])
@@ -432,6 +448,7 @@ function fetchHotProducts() {
     return
   }
 
+  hotProductsLoading.value = true
   const params = ['pageSize=10']
   if (scrollToken.value) {
     params.push(`scrollToken=${encodeURIComponent(scrollToken.value)}`)
@@ -466,6 +483,9 @@ function fetchHotProducts() {
     },
     fail: (error) => {
       console.error('请求热门商品列表失败:', error)
+    },
+    complete: () => {
+      hotProductsLoading.value = false
     }
   })
 }
@@ -775,5 +795,197 @@ onMounted(() => {
   width: 100%;
   font-size: 28rpx;
   color: #999;
+}
+</style>
+
+<style scoped>
+.container {
+  min-height: 100%;
+  box-sizing: border-box;
+  background: var(--ym-paper);
+}
+
+.banner-section {
+  margin: 18rpx 24rpx 24rpx;
+  overflow: hidden;
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-brand-strong);
+  box-shadow: none;
+}
+
+.banner-swiper {
+  height: 360rpx;
+}
+
+.quick-links {
+  margin: 0;
+  padding: 12rpx 18rpx 20rpx;
+  border-radius: 0;
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.quick-link-row {
+  margin-bottom: 0;
+}
+
+.quick-link-item {
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+
+.quick-link-icon {
+  width: 88rpx;
+  height: 88rpx;
+  margin-bottom: 0;
+  border-radius: 24rpx;
+  background: var(--ym-brand-soft);
+  box-shadow: none;
+}
+
+.quick-link-tone-2 .quick-link-icon {
+  background: #e7f0f3;
+}
+
+.quick-link-tone-3 .quick-link-icon {
+  background: #fbf0de;
+}
+
+.quick-link-tone-4 .quick-link-icon {
+  background: #eeebf6;
+}
+
+.quick-link-tone-5 .quick-link-icon {
+  background: var(--ym-price-soft);
+}
+
+.quick-link-text {
+  color: var(--ym-ink-secondary);
+  font-size: 24rpx;
+}
+
+.section {
+  margin: 0;
+  background: var(--ym-surface);
+}
+
+.mall-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 24rpx 22rpx;
+}
+
+.mall-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.mall-section-mark {
+  width: 8rpx;
+  height: 32rpx;
+  border-radius: 4rpx;
+  background: var(--ym-brand);
+}
+
+.mall-section-title {
+  color: var(--ym-ink);
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.mall-section-subtitle {
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.waterfall-container {
+  gap: 18rpx;
+  min-height: 0;
+  padding: 0 24rpx 32rpx;
+}
+
+.waterfall-column {
+  width: calc(50% - 9rpx);
+  margin: 0;
+}
+
+.product-item {
+  margin-bottom: 18rpx;
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  box-shadow: none;
+}
+
+.product-item:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.product-image {
+  height: 280rpx;
+  object-fit: cover;
+  border-bottom-color: var(--ym-line);
+}
+
+.product-info {
+  padding: 20rpx;
+}
+
+.product-name {
+  margin-bottom: 10rpx;
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  line-height: 1.45;
+}
+
+.product-tags {
+  margin-bottom: 8rpx;
+}
+
+.product-tag {
+  margin-right: 8rpx;
+  margin-bottom: 6rpx;
+  padding: 4rpx 10rpx;
+  color: var(--ym-price);
+  border-color: #edc6bd;
+  border-radius: 8rpx;
+  background: var(--ym-price-soft);
+  font-size: 20rpx;
+}
+
+.product-price {
+  color: var(--ym-price);
+  font-size: 34rpx;
+}
+
+.product-sales {
+  color: var(--ym-muted);
+  font-size: 20rpx;
+}
+
+.home-product-state {
+  display: flex;
+  min-height: 260rpx;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 20rpx 24rpx 44rpx;
+  color: var(--ym-muted);
+  font-size: 24rpx;
+}
+
+.home-product-state-title {
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.home-product-state-hint {
+  margin-top: 8rpx;
+  color: var(--ym-muted);
+  font-size: 22rpx;
 }
 </style>

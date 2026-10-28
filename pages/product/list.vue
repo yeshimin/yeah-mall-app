@@ -426,17 +426,17 @@ onLoad((options = {}) => {
 
 <style scoped>
 .search-page {
-  --search-surface: #ffffff;
-  --search-surface-soft: #fafafa;
-  --search-text: #111111;
-  --search-muted: #7a7a7a;
-  --search-border: rgba(17, 17, 17, 0.08);
-  --search-border-strong: rgba(17, 17, 17, 0.16);
-  --search-accent: #111111;
-  --search-accent-soft: #f2f2f2;
-  --search-shadow: 0 8rpx 24rpx rgba(17, 17, 17, 0.04);
+  --search-surface: var(--ym-surface);
+  --search-surface-soft: var(--ym-paper);
+  --search-text: var(--ym-ink);
+  --search-muted: var(--ym-muted);
+  --search-border: var(--ym-line);
+  --search-border-strong: var(--ym-line-strong);
+  --search-accent: var(--ym-brand);
+  --search-accent-soft: var(--ym-brand-soft);
+  --search-shadow: var(--ym-shadow-card);
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--ym-paper);
   display: flex;
   flex-direction: column;
 }
@@ -446,7 +446,7 @@ onLoad((options = {}) => {
   top: 0;
   z-index: 20;
   padding: 20rpx 20rpx 16rpx;
-  background: rgba(245, 245, 245, 0.96);
+  background: rgba(244, 246, 243, 0.96);
   border-bottom: 1rpx solid var(--search-border);
 }
 
@@ -468,7 +468,7 @@ onLoad((options = {}) => {
   align-items: center;
   gap: 12rpx;
   padding: 0 20rpx;
-  border-radius: 14rpx;
+  border-radius: var(--ym-radius-control);
   background: var(--search-surface);
   border: 1rpx solid var(--search-border);
 }
@@ -490,9 +490,9 @@ onLoad((options = {}) => {
   width: 128rpx;
   height: 68rpx;
   line-height: 68rpx;
-  border-radius: 14rpx;
+  border-radius: var(--ym-radius-control);
   border: none;
-  background: #111111;
+  background: var(--ym-brand);
   color: #ffffff;
   font-size: 28rpx;
   font-weight: 600;
@@ -513,7 +513,7 @@ onLoad((options = {}) => {
   min-width: 0;
   min-height: 64rpx;
   padding: 0 12rpx;
-  border-radius: 14rpx;
+  border-radius: var(--ym-radius-control);
   background: var(--search-surface);
   border: 1rpx solid var(--search-border);
   color: var(--search-text);
@@ -521,8 +521,9 @@ onLoad((options = {}) => {
 }
 
 .tool-pill.active {
-  border-color: var(--search-text);
-  color: var(--search-text);
+  border-color: var(--ym-brand);
+  color: var(--ym-brand);
+  background: var(--ym-brand-soft);
 }
 
 .tool-pill.alt {
@@ -544,7 +545,7 @@ onLoad((options = {}) => {
   height: 34rpx;
   padding: 0 10rpx;
   border-radius: 999rpx;
-  background: #111111;
+  background: var(--ym-brand);
   color: #ffffff;
   font-size: 20rpx;
   line-height: 34rpx;
@@ -577,7 +578,7 @@ onLoad((options = {}) => {
 }
 
 .state-card {
-  border-radius: 18rpx;
+  border-radius: var(--ym-radius-card);
   padding: 34rpx 30rpx;
   background: var(--search-surface);
   border: 1rpx solid var(--search-border);
@@ -625,9 +626,10 @@ onLoad((options = {}) => {
 
 .product-item {
   background: #fff;
-  border-radius: 12rpx;
+  border-radius: var(--ym-radius-card);
   overflow: hidden;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid var(--ym-line);
+  box-shadow: none;
   margin-bottom: 24rpx;
 }
 
@@ -653,7 +655,7 @@ onLoad((options = {}) => {
   line-height: 1.4;
   font-size: 28rpx;
   font-weight: bold;
-  color: #000;
+  color: var(--ym-ink);
 }
 
 .price-sales-container {
@@ -667,12 +669,12 @@ onLoad((options = {}) => {
 .product-price {
   font-size: 28rpx;
   font-weight: 700;
-  color: #e4393c;
+  color: var(--ym-price);
 }
 
 .product-sales {
   font-size: 20rpx;
-  color: #999;
+  color: var(--ym-muted);
 }
 
 .result-list {
@@ -685,7 +687,7 @@ onLoad((options = {}) => {
   display: flex;
   align-items: stretch;
   overflow: hidden;
-  border-radius: 14rpx;
+  border-radius: var(--ym-radius-card);
   background: #fff;
   border: 1rpx solid var(--search-border);
   box-shadow: var(--search-shadow);
@@ -730,7 +732,7 @@ onLoad((options = {}) => {
 .result-row-price {
   font-size: 32rpx;
   font-weight: 700;
-  color: #111111;
+  color: var(--ym-price);
 }
 
 .result-row-sales {
@@ -761,7 +763,7 @@ onLoad((options = {}) => {
 .filter-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(17, 17, 17, 0.36);
+  background: rgba(23, 37, 31, 0.42);
 }
 
 .filter-content {
@@ -863,8 +865,8 @@ onLoad((options = {}) => {
 
 .brand-item.active,
 .shipping-item.active {
-  background: #111111;
-  border-color: #111111;
+  background: var(--ym-brand);
+  border-color: var(--ym-brand);
   color: #ffffff;
 }
 
@@ -891,7 +893,7 @@ onLoad((options = {}) => {
 }
 
 .filter-confirm {
-  background: #111111;
+  background: var(--ym-brand);
   color: #ffffff;
 }
 

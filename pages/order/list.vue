@@ -1051,3 +1051,146 @@ onLoad((options = {}) => {
 		border: 1rpx solid #ddd;
 	}
 </style>
+
+<style scoped>
+page,
+.order-list {
+  background: var(--ym-paper);
+}
+
+.status-tabs-container {
+  height: 88rpx;
+  border-bottom: 1rpx solid var(--ym-line);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
+}
+
+.tab-item {
+  min-width: 128rpx;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+}
+
+.tab-item.active,
+.review-sub-tab-item.active,
+.loading-text {
+  color: var(--ym-brand);
+}
+
+.tab-item.active::after,
+.review-sub-tab-item.active::after {
+  height: 5rpx;
+  border-radius: 3rpx;
+  background: var(--ym-brand);
+}
+
+.review-sub-tabs {
+  top: 88rpx;
+  border-bottom-color: var(--ym-line);
+}
+
+.review-sub-tab-item {
+  color: var(--ym-muted);
+}
+
+.order-content {
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+}
+
+.empty-state,
+.order-item {
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.go-shop-btn {
+  height: 72rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  line-height: 72rpx;
+}
+
+.order-header,
+.order-goods,
+.order-amount,
+.order-time {
+  border-color: #edf0ed;
+}
+
+.shop-name,
+.goods-name {
+  color: var(--ym-ink);
+}
+
+.shop-icon {
+  color: var(--ym-brand);
+}
+
+.order-status {
+  padding: 6rpx 12rpx;
+  color: var(--ym-price);
+  border-radius: 8rpx;
+  background: var(--ym-price-soft);
+  font-size: 22rpx;
+}
+
+.goods-image {
+  overflow: hidden;
+  border-radius: 18rpx;
+  background: var(--ym-paper);
+}
+
+.goods-spec,
+.goods-quantity,
+.order-amount,
+.order-time,
+.shipping-fee,
+.no-more-text,
+.load-more-text {
+  color: var(--ym-muted);
+}
+
+.goods-price,
+.total-price,
+.discount-amount {
+  color: var(--ym-price);
+}
+
+.order-amount {
+  flex-wrap: wrap;
+  gap: 4rpx;
+  line-height: 1.55;
+}
+
+.order-actions {
+  gap: 12rpx;
+}
+
+.action-btn {
+  min-width: 136rpx;
+  width: auto;
+  height: 64rpx;
+  padding: 0 20rpx;
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+  line-height: 64rpx;
+}
+
+.action-btn.primary {
+  color: #fff;
+  border-color: var(--ym-brand);
+  background: var(--ym-brand);
+}
+
+.action-btn.default {
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  background: var(--ym-surface);
+}
+</style>

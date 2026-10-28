@@ -34,7 +34,25 @@ onShow(() => {
 	/* 页面容器样式 */
 	page {
 		height: 100%;
-		background-color: #f8f8f8;
+		--ym-ink: #17251f;
+		--ym-ink-secondary: #30423a;
+		--ym-brand: #24634f;
+		--ym-brand-strong: #174b3b;
+		--ym-brand-soft: #e8f2ed;
+		--ym-price: #be412b;
+		--ym-price-soft: #f9ebe7;
+		--ym-paper: #f4f6f3;
+		--ym-surface: #ffffff;
+		--ym-line: #dce4de;
+		--ym-line-strong: #c8d4cc;
+		--ym-muted: #65726a;
+		--ym-muted-light: #6b776f;
+		--ym-warning: #986019;
+		--ym-radius-card: 24rpx;
+		--ym-radius-control: 16rpx;
+		--ym-shadow-card: 0 8rpx 24rpx rgba(18, 38, 29, 0.06);
+		color: var(--ym-ink);
+		background-color: var(--ym-paper);
 	}
 
 	/* 设置页面根元素的样式 */
@@ -42,7 +60,7 @@ onShow(() => {
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background-color: #f8f8f8;
+		background-color: var(--ym-paper);
 	}
 	
 	/* 设置页面主要内容区域的样式 */

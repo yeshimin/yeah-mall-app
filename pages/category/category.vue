@@ -1,5 +1,11 @@
 <template>
 	<view class="category-container">
+		<view v-if="categoryLoading || primaryCategories.length === 0" class="category-state">
+			<view class="category-state-mark">Y</view>
+			<text class="category-state-title">{{ categoryLoading ? '分类加载中' : '暂无商品分类' }}</text>
+			<text class="category-state-hint">{{ categoryLoading ? '正在整理商城分类，请稍候' : '分类配置完成后会显示在这里' }}</text>
+		</view>
+		<template v-else>
 		<!-- 一级分类 -->
 		<scroll-view class="primary-category" scroll-y :showScrollbar="false">
 			<view 
@@ -56,6 +62,7 @@
 				</view>
 			</scroll-view>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -67,6 +74,7 @@ const instance = getCurrentInstance()
 
 const currentPrimaryIndex = ref(0)
 const currentSecondaryIndex = ref(0)
+const categoryLoading = ref(true)
 const primaryCategories = ref([])
 const secondaryCategories = ref([])
 const tertiaryScrollTop = ref(0)
@@ -111,6 +119,7 @@ function goToProductList(item) {
 }
 
 function loadCategoryTree() {
+  categoryLoading.value = true
   fetchProductCategoryTree()
     .then((data) => {
       primaryCategories.value = data || []
@@ -120,6 +129,9 @@ function loadCategoryTree() {
     })
     .catch((error) => {
       console.error('Failed to fetch category data:', error)
+    })
+    .finally(() => {
+      categoryLoading.value = false
     })
 }
 
@@ -266,4 +278,158 @@ onMounted(() => {
 		font-size: 22rpx;
 		color: #666;
 	}
+</style>
+
+<style scoped>
+.category-container {
+  width: 100%;
+  height: 100%;
+  padding-top: 0;
+  background: var(--ym-surface);
+}
+
+.primary-category {
+  width: 176rpx;
+  height: 100%;
+  background: var(--ym-paper);
+}
+
+.primary-item {
+  position: relative;
+  height: 96rpx;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-left: 42rpx;
+  color: var(--ym-muted);
+  border-bottom: 0;
+  font-size: 28rpx;
+}
+
+.primary-item.active {
+  color: var(--ym-brand);
+  border-left: 8rpx solid var(--ym-brand);
+  background: var(--ym-surface);
+  font-weight: 700;
+}
+
+.secondary-container {
+  width: calc(100% - 176rpx);
+  height: 100%;
+  background: var(--ym-surface);
+}
+
+.secondary-tabs-wrapper {
+  height: 88rpx;
+  border-bottom-color: var(--ym-line);
+}
+
+.secondary-tabs-content {
+  display: inline-flex;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 0 16rpx;
+}
+
+.secondary-tab {
+  min-width: 128rpx;
+  height: 88rpx;
+  margin: 0 8rpx;
+  color: var(--ym-muted);
+  font-size: 27rpx;
+  line-height: 88rpx;
+}
+
+.secondary-tab.active {
+  color: var(--ym-brand);
+}
+
+.secondary-tab.active::after {
+  width: 42rpx;
+  height: 5rpx;
+  border-radius: 3rpx;
+  background: var(--ym-brand);
+}
+
+.tertiary-category {
+  background: var(--ym-surface);
+}
+
+.tertiary-section {
+  margin-bottom: 12rpx;
+}
+
+.secondary-title {
+  padding: 24rpx;
+  color: var(--ym-ink);
+  border-bottom-color: var(--ym-line);
+  background: var(--ym-surface);
+  font-size: 30rpx;
+}
+
+.tertiary-grid {
+  gap: 12rpx 0;
+  padding: 12rpx 16rpx 28rpx;
+}
+
+.tertiary-item {
+  margin-bottom: 12rpx;
+  padding: 8rpx;
+  box-sizing: border-box;
+}
+
+.tertiary-icon {
+  width: 116rpx;
+  height: 116rpx;
+  margin-bottom: 12rpx;
+  border-radius: 20rpx;
+  background: var(--ym-paper);
+}
+
+.tertiary-name {
+  max-width: 150rpx;
+  overflow: hidden;
+  color: var(--ym-ink-secondary);
+  font-size: 24rpx;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.category-state {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 40rpx;
+  background: var(--ym-paper);
+}
+
+.category-state-mark {
+  display: flex;
+  width: 96rpx;
+  height: 96rpx;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  color: #fff;
+  border-radius: 24rpx;
+  background: var(--ym-brand);
+  font-size: 46rpx;
+  font-weight: 700;
+}
+
+.category-state-title {
+  color: var(--ym-ink);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.category-state-hint {
+  margin-top: 10rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+}
 </style>

@@ -32,7 +32,7 @@
       
       <!-- 左侧内容 -->
       <view class="left-content" :style="{
-        width: statusBarInfo.leftMaxWidth + 'px',
+        width: (showSearch ? statusBarInfo.searchLeftWidth : statusBarInfo.leftMaxWidth) + 'px',
         height: (statusBarInfo.appHeight) + 'px',
         backgroundColor: navBarBackgroundColor,
         display: 'flex',
@@ -50,7 +50,7 @@
       <!-- 标题栏内容本体 -->
       <view class="app-status-bar" :style="{
         height: (statusBarInfo.appHeight) + 'px',
-        width: statusBarInfo.middleMaxWidth + 'px',
+        width: (showSearch ? statusBarInfo.searchMaxWidth : statusBarInfo.middleMaxWidth) + 'px',
         backgroundColor: navBarBackgroundColor,
         display: 'flex',
         alignItems: 'center',
@@ -59,12 +59,10 @@
         margin: '0'
       }">
         <!-- 搜索框 -->
-        <view v-if="showSearch" class="search-container" @click="handleSearch" :style="{
-          width: '80%'
-        }">
-          <view class="search-box">
+        <view v-if="showSearch" class="search-container" @click="handleSearch">
+          <view class="search-box" :style="{ height: statusBarInfo.controlHeight + 'px' }">
             <!-- 搜索图标 -->
-            <text class="search-icon">🔍</text>
+            <view class="search-icon"></view>
             <!-- 搜索提示 -->
             <text class="search-hint">{{ searchPlaceholder }}</text>
           </view>
@@ -108,7 +106,7 @@ const props = defineProps({
   },
   backgroundColor: {
     type: String,
-    default: '#f8f8f8'
+    default: '#f4f6f3'
   },
   backgroundOpacity: {
     type: Number,
@@ -125,7 +123,10 @@ const statusBarInfo = ref({
   appBottom: 0,
   plusHeight: 0,
   middleMaxWidth: 0,
-  leftMaxWidth: 0
+  leftMaxWidth: 0,
+  searchLeftWidth: 0,
+  searchMaxWidth: 0,
+  controlHeight: 32
 })
 
 function clampOpacity(value) {
@@ -194,6 +195,8 @@ function calcStatusBarInfo() {
     const plusHeight = sysHeight + appHeight
     const leftMaxWidth = Math.max((systemInfo.screenWidth || 375) * 0.2, 72)
     const middleMaxWidth = (systemInfo.screenWidth || 375) - leftMaxWidth * 2
+    const searchLeftWidth = 12
+    const searchMaxWidth = (systemInfo.screenWidth || 375) - searchLeftWidth * 2
 
     statusBarInfo.value = {
       sysHeight,
@@ -202,7 +205,10 @@ function calcStatusBarInfo() {
       appBottom: plusHeight,
       plusHeight,
       middleMaxWidth,
-      leftMaxWidth
+      leftMaxWidth,
+      searchLeftWidth,
+      searchMaxWidth,
+      controlHeight: 34
     }
 
     emit('height-calculated', { plusHeight })
@@ -216,6 +222,9 @@ function calcStatusBarInfo() {
   const plusHeight = sysHeight + appHeight
   const middleMaxWidth = ((menuButtonInfo.left) - (systemInfo.screenWidth / 2)) * 2
   const leftMaxWidth = (systemInfo.screenWidth - middleMaxWidth) / 2
+  const searchLeftWidth = 12
+  const searchGap = 8
+  const searchMaxWidth = Math.max(menuButtonInfo.left - searchLeftWidth - searchGap, 120)
 
   statusBarInfo.value = {
     sysHeight,
@@ -224,7 +233,10 @@ function calcStatusBarInfo() {
     appBottom,
     plusHeight,
     middleMaxWidth: middleMaxWidth - 16,
-    leftMaxWidth
+    leftMaxWidth,
+    searchLeftWidth,
+    searchMaxWidth,
+    controlHeight: menuButtonInfo.height || 32
   }
 
   emit('height-calculated', { plusHeight })
@@ -267,29 +279,51 @@ onMounted(() => {
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   height: 100%;
+  width: 100%;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background-color: #ecdfdf;
-  border-radius: 20rpx;
-  padding: 0 20rpx;
-  height: 40rpx;
+  gap: 14rpx;
+  box-sizing: border-box;
+  padding: 0 22rpx;
   width: 100%;
+  border: 1rpx solid var(--ym-line, #dce4de);
+  border-radius: 18rpx;
+  background-color: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2rpx 8rpx rgba(18, 38, 29, 0.04);
 }
 
 .search-icon {
-  font-size: 20rpx;
+  position: relative;
+  width: 20rpx;
+  height: 20rpx;
+  flex: 0 0 20rpx;
+  box-sizing: border-box;
+  border: 3rpx solid var(--ym-muted, #65726a);
+  border-radius: 50%;
+}
+
+.search-icon::after {
+  position: absolute;
+  right: -7rpx;
+  bottom: -5rpx;
+  width: 8rpx;
+  height: 3rpx;
+  border-radius: 2rpx;
+  background: var(--ym-muted, #65726a);
+  content: '';
+  transform: rotate(45deg);
 }
 
 .search-hint {
   flex: 1;
-  color: #999;
-  font-size: 22rpx;
-  text-align: center;
+  color: var(--ym-muted, #65726a);
+  font-size: 26rpx;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -304,7 +338,7 @@ onMounted(() => {
 .title {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: var(--ym-ink, #17251f);
 }
 
 /* 返回按钮样式 */
@@ -316,7 +350,7 @@ onMounted(() => {
   height: 56rpx;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 3rpx 12rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4rpx 16rpx rgba(18, 38, 29, 0.12);
   transition: all 0.3s ease;
   margin-left: 16px;
 }
@@ -324,8 +358,8 @@ onMounted(() => {
 .back-icon {
   width: 16rpx;
   height: 16rpx;
-  border-bottom: 3rpx solid #333;
-  border-left: 3rpx solid #333;
+  border-bottom: 3rpx solid var(--ym-ink, #17251f);
+  border-left: 3rpx solid var(--ym-ink, #17251f);
   transform: rotate(45deg);
 }
 </style>

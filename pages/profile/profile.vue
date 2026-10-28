@@ -6,6 +6,7 @@
         <image class="user-avatar" :src="userInfo.avatarUrl" mode="aspectFill"></image>
         <view class="user-details">
           <text class="user-name">{{ userInfo.nickname }}</text>
+          <text class="user-meta">普通会员 · ID {{ userInfo.id || '-' }}</text>
         </view>
       </view>
       <view class="edit-arrow"></view>
@@ -19,8 +20,11 @@
       </view>
       <view class="order-stats">
         <view class="stat-item" v-for="(stat, index) in orderStats" :key="index" @click="viewOrdersByStatus(index)">
-          <text class="stat-icon">{{ stat.name }}</text>
-          <text class="stat-count">{{ stat.count }}</text>
+          <view class="stat-icon-box">
+            <text class="stat-symbol">{{ stat.icon }}</text>
+            <text v-if="stat.count > 0" class="stat-count">{{ stat.count }}</text>
+          </view>
+          <text class="stat-label">{{ stat.name }}</text>
         </view>
       </view>
     </view>
@@ -29,7 +33,7 @@
     <view class="section">
       <view class="function-grid">
         <view class="function-item" v-for="(func, index) in functions" :key="index" @click="useFunction(index)">
-          <text class="function-icon">{{ func.icon }}</text>
+          <text class="function-icon">{{ func.short }}</text>
           <text class="function-text">{{ func.name }}</text>
         </view>
       </view>
@@ -63,18 +67,18 @@ const userInfo = reactive({
 })
 
 const orderStats = reactive([
-  { name: '待付款', key: 'waitPayCount', count: 0 },
-  { name: '待发货', key: 'waitShipCount', count: 0 },
-  { name: '待收货', key: 'waitReceiveCount', count: 0 },
-  { name: '待评价', key: 'waitCommentCount', count: 0 },
-  { name: '退款/售后', key: 'refundAndAfterSaleCount', count: 0 }
+  { name: '待付款', icon: '单', key: 'waitPayCount', count: 0 },
+  { name: '待发货', icon: '箱', key: 'waitShipCount', count: 0 },
+  { name: '待收货', icon: '运', key: 'waitReceiveCount', count: 0 },
+  { name: '待评价', icon: '评', key: 'waitCommentCount', count: 0 },
+  { name: '退款/售后', icon: '售', key: 'refundAndAfterSaleCount', count: 0 }
 ])
 
 const functions = [
-  { name: '优惠券', icon: '优惠券' },
-  { name: '积分', icon: '积分' },
-  { name: '收藏', icon: '收藏' },
-  { name: '地址', icon: '地址' }
+  { name: '优惠券', short: '券' },
+  { name: '积分', short: '分' },
+  { name: '收藏', short: '藏' },
+  { name: '地址', short: '址' }
 ]
 
 const settings = [
@@ -383,5 +387,165 @@ onShow(() => {
   border-top: 2rpx solid currentColor;
   border-right: 2rpx solid currentColor;
   transform: rotate(45deg);
+}
+</style>
+
+<style scoped>
+.profile-container {
+  min-height: 100%;
+  height: auto;
+  padding-top: 0;
+  padding-bottom: calc(var(--window-bottom) + 24rpx);
+  background: var(--ym-paper);
+}
+
+.profile-header {
+  margin: 0;
+  padding: 40rpx 28rpx 68rpx;
+  border-radius: 0;
+  background: var(--ym-ink);
+  box-shadow: none;
+}
+
+.user-avatar {
+  width: 104rpx;
+  height: 104rpx;
+  margin-right: 24rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: var(--ym-brand-soft);
+}
+
+.user-name {
+  margin-bottom: 6rpx;
+  color: #fff;
+  font-size: 36rpx;
+}
+
+.user-meta {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 22rpx;
+}
+
+.edit-arrow {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.section {
+  margin: 18rpx 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.profile-header + .section {
+  margin-top: -34rpx;
+}
+
+.section-header {
+  padding: 24rpx;
+  border-bottom-color: #edf0ed;
+}
+
+.section-title {
+  color: var(--ym-ink);
+  font-size: 30rpx;
+}
+
+.section-more {
+  color: var(--ym-muted);
+  font-size: 23rpx;
+}
+
+.order-stats {
+  padding: 26rpx 8rpx 28rpx;
+}
+
+.stat-item {
+  gap: 10rpx;
+}
+
+.stat-icon-box {
+  position: relative;
+  display: flex;
+  width: 56rpx;
+  height: 56rpx;
+  align-items: center;
+  justify-content: center;
+  color: var(--ym-brand);
+  border: 1rpx solid var(--ym-line);
+  border-radius: 16rpx;
+  background: var(--ym-brand-soft);
+}
+
+.stat-symbol {
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.stat-count {
+  position: absolute;
+  top: -10rpx;
+  right: -12rpx;
+  display: flex;
+  min-width: 28rpx;
+  height: 28rpx;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 7rpx;
+  color: #fff;
+  border: 3rpx solid var(--ym-surface);
+  border-radius: 16rpx;
+  background: var(--ym-price);
+  font-size: 18rpx;
+  font-weight: 700;
+}
+
+.stat-label {
+  color: var(--ym-ink-secondary);
+  font-size: 22rpx;
+  white-space: nowrap;
+}
+
+.function-grid {
+  padding: 24rpx 8rpx 28rpx;
+}
+
+.function-item {
+  gap: 10rpx;
+}
+
+.function-icon {
+  width: 68rpx;
+  height: 68rpx;
+  margin-bottom: 0;
+  color: var(--ym-brand);
+  border-radius: 20rpx;
+  background: var(--ym-brand-soft);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.function-text {
+  color: var(--ym-ink-secondary);
+  font-size: 23rpx;
+}
+
+.list-item {
+  min-height: 92rpx;
+  box-sizing: border-box;
+  padding: 0 26rpx;
+  border-bottom-color: #edf0ed;
+}
+
+.list-item-text {
+  color: var(--ym-ink);
+  font-size: 27rpx;
+}
+
+.list-item-arrow {
+  color: var(--ym-muted);
 }
 </style>
