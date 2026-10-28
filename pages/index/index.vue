@@ -46,8 +46,8 @@
           <!-- 遍历行内每个快捷入口 -->
           <view 
             class="quick-link-item" 
-            :class="'quick-link-tone-' + ((linkIndex % 5) + 1)"
-            v-for="(link, linkIndex) in row.items"
+            :class="`quick-link-tone-${getQuickLinkTone(link)}`"
+            v-for="link in row.items"
             :key="link.id"
             hover-class="none"
             @click="handleQuickLinkClick(link)"
@@ -205,12 +205,14 @@ import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
 
 const quickLinkFallbackIcons = {
-  goToSeckill: '/static/quick/seckill.png',
-  goToGroupBuy: '/static/quick/group-buy.png',
-  goToNewArrivals: '/static/quick/new.png',
-  goToCoupons: '/static/quick/coupon.png',
+  goToSeckill: '/static/quick/seckill-prototype-v2.png',
+  goToGroupBuy: '/static/quick/group-buy-prototype-v2.png',
+  goToNewArrivals: '/static/quick/new-prototype-v2.png',
+  goToCoupons: '/static/quick/coupon-prototype-v2.png',
+  goToCouponCenter: '/static/quick/coupon-prototype-v2.png',
   goToMember: '/static/quick/member.png',
-  goToPoints: '/static/quick/points.png',
+  goToPoints: '/static/quick/points-prototype-v2.png',
+  goToPointsMall: '/static/quick/points-prototype-v2.png',
   goToService: '/static/quick/service.png',
   goToSettings: '/static/quick/settings.png',
   handleCustomQuickLink: '/static/quick/default.png',
@@ -455,6 +457,16 @@ function getActionForQuickLink(type, target) {
     default:
       return target ? 'handleCustomQuickLink' : 'handleDefaultQuickLink'
   }
+}
+
+function getQuickLinkTone(link) {
+  const action = link.action
+  if (action === 'goToSeckill') return 'seckill'
+  if (action === 'goToGroupBuy') return 'group'
+  if (action === 'goToCoupons' || action === 'goToCouponCenter') return 'coupon'
+  if (action === 'goToPoints' || action === 'goToPointsMall') return 'points'
+  if (action === 'goToNewArrivals') return 'new'
+  return 'brand'
 }
 
 function handleDefaultQuickLink() {
@@ -1170,20 +1182,25 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-.quick-link-tone-2 .quick-link-icon-shell {
+.quick-link-tone-seckill .quick-link-icon-shell {
+  background: var(--ym-price-soft);
+}
+
+.quick-link-tone-group .quick-link-icon-shell {
   background: #e7f0f3;
 }
 
-.quick-link-tone-3 .quick-link-icon-shell {
+.quick-link-tone-coupon .quick-link-icon-shell {
   background: #fbf0de;
 }
 
-.quick-link-tone-4 .quick-link-icon-shell {
+.quick-link-tone-points .quick-link-icon-shell {
   background: #eeebf6;
 }
 
-.quick-link-tone-5 .quick-link-icon-shell {
-  background: var(--ym-price-soft);
+.quick-link-tone-new .quick-link-icon-shell,
+.quick-link-tone-brand .quick-link-icon-shell {
+  background: var(--ym-brand-soft);
 }
 
 

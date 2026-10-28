@@ -59,23 +59,29 @@
         margin: '0'
       }">
         <view
-          v-if="showSearch && showBrand"
-          class="mall-wordmark"
-          aria-label="Yeah Mall"
-          role="button"
-          hover-class="mall-wordmark--pressed"
-          @click="handleBrandClick"
+          v-if="showSearch"
+          class="search-content"
+          :style="{ height: statusBarInfo.controlHeight + 'px' }"
         >
-          <text>YEAH</text>
-          <text>MALL</text>
-        </view>
-        <!-- 搜索框 -->
-        <view v-if="showSearch" class="search-container" @click="handleSearch">
-          <view class="search-box" :style="{ height: statusBarInfo.controlHeight + 'px' }">
-            <!-- 搜索图标 -->
-            <view class="search-icon"></view>
-            <!-- 搜索提示 -->
-            <text class="search-hint">{{ searchPlaceholder }}</text>
+          <view
+            v-if="showBrand"
+            class="mall-wordmark"
+            aria-label="Yeah Mall"
+            role="button"
+            hover-class="mall-wordmark--pressed"
+            @click="handleBrandClick"
+          >
+            <text>YEAH</text>
+            <text>MALL</text>
+          </view>
+          <!-- 搜索框 -->
+          <view class="search-container" @click="handleSearch">
+            <view class="search-box">
+              <!-- 搜索图标 -->
+              <view class="search-icon"></view>
+              <!-- 搜索提示 -->
+              <text class="search-hint">{{ searchPlaceholder }}</text>
+            </view>
           </view>
         </view>
         <!-- 标题 -->
@@ -195,7 +201,9 @@ function calcStatusBarInfo() {
   let menuButtonInfo
 
   try {
-    systemInfo = wx.getSystemInfoSync()
+    const legacySystemInfo = wx.getSystemInfoSync()
+    const windowInfo = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : null
+    systemInfo = windowInfo ? { ...legacySystemInfo, ...windowInfo } : legacySystemInfo
     menuButtonInfo = wx.getMenuButtonBoundingClientRect()
   } catch (error) {
     systemInfo = uni.getSystemInfoSync()
@@ -240,9 +248,20 @@ function calcStatusBarInfo() {
     return
   }
 
-  const sysHeight = systemInfo.statusBarHeight || 0
-  const appHeight = (((menuButtonInfo.bottom + menuButtonInfo.top) / 2) - sysHeight) * 2
-  const sysBottom = (systemInfo.screenTop || 0) + sysHeight
+  const sysHeight = Number(systemInfo.statusBarHeight || 0)
+  const menuTop = Number(menuButtonInfo.top)
+  const menuBottom = Number(menuButtonInfo.bottom)
+  const menuRectHeight = menuBottom - menuTop
+  const reportedMenuHeight = Number(menuButtonInfo.height)
+
+  // macOS 端的矩形范围可能包含额外点击热区，优先使用较小的可见胶囊高度。
+  const controlHeight = Number.isFinite(reportedMenuHeight) && reportedMenuHeight > 0
+    ? Math.min(reportedMenuHeight, menuRectHeight)
+    : menuRectHeight
+  const menuCenter = (menuTop + menuBottom) / 2
+  const topGap = Math.max(menuCenter - sysHeight - controlHeight / 2, 0)
+  const appHeight = topGap * 2 + controlHeight
+  const sysBottom = sysHeight
   const appBottom = sysBottom + appHeight
   const plusHeight = sysHeight + appHeight
   const middleMaxWidth = (menuButtonInfo.left - viewportWidth / 2) * 2
@@ -261,7 +280,7 @@ function calcStatusBarInfo() {
     leftMaxWidth,
     searchLeftWidth,
     searchMaxWidth,
-    controlHeight: menuButtonInfo.height || 32
+    controlHeight
   }
 
   emit('height-calculated', { plusHeight })
@@ -312,8 +331,16 @@ onUnmounted(() => {
 
 /* 应用状态栏 */
 .app-status-bar {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.search-content {
+  display: flex;
+  align-items: center;
   gap: 28rpx;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -321,6 +348,11 @@ onUnmounted(() => {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   color: var(--ym-ink, #17251f);
   font-size: 22rpx;
   font-weight: 800;
@@ -359,6 +391,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   padding: 0 22rpx;
   width: 100%;
+  height: 100%;
   border: 1rpx solid var(--ym-line, #dce4de);
   border-radius: 18rpx;
   background-color: rgba(255, 255, 255, 0.96);
