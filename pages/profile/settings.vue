@@ -49,14 +49,15 @@ onLoad(() => {
 .settings-page {
   min-height: 100vh;
   padding: 24rpx;
-  background: #f7f8fa;
+  background: var(--ym-paper);
   box-sizing: border-box;
 }
 
 .settings-group {
   overflow: hidden;
-  background: #fff;
-  border-radius: 16rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
 }
 
 .setting-row {
@@ -69,21 +70,22 @@ onLoad(() => {
 
 .setting-title {
   display: block;
-  color: #1f2937;
+  color: var(--ym-ink);
   font-size: 30rpx;
+  font-weight: 600;
 }
 
 .setting-desc {
   display: block;
   margin-top: 8rpx;
-  color: #9ca3af;
+  color: var(--ym-muted);
   font-size: 24rpx;
 }
 
 .arrow {
   width: 14rpx;
   height: 14rpx;
-  color: #b0b6c1;
+  color: var(--ym-muted);
   border-top: 2rpx solid currentColor;
   border-right: 2rpx solid currentColor;
   transform: rotate(45deg);
@@ -96,11 +98,15 @@ onLoad(() => {
 .logout-button {
   width: 100%;
   height: 88rpx;
-  color: #df3d3d;
+  color: var(--ym-price);
   font-size: 30rpx;
   line-height: 88rpx;
-  background: #fff;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+}
+
+.logout-button::after {
   border: 0;
-  border-radius: 16rpx;
 }
 </style>

@@ -989,3 +989,143 @@ onUnmounted(() => {
 	
 
 </style>
+
+<style scoped>
+.page-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.customer-service-container,
+.chat-content {
+  min-width: 0;
+  min-height: 0;
+}
+
+.service-header {
+  min-height: 92rpx;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx;
+  border-bottom-color: var(--ym-line);
+}
+
+.shop-info,
+.shop-details {
+  min-width: 0;
+}
+
+.shop-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  flex: 0 0 64rpx;
+  border-radius: 18rpx;
+  background: var(--ym-brand-soft);
+}
+
+.shop-name {
+  display: block;
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chat-content {
+  box-sizing: border-box;
+  padding: 24rpx;
+  background: #eef2ef;
+}
+
+.message-wrapper {
+  min-width: 0;
+  max-width: 76%;
+}
+
+.service-message .message-content {
+  border-color: var(--ym-line);
+  border-radius: 6rpx 18rpx 18rpx 18rpx;
+  background: var(--ym-surface);
+}
+
+.user-message .message-content {
+  border-radius: 18rpx 6rpx 18rpx 18rpx;
+  background: var(--ym-brand);
+}
+
+.input-section {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) 104rpx;
+  align-items: end;
+  gap: 12rpx;
+  box-sizing: border-box;
+  padding: 14rpx 20rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.input-container {
+  width: 100%;
+  min-width: 0;
+  min-height: 72rpx;
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  border-color: var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+
+.input-container:focus-within {
+  border-color: var(--ym-brand);
+}
+
+.message-input {
+  min-width: 0;
+  min-height: 48rpx;
+  max-height: 120rpx;
+}
+
+.input-actions {
+  flex: 0 0 auto;
+}
+
+.send-btn {
+  width: 104rpx;
+  height: 72rpx;
+  grid-column: 2;
+  grid-row: 1;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  box-shadow: none;
+}
+
+.send-btn:hover:not(:disabled) {
+  background: var(--ym-brand-strong);
+  box-shadow: none;
+}
+
+.send-btn:disabled {
+  color: var(--ym-muted);
+  background: var(--ym-paper);
+}
+
+.image-preview-container {
+  width: 100%;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  box-sizing: border-box;
+  margin: 0;
+  border-color: var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+</style>

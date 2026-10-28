@@ -258,3 +258,67 @@ onLoad((options = {}) => {
 		}
 	}
 </style>
+
+<style scoped>
+.refund-apply {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.refund-section,
+.submit-section {
+  margin: 0 0 18rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.section-title,
+.refund-description,
+.loading-text {
+  color: var(--ym-ink);
+}
+
+.reason-item {
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+}
+
+.reason-item.active {
+  color: var(--ym-brand);
+  border-color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.refund-description {
+  border-color: var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+
+.description-count {
+  color: var(--ym-muted);
+}
+
+.submit-btn {
+  height: 80rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  line-height: 80rpx;
+}
+
+.submit-btn:disabled {
+  background: #aeb9b2;
+}
+
+.loading-content {
+  border-radius: var(--ym-radius-card);
+}
+</style>

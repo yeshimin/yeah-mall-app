@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <view class="header"><text>浏览足迹</text><text class="clear" @click="clear">清空</text></view>
+    <view v-if="items.length" class="header"><text class="clear" @click="clear">清空</text></view>
     <view v-if="loading && items.length === 0" class="state">加载中...</view>
     <view v-else-if="items.length === 0" class="state">暂未浏览商品</view>
     <view v-else class="product-list">
@@ -14,6 +14,7 @@
         <text class="remove" @click.stop="remove(item)">删除</text>
       </view>
     </view>
+    <view v-if="items.length" class="footer">{{ noMore ? '没有更多了' : '上拉加载更多' }}</view>
   </view>
 </template>
 
@@ -69,14 +70,101 @@ onReachBottom(() => load())
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 20rpx; box-sizing: border-box; background: #f7f8fa; }
-.header { display: flex; justify-content: space-between; margin: 8rpx 6rpx 20rpx; color: #222; font-size: 30rpx; font-weight: 700; }
-.clear, .remove { color: #576b95; font-size: 24rpx; font-weight: 400; }
-.product-card { display: flex; align-items: center; gap: 18rpx; margin-bottom: 16rpx; padding: 18rpx; background: #fff; border-radius: 14rpx; }
-.image { width: 132rpx; height: 132rpx; border-radius: 10rpx; background: #eee; }
-.content { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 10rpx; }
-.name { overflow: hidden; color: #222; font-size: 28rpx; text-overflow: ellipsis; white-space: nowrap; }
-.price { color: #e64340; font-size: 30rpx; font-weight: 700; }
-.time { color: #999; font-size: 22rpx; }
-.state { padding: 100rpx 0; color: #999; font-size: 26rpx; text-align: center; }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+  background: var(--ym-paper);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 56rpx;
+  margin-bottom: 12rpx;
+}
+
+.clear,
+.remove {
+  display: flex;
+  min-height: 56rpx;
+  align-items: center;
+  padding: 0 8rpx;
+  color: var(--ym-brand);
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.product-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  box-sizing: border-box;
+  padding: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.image {
+  width: 132rpx;
+  height: 132rpx;
+  flex: 0 0 132rpx;
+  border-radius: 14rpx;
+  background: var(--ym-brand-soft);
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.price {
+  color: var(--ym-price);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.time {
+  overflow: hidden;
+  color: var(--ym-muted);
+  font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  margin-top: 120rpx;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.footer {
+  padding: 28rpx 0 12rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+  text-align: center;
+}
 </style>

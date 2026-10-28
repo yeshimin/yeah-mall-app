@@ -338,7 +338,7 @@ onLoad(() => {
   background-color: #ff4444;
   color: #ffffff;
   padding: 2px 8px;
-  border-radius: 4px 0 4px 0;
+  border-radius: var(--ym-radius-card, 24rpx);
   font-size: 12px;
 }
 

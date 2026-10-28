@@ -2,16 +2,25 @@
 import { getToken, handleAuthFailure } from './auth.js';
 import { BASE_API } from './config.js';
 
+function createRequestHeader(includeContentType = true) {
+  const header = {}
+  if (includeContentType) {
+    header['Content-Type'] = 'application/json'
+  }
+  const token = getToken()
+  if (token) {
+    header.Authorization = `Bearer ${token}`
+  }
+  return header
+}
+
 // Function to fetch product category tree
 export const fetchProductCategoryTree = () => {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_API}/app/productCategory/tree`,
       method: 'GET',
-      header: {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json'
-      },
+      header: createRequestHeader(),
       success: (res) => {
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data.data);
@@ -26,16 +35,51 @@ export const fetchProductCategoryTree = () => {
   });
 };
 
+// 查询店铺详情
+export const fetchShopDetail = (shopId) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/shop/detail`,
+      method: 'GET',
+      data: { shopId },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error((res.data && res.data.message) || '获取店铺信息失败'));
+        }
+      },
+      fail: reject
+    });
+  });
+};
+
+// 分页查询店铺商品
+export const fetchShopProducts = (shopId, current = 1, size = 10) => {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${BASE_API}/app/shop/product/query`,
+      method: 'GET',
+      data: { shopId, current, size },
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && res.data.code === 0) {
+          resolve(res.data.data);
+        } else {
+          reject(new Error((res.data && res.data.message) || '获取店铺商品失败'));
+        }
+      },
+      fail: reject
+    });
+  });
+};
+
 // 生成支付信息接口
 export const genPayInfo = (orderId) => {
   return new Promise((resolve, reject) => {
     uni.request({
       url: `${BASE_API}/app/order/genPayInfo`,
       method: 'POST',
-      header: {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json'
-      },
+      header: createRequestHeader(),
       data: {
         orderId: orderId
       },
@@ -65,10 +109,7 @@ export const fetchPaymentInfo = (orderId) => {
     uni.request({
       url: `${BASE_API}/app/order/genPayInfo`,
       method: 'POST',
-      header: {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json'
-      },
+      header: createRequestHeader(),
       data: {
         orderId: orderId
       },
@@ -838,9 +879,7 @@ export const uploadImage = (filePath) => {
       url: `${BASE_API}/app/storage/upload`,
       filePath: filePath,
       name: 'file',
-      header: {
-        'Authorization': `Bearer ${getToken()}`
-      },
+      header: createRequestHeader(false),
       success: (res) => {
         if (res.statusCode === 401 || (JSON.parse(res.data) && JSON.parse(res.data).code === 401)) {
           handleAuthFailure();
@@ -943,10 +982,7 @@ export const fetchProductReviews = (productId, params) => {
       url: `${BASE_API}/app/review/list?spuId=${productId}`,
       method: 'GET',
       data: params,
-      header: {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json'
-      },
+      header: createRequestHeader(),
       success: (res) => {
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data.data)
@@ -965,9 +1001,7 @@ export const fetchReviewSummary = (productId) => {
     uni.request({
       url: `${BASE_API}/app/review/summary?spuId=${productId}`,
       method: 'GET',
-      header: {
-        'Authorization': `Bearer ${getToken()}`
-      },
+      header: createRequestHeader(false),
       success: (res) => {
         if (res.statusCode === 200 && res.data.code === 0) {
           resolve(res.data.data)
@@ -1097,10 +1131,7 @@ function requestWithAuth(path, data = {}, method = 'GET') {
       url: `${BASE_API}${path}`,
       method,
       data: requestData,
-      header: {
-        'Authorization': `Bearer ${getToken()}`,
-        'Content-Type': 'application/json'
-      },
+      header: createRequestHeader(),
       success: (res) => {
         if (res.statusCode === 401 || (res.data && res.data.code === 401)) {
           handleAuthFailure()

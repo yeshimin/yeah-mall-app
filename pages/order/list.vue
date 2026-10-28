@@ -37,14 +37,14 @@
 			<template v-else>
 					<!-- 订单加载失败状态 -->
 					<view class="empty-state" v-if="loadError && orders.length === 0 && !loading">
-						<text class="empty-icon">⚠️</text>
+						<image class="empty-icon-image" src="/static/icons/warning.png" mode="aspectFit" />
 						<text class="empty-text">{{ loadError }}</text>
 						<button class="go-shop-btn" @click="retryLoad">重新加载</button>
 					</view>
 
 					<!-- 订单为空状态 -->
 					<view class="empty-state" v-else-if="orders.length === 0 && !loading">
-					<text class="empty-icon">📦</text>
+					<image class="empty-icon-image" src="/static/icons/parcel.png" mode="aspectFit" />
 					<text class="empty-text">暂无订单</text>
 					<button class="go-shop-btn" @click="goToShop">去逛逛</button>
 				</view>
@@ -54,7 +54,7 @@
 					<!-- 订单头部：店铺信息 -->
 					<view class="order-header">
 						<view class="shop-info">
-							<text class="shop-icon">🏪</text>
+							<image class="shop-icon-image" src="/static/icons/store.png" mode="aspectFit" />
 							<text class="shop-name">{{ order.shopName }}</text>
 						</view>
 						<text class="order-status">{{ order.statusText }}</text>
@@ -1106,6 +1106,12 @@ page,
   box-shadow: none;
 }
 
+.empty-icon-image {
+  width: 104rpx;
+  height: 104rpx;
+  margin-bottom: 28rpx;
+}
+
 .go-shop-btn {
   height: 72rpx;
   color: #fff;
@@ -1118,7 +1124,21 @@ page,
 .order-goods,
 .order-amount,
 .order-time {
-  border-color: #edf0ed;
+  position: relative;
+  border-bottom: 0;
+}
+
+.order-header::after,
+.order-goods::after,
+.order-amount::after,
+.order-time::after {
+  position: absolute;
+  right: 20rpx;
+  bottom: 0;
+  left: 20rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
 }
 
 .shop-name,
@@ -1128,6 +1148,12 @@ page,
 
 .shop-icon {
   color: var(--ym-brand);
+}
+
+.shop-icon-image {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 10rpx;
 }
 
 .order-status {
@@ -1192,5 +1218,10 @@ page,
   color: var(--ym-ink-secondary);
   border-color: var(--ym-line-strong);
   background: var(--ym-surface);
+}
+
+.action-btn::after,
+.go-shop-btn::after {
+  border: 0;
 }
 </style>

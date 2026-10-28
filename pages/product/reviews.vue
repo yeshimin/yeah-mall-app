@@ -246,17 +246,17 @@ onLoad((options = {}) => {
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
-		background-color: #f5f5f5;
+		background: var(--ym-paper);
 	}
 
 	.reviews-header {
-		background-color: #fff;
+		background: var(--ym-surface);
 		padding: 20rpx;
-		margin-bottom: 20rpx;
+		margin-bottom: 0;
 		position: sticky;
 		top: 0;
 		z-index: 10;
-		border-bottom: 1rpx solid #eee;
+		border-bottom: 1rpx solid var(--ym-line);
 	}
 
 	.tags-row {
@@ -266,8 +266,8 @@ onLoad((options = {}) => {
 
 	.tag-item {
 		padding: 10rpx 24rpx;
-		background-color: #ffe4e1;
-		color: #333;
+		color: var(--ym-ink-secondary);
+		background: var(--ym-brand-soft);
 		border-radius: 30rpx;
 		font-size: 24rpx;
 		margin-right: 20rpx;
@@ -276,19 +276,23 @@ onLoad((options = {}) => {
 	}
 
 	.tag-item.active {
-		background-color: #ff5000;
 		color: #fff;
+		background: var(--ym-brand);
 	}
 
 	.reviews-list {
 		flex: 1;
 		height: 0; /* Important for scroll-view in flex layout */
+		box-sizing: border-box;
+		padding: 20rpx 0 40rpx;
 	}
 
 	.review-item {
-		background-color: #fff;
+		margin: 0 24rpx 16rpx;
 		padding: 30rpx;
-		margin-bottom: 20rpx;
+		border: 1rpx solid var(--ym-line);
+		border-radius: var(--ym-radius-card);
+		background: var(--ym-surface);
 	}
 
 	.user-info {
@@ -302,7 +306,7 @@ onLoad((options = {}) => {
 		height: 64rpx;
 		border-radius: 50%;
 		margin-right: 20rpx;
-		background-color: #eee;
+		background: var(--ym-brand-soft);
 	}
 
 	.user-detail {
@@ -311,7 +315,7 @@ onLoad((options = {}) => {
 
 	.nickname {
 		font-size: 28rpx;
-		color: #333;
+		color: var(--ym-ink);
 		margin-bottom: 6rpx;
 		display: block;
 	}
@@ -332,12 +336,12 @@ onLoad((options = {}) => {
 
 	.time {
 		font-size: 24rpx;
-		color: #999;
+		color: var(--ym-muted);
 	}
 
 	.review-content {
 		font-size: 28rpx;
-		color: #333;
+		color: var(--ym-ink-secondary);
 		line-height: 1.5;
 		margin-bottom: 20rpx;
 	}
@@ -355,7 +359,7 @@ onLoad((options = {}) => {
 		margin-bottom: 15rpx;
 		border-radius: 8rpx;
 		overflow: hidden;
-		background-color: #f1f1f1;
+		background: var(--ym-paper);
 	}
     
     .review-image-slot:nth-child(3n) {
@@ -369,7 +373,7 @@ onLoad((options = {}) => {
 
 	.sku-info {
 		font-size: 24rpx;
-		color: #999;
+		color: var(--ym-muted);
 		margin-bottom: 20rpx;
 	}
 
@@ -378,7 +382,7 @@ onLoad((options = {}) => {
 	}
 
 	.review-reply-item {
-		background-color: #f5f5f5;
+		background: var(--ym-brand-soft);
 		padding: 20rpx;
 		border-radius: 8rpx;
 		font-size: 26rpx;
@@ -387,26 +391,26 @@ onLoad((options = {}) => {
 	}
 
 	.reply-label {
-		color: #333;
+		color: var(--ym-brand);
 		font-weight: bold;
 	}
 
 	.reply-content {
-		color: #666;
+		color: var(--ym-ink-secondary);
 	}
 
 	.reply-time {
 		display: block;
 		margin-top: 8rpx;
 		font-size: 22rpx;
-		color: #999;
+		color: var(--ym-muted);
 	}
 
 	.reply-status {
 		display: block;
 		margin-top: 12rpx;
 		font-size: 22rpx;
-		color: #999;
+		color: var(--ym-muted);
 	}
 
 	.reply-editor {
@@ -414,7 +418,7 @@ onLoad((options = {}) => {
 		align-items: center;
 		margin-top: 16rpx;
 		padding: 12rpx;
-		background-color: #f7f7f7;
+		background: var(--ym-paper);
 		border-radius: 8rpx;
 	}
 
@@ -433,14 +437,14 @@ onLoad((options = {}) => {
 		font-size: 24rpx;
 		line-height: 60rpx;
 		color: #fff;
-		background-color: #ff5000;
-		border-radius: 6rpx;
+		background: var(--ym-brand);
+		border-radius: var(--ym-radius-control);
 	}
 	
 	.loading-more {
 		text-align: center;
 		padding: 30rpx;
-		color: #999;
+		color: var(--ym-muted);
 		font-size: 24rpx;
 	}
 </style>

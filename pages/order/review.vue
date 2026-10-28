@@ -64,7 +64,7 @@
 							<view class="delete-btn" @click="deleteGoodsImage(index, imgIndex)">×</view>
 						</view>
 						<view class="upload-btn" @click="chooseGoodsImage(index)" v-if="form.items[index] && form.items[index].images.length < 6">
-							<text class="camera-icon">📷</text>
+							<image class="camera-icon" src="/static/icons/camera.png" mode="aspectFit" />
 							<text class="upload-text">添加图片</text>
 							<text class="upload-limit">{{ form.items[index] ? form.items[index].images.length : 0 }}/6</text>
 						</view>
@@ -131,7 +131,7 @@
 				<view class="anonymous-left">
 					<checkbox-group @change="toggleAnonymous">
 						<label class="checkbox-label">
-							<checkbox :value="'1'" :checked="form.isAnonymous" color="#3cc51f" style="transform:scale(0.8)" />
+							<checkbox :value="'1'" :checked="form.isAnonymous" color="#24634f" style="transform:scale(0.8)" />
 							<text>匿名评价</text>
 						</label>
 					</checkbox-group>
@@ -441,7 +441,7 @@ onLoad((options = {}) => {
 		.divider {
 			height: 1rpx;
 			background-color: #f5f5f5;
-			margin: 20rpx -30rpx;
+			margin: 20rpx 0;
 		}
 
 		.order-review {
@@ -672,4 +672,86 @@ onLoad((options = {}) => {
 		font-weight: bold;
 		border: none;
 	}
+</style>
+
+<style scoped>
+.evaluate-container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx calc(132rpx + env(safe-area-inset-bottom));
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.goods-reviews,
+.order-review {
+  overflow: hidden;
+  margin-bottom: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.goods-review-item,
+.goods-info,
+.review-form,
+.order-review {
+  background: var(--ym-surface);
+}
+
+.goods-image,
+.upload-item,
+.upload-btn {
+  border-radius: 18rpx;
+  background: var(--ym-paper);
+}
+
+.goods-name,
+.label,
+.review-textarea {
+  color: var(--ym-ink);
+}
+
+.goods-spec,
+.word-count,
+.anonymous-tip,
+.upload-limit {
+  color: var(--ym-muted);
+}
+
+.rate-option {
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+}
+
+.rate-option.active {
+  color: var(--ym-brand);
+  border-color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.review-textarea {
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+
+.camera-icon {
+  width: 42rpx;
+  height: 42rpx;
+}
+
+.submit-btn-container {
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  box-shadow: none;
+}
+
+.submit-btn {
+  height: 80rpx;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+}
 </style>

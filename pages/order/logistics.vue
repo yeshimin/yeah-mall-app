@@ -264,3 +264,74 @@ onLoad((options = {}) => {
 		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
 	}
 </style>
+
+<style scoped>
+.logistics-page {
+  min-height: 100vh;
+  background: var(--ym-paper);
+}
+
+.logistics-content {
+  padding: 20rpx 24rpx;
+}
+
+.logistics-info,
+.no-logistics,
+.error-container {
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.logistics-header {
+  position: relative;
+  border-bottom: 0;
+}
+
+.logistics-header::after {
+  position: absolute;
+  right: 30rpx;
+  bottom: 0;
+  left: 30rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
+}
+
+.logistics-company,
+.timeline-remark {
+  color: var(--ym-ink);
+}
+
+.timeline-datetime,
+.loading-text,
+.no-logistics {
+  color: var(--ym-muted);
+}
+
+.timeline-dot.active {
+  border-color: var(--ym-brand-soft);
+  background: var(--ym-brand);
+}
+
+.status-signed {
+  color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.logistics-status {
+  border-radius: 8rpx;
+}
+
+.retry-btn {
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+}
+
+.retry-btn::after {
+  border: 0;
+}
+</style>

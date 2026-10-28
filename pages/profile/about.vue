@@ -34,20 +34,21 @@ onLoad(() => loadContent())
 .about-page {
   min-height: 100vh;
   padding: 24rpx;
-  background: #f6f7f9;
+  background: var(--ym-paper);
   box-sizing: border-box;
 }
 
 .about-card {
   min-height: 300rpx;
   padding: 32rpx;
-  background: #fff;
-  border-radius: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
   box-sizing: border-box;
 }
 
 .about-content {
-  color: #374151;
+  color: var(--ym-ink-secondary);
   font-size: 29rpx;
   line-height: 1.85;
   white-space: pre-wrap;
@@ -56,7 +57,7 @@ onLoad(() => loadContent())
 .empty-content {
   display: block;
   padding-top: 100rpx;
-  color: #9aa2ad;
+  color: var(--ym-muted);
   font-size: 27rpx;
   text-align: center;
 }

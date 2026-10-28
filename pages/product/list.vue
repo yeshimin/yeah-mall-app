@@ -169,8 +169,15 @@
           </view>
 
           <view class="state-card empty-card" v-if="hasLoadedOnce && products.length === 0 && !loadingProducts">
-            <text class="state-title">没有找到匹配商品</text>
-            <text class="state-desc">换个关键词试试，或者放宽筛选条件。</text>
+            <template v-if="loadError">
+              <text class="state-title">商品加载失败</text>
+              <text class="state-desc">{{ loadError }}</text>
+              <view class="state-retry" @click="fetchProducts">重新加载</view>
+            </template>
+            <template v-else>
+              <text class="state-title">没有找到匹配商品</text>
+              <text class="state-desc">换个关键词试试，或者放宽筛选条件。</text>
+            </template>
           </view>
 
           <view class="list-footer" v-if="products.length > 0">
@@ -209,6 +216,7 @@ const hasMore = ref(false)
 const pageSize = 20
 const loadingProducts = ref(false)
 const hasLoadedOnce = ref(false)
+const loadError = ref('')
 
 const activeFilterCount = computed(() => {
   let count = 0
@@ -349,11 +357,11 @@ function getSortBy() {
 }
 
 function buildQueryParams() {
-  const params = [`sortBy=${getSortBy()}`, `pageSize=${pageSize}`]
-
-  if (searchKeyword.value) {
-    params.push(`keyword=${encodeURIComponent(searchKeyword.value)}`)
-  }
+  const params = [
+    `keyword=${encodeURIComponent(searchKeyword.value || '')}`,
+    `sortBy=${getSortBy()}`,
+    `pageSize=${pageSize}`
+  ]
 
   if (scrollToken.value) {
     params.push(`scrollToken=${encodeURIComponent(scrollToken.value)}`)
@@ -363,7 +371,11 @@ function buildQueryParams() {
 }
 
 function fetchProducts() {
+  if (loadingProducts.value) {
+    return
+  }
   loadingProducts.value = true
+  loadError.value = ''
   uni.request({
     url: `${BASE_API}/app/product/query?${buildQueryParams().join('&')}`,
     method: 'GET',
@@ -371,6 +383,7 @@ function fetchProducts() {
     success: (res) => {
       if (res.statusCode !== 200 || res.data.code !== 0) {
         console.error('获取商品列表失败:', res.data && res.data.message)
+        loadError.value = (res.data && res.data.message) || '请稍后重试'
         hasLoadedOnce.value = true
         loadingProducts.value = false
         return
@@ -379,9 +392,9 @@ function fetchProducts() {
       const responseData = res.data.data || {}
       const incomingProducts = (responseData.data || []).map((item) => ({
         ...item,
-        price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : '0.00',
+        price: Number(item.minPrice || 0).toFixed(2),
         sales: item.sales !== undefined ? item.sales : 0,
-        image: getStoragePreviewUrl(item.mainImage) || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+        image: getStoragePreviewUrl(item.mainImage) || '/static/logo.png'
       }))
 
       scrollToken.value = responseData.scrollToken || null
@@ -401,6 +414,7 @@ function fetchProducts() {
     },
     fail: (error) => {
       console.error('请求商品列表失败:', error)
+      loadError.value = '网络错误，请稍后重试'
       hasLoadedOnce.value = true
       loadingProducts.value = false
     }
@@ -603,6 +617,21 @@ onLoad((options = {}) => {
 .empty-card {
   margin-top: 24rpx;
   text-align: center;
+}
+
+.state-retry {
+  display: inline-flex;
+  min-width: 176rpx;
+  height: 68rpx;
+  align-items: center;
+  justify-content: center;
+  margin-top: 24rpx;
+  padding: 0 24rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  font-size: 25rpx;
+  font-weight: 600;
 }
 
 .waterfall-container {

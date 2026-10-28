@@ -1,8 +1,9 @@
 <template>
   <view class="container" :style="{ paddingTop: navBarHeight + 'px' }">
     <!-- 自定义标题栏组件 -->
-    <custom-nav-bar 
+    <custom-nav-bar
       :show-search="true"
+      :show-brand="true"
       :search-placeholder="'搜索商品'"
       @search="handleSearch"
       @height-calculated="handleNavBarHeightCalculated"
@@ -10,15 +11,25 @@
 
     <!-- Banner滚动区域 -->
     <view class="banner-section">
-      <swiper class="banner-swiper" :autoplay="true" :interval="3000" :duration="500" :circular="true" :indicator-dots="true" :indicator-color="'rgba(255,255,255,0.5)'" :indicator-active-color="'#fff'">
-        <swiper-item 
-          v-for="(banner, index) in banners" 
-          :key="index"
+      <view v-if="bannersLoading" class="banner-loading">正在加载 Banner...</view>
+      <swiper v-else-if="banners.length" class="banner-swiper" :autoplay="true" :interval="3000" :duration="500" :circular="true" :indicator-dots="true" :indicator-color="'rgba(255,255,255,0.5)'" :indicator-active-color="'#fff'">
+        <swiper-item
+          v-for="(banner, index) in banners"
+          :key="banner.id || index"
           @click="handleBannerClick(banner.id)"
         >
-          <image class="banner-image" :src="banner.image" mode="aspectFill" />
+          <image
+            class="banner-image"
+            :src="banner.image"
+            mode="aspectFill"
+            @error="handleBannerImageError(banner)"
+          />
         </swiper-item>
       </swiper>
+      <view v-else class="banner-empty" @click="retryHomeData">
+        <text class="banner-empty-title">Banner 暂未加载</text>
+        <text class="banner-empty-hint">网络恢复后会自动重试 · 点击立即重试</text>
+      </view>
     </view>
 
     <!-- 快捷入口 -->
@@ -44,7 +55,14 @@
             @click="handleQuickLinkClick(link)"
             :style="{ width: `${100 / row.maxCount}%`, boxSizing: 'border-box', padding: '0 10rpx' }"
           >
-            <image class="quick-link-icon" :src="link.icon" />
+            <view class="quick-link-icon-shell">
+              <image
+                class="quick-link-icon"
+                :src="link.icon && !link.iconFailed ? link.icon : link.fallbackIcon"
+                mode="aspectFit"
+                @error="handleQuickLinkIconError(link)"
+              />
+            </view>
             <text class="quick-link-text">{{ link.name }}</text>
           </view>
           <!-- 填充空白项，确保对齐 -->
@@ -62,16 +80,18 @@
       <view class="mall-section-heading">
         <view class="mall-section-title-wrap">
           <view class="mall-section-mark"></view>
-          <text class="mall-section-title">精选好物</text>
+          <text class="mall-section-title">商品列表</text>
         </view>
-        <text class="mall-section-subtitle">按销量与口碑推荐</text>
+        <text class="mall-section-subtitle">按销量推荐</text>
       </view>
       <view v-if="hotProductsLoading && hotProducts.length === 0" class="home-product-state">
         <text>正在加载精选商品...</text>
       </view>
       <view v-else-if="hotProducts.length === 0" class="home-product-state">
-        <text class="home-product-state-title">暂无推荐商品</text>
-        <text class="home-product-state-hint">商品上架后会展示在这里</text>
+        <text class="home-product-state-title">{{ hotProductsLoadFailed ? '商品加载失败' : '暂无推荐商品' }}</text>
+        <text class="home-product-state-hint" @click="retryHomeData">
+          {{ hotProductsLoadFailed ? '网络恢复后会自动重试 · 点击立即重试' : '商品上架后会展示在这里' }}
+        </text>
       </view>
       <view v-else class="waterfall-container">
         <view class="waterfall-column">
@@ -144,34 +164,56 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import CustomNavBar from '../../components/custom-nav-bar.vue'
 import { BASE_API, getStoragePreviewUrl } from '@/utils/config.js'
 import { getToken } from '@/utils/auth.js'
 
+const quickLinkFallbackIcons = {
+  goToSeckill: '/static/quick/seckill.png',
+  goToGroupBuy: '/static/quick/group-buy.png',
+  goToNewArrivals: '/static/quick/new.png',
+  goToCoupons: '/static/quick/coupon.png',
+  goToMember: '/static/quick/member.png',
+  goToPoints: '/static/quick/points.png',
+  goToService: '/static/quick/service.png',
+  goToSettings: '/static/quick/settings.png',
+  handleCustomQuickLink: '/static/quick/default.png',
+  handleDefaultQuickLink: '/static/quick/default.png'
+}
+
 const defaultQuickLinks = [
-  { id: 1, name: '秒杀', icon: '/static/logo.png', action: 'goToSeckill' },
-  { id: 2, name: '拼团', icon: '/static/logo.png', action: 'goToGroupBuy' },
-  { id: 3, name: '新品', icon: '/static/logo.png', action: 'goToNewArrivals' },
-  { id: 4, name: '优惠券', icon: '/static/logo.png', action: 'goToCoupons' },
-  { id: 5, name: '会员', icon: '/static/logo.png', action: 'goToMember' },
-  { id: 6, name: '积分', icon: '/static/logo.png', action: 'goToPoints' },
-  { id: 7, name: '客服', icon: '/static/logo.png', action: 'goToService' },
-  { id: 8, name: '设置', icon: '/static/logo.png', action: 'goToSettings' }
-]
+  { id: 1, name: '秒杀', action: 'goToSeckill' },
+  { id: 2, name: '拼团', action: 'goToGroupBuy' },
+  { id: 3, name: '新品', action: 'goToNewArrivals' },
+  { id: 4, name: '优惠券', action: 'goToCoupons' },
+  { id: 5, name: '会员', action: 'goToMember' },
+  { id: 6, name: '积分', action: 'goToPoints' },
+  { id: 7, name: '客服', action: 'goToService' },
+  { id: 8, name: '设置', action: 'goToSettings' }
+].map((link) => ({
+  ...link,
+  icon: '',
+  iconFailed: false,
+  fallbackIcon: quickLinkFallbackIcons[link.action]
+}))
 
 const banners = ref([])
 const bannersLoading = ref(false)
+const bannersLoadFailed = ref(false)
 const quickLinks = ref([...defaultQuickLinks])
 const quickLinksLoading = ref(false)
 const hotProducts = ref([])
-const hotProductsLoading = ref(true)
+const hotProductsLoading = ref(false)
+const hotProductsLoadFailed = ref(false)
 const promotions = ref([])
 const leftColumnProducts = ref([])
 const rightColumnProducts = ref([])
 const scrollToken = ref(null)
 const hasMore = ref(true)
 const navBarHeight = ref(0)
+const homeInitialized = ref(false)
 
 const quickLinkRows = computed(() => {
   const count = quickLinks.value.length
@@ -374,6 +416,17 @@ function handleDefaultQuickLink() {
   })
 }
 
+function handleQuickLinkIconError(link) {
+  link.iconFailed = true
+}
+
+function handleBannerImageError(banner) {
+  banners.value = banners.value.filter((item) => item !== banner)
+  if (banners.value.length === 0) {
+    bannersLoadFailed.value = true
+  }
+}
+
 function handleCustomQuickLink(link) {
   if (link.target && link.target.startsWith('/pages/')) {
     uni.navigateTo({
@@ -386,6 +439,9 @@ function handleCustomQuickLink(link) {
 }
 
 function fetchQuickLinks() {
+  if (quickLinksLoading.value) {
+    return
+  }
   quickLinksLoading.value = true
   uni.request({
     url: `${BASE_API}/app/platQuickEntry/query`,
@@ -395,14 +451,19 @@ function fetchQuickLinks() {
     },
     success: (res) => {
       if (res.statusCode === 200 && res.data.code === 0) {
-        quickLinks.value = (res.data.data || []).slice(0, 10).map((link, index) => ({
-          id: index + 1,
-          name: link.name,
-          icon: getStoragePreviewUrl(link.icon),
-          type: link.type,
-          target: link.target,
-          action: getActionForQuickLink(link.type, link.target)
-        }))
+        quickLinks.value = (res.data.data || []).slice(0, 10).map((link, index) => {
+          const action = getActionForQuickLink(link.type, link.target)
+          return {
+            id: index + 1,
+            name: link.name,
+            icon: getStoragePreviewUrl(link.icon),
+            type: link.type,
+            target: link.target,
+            action,
+            iconFailed: false,
+            fallbackIcon: quickLinkFallbackIcons[action] || quickLinkFallbackIcons.handleDefaultQuickLink
+          }
+        })
         return
       }
 
@@ -418,24 +479,32 @@ function fetchQuickLinks() {
 }
 
 function fetchBanners() {
+  if (bannersLoading.value) {
+    return
+  }
   bannersLoading.value = true
+  bannersLoadFailed.value = false
   uni.request({
     url: `${BASE_API}/app/platBanner/query`,
     method: 'GET',
     header: createRequestHeader(),
     success: (res) => {
       if (res.statusCode === 200 && res.data.code === 0) {
-        banners.value = (res.data.data || []).map((banner, index) => ({
+        const nextBanners = (res.data.data || []).map((banner, index) => ({
           id: index + 1,
           image: getStoragePreviewUrl(banner.imageUrl)
-        }))
+        })).filter((banner) => banner.image)
+        banners.value = nextBanners
+        bannersLoadFailed.value = nextBanners.length === 0
         return
       }
 
       console.error('获取平台 Banner 失败:', res.data && res.data.message)
+      bannersLoadFailed.value = true
     },
     fail: (error) => {
       console.error('请求平台 Banner 失败:', error)
+      bannersLoadFailed.value = true
     },
     complete: () => {
       bannersLoading.value = false
@@ -444,11 +513,12 @@ function fetchBanners() {
 }
 
 function fetchHotProducts() {
-  if (!hasMore.value) {
+  if (!hasMore.value || hotProductsLoading.value) {
     return
   }
 
   hotProductsLoading.value = true
+  hotProductsLoadFailed.value = false
   const params = ['pageSize=10']
   if (scrollToken.value) {
     params.push(`scrollToken=${encodeURIComponent(scrollToken.value)}`)
@@ -468,7 +538,7 @@ function fetchHotProducts() {
           ...item,
           id: item.id,
           name: item.name,
-          price: item.minPrice !== undefined ? item.minPrice.toFixed(2) : '0.00',
+          price: Number(item.minPrice || 0).toFixed(2),
           sales: item.sales !== undefined ? item.sales : 0,
           tags: item.tags || item.labelList || [],
           image: getStoragePreviewUrl(item.mainImage)
@@ -480,9 +550,11 @@ function fetchHotProducts() {
       }
 
       console.error('获取热门商品列表失败:', res.data && res.data.message)
+      hotProductsLoadFailed.value = true
     },
     fail: (error) => {
       console.error('请求热门商品列表失败:', error)
+      hotProductsLoadFailed.value = true
     },
     complete: () => {
       hotProductsLoading.value = false
@@ -490,10 +562,40 @@ function fetchHotProducts() {
   })
 }
 
+function retryHomeData() {
+  if (!banners.value.length) {
+    fetchBanners()
+  }
+  if (!hotProducts.value.length) {
+    scrollToken.value = null
+    hasMore.value = true
+    fetchHotProducts()
+  }
+  fetchQuickLinks()
+}
+
+function handleNetworkStatusChange(status) {
+  if (status.isConnected) {
+    retryHomeData()
+  }
+}
+
 onMounted(() => {
   fetchBanners()
   fetchQuickLinks()
   fetchHotProducts()
+  homeInitialized.value = true
+  uni.onNetworkStatusChange(handleNetworkStatusChange)
+})
+
+onShow(() => {
+  if (homeInitialized.value && (!banners.value.length || !hotProducts.value.length)) {
+    retryHomeData()
+  }
+})
+
+onUnmounted(() => {
+  uni.offNetworkStatusChange(handleNetworkStatusChange)
 })
 </script>
 
@@ -817,6 +919,37 @@ onMounted(() => {
   height: 360rpx;
 }
 
+.banner-loading {
+  display: flex;
+  height: 360rpx;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.72);
+  background: var(--ym-brand-strong);
+  font-size: 24rpx;
+}
+
+.banner-empty {
+  display: flex;
+  height: 360rpx;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #fff;
+  background: linear-gradient(135deg, var(--ym-ink), var(--ym-brand));
+}
+
+.banner-empty-title {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.banner-empty-hint {
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 22rpx;
+}
+
 .quick-links {
   margin: 0;
   padding: 12rpx 18rpx 20rpx;
@@ -834,30 +967,43 @@ onMounted(() => {
   margin-bottom: 10rpx;
 }
 
-.quick-link-icon {
+.quick-link-icon-shell {
+  display: flex;
   width: 88rpx;
   height: 88rpx;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0;
   border-radius: 24rpx;
   background: var(--ym-brand-soft);
   box-shadow: none;
 }
 
-.quick-link-tone-2 .quick-link-icon {
+.quick-link-icon {
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.quick-link-tone-2 .quick-link-icon-shell {
   background: #e7f0f3;
 }
 
-.quick-link-tone-3 .quick-link-icon {
+.quick-link-tone-3 .quick-link-icon-shell {
   background: #fbf0de;
 }
 
-.quick-link-tone-4 .quick-link-icon {
+.quick-link-tone-4 .quick-link-icon-shell {
   background: #eeebf6;
 }
 
-.quick-link-tone-5 .quick-link-icon {
+.quick-link-tone-5 .quick-link-icon-shell {
   background: var(--ym-price-soft);
 }
+
 
 .quick-link-text {
   color: var(--ym-ink-secondary);

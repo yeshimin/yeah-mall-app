@@ -50,7 +50,7 @@
           </view>
         </view>
         <view v-if="coupons.length === 0" class="empty-state">
-          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
+          <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无可用优惠券</text>
         </view>
       </view>
@@ -371,5 +371,82 @@ onLoad(() => {
                     radial-gradient(circle at 0 40rpx, #ff6b6b 20rpx, transparent 20rpx);
   background-size: 40rpx 40rpx;
   background-repeat: repeat-y;
+}
+</style>
+
+<style scoped>
+.container {
+  min-height: 100vh;
+  background: var(--ym-paper);
+}
+
+.filter-tabs {
+  border-bottom: 1rpx solid var(--ym-line);
+  background: var(--ym-surface);
+}
+
+.coupon-use-range {
+  color: var(--ym-brand);
+}
+
+.tab-item {
+  color: var(--ym-muted);
+  background: var(--ym-paper);
+}
+
+.tab-item.active {
+  color: #fff;
+  background: var(--ym-brand);
+}
+
+.coupon-list {
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+}
+
+.coupon-item {
+  border: 1rpx solid var(--ym-line);
+  border-left: 8rpx solid var(--ym-price);
+  border-radius: var(--ym-radius-card);
+  box-shadow: none;
+}
+
+.coupon-left {
+  width: 176rpx;
+  color: var(--ym-price);
+  background: var(--ym-surface);
+}
+
+.coupon-left::after {
+  display: none;
+}
+
+.coupon-title {
+  color: var(--ym-ink);
+}
+
+.coupon-use-range {
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+}
+
+.coupon-btn {
+  color: var(--ym-price);
+  border: 1rpx solid var(--ym-price);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+}
+
+.coupon-btn.disabled {
+  color: var(--ym-muted);
+  border-color: var(--ym-line);
+  background: var(--ym-paper);
+}
+
+.empty-state,
+.loading-container {
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  box-shadow: none;
 }
 </style>

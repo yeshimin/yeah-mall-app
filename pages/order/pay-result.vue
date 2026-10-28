@@ -441,3 +441,71 @@ onUnload(() => {
 		background-color: #f5f5f5;
 	}
 </style>
+
+<style scoped>
+.pay-result {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx calc(156rpx + env(safe-area-inset-bottom));
+  background: var(--ym-paper);
+}
+
+.result-container,
+.order-info {
+  margin: 0 0 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.result-text,
+.info-value {
+  color: var(--ym-ink);
+}
+
+.result-subtext,
+.info-label,
+.loading-text {
+  color: var(--ym-muted);
+}
+
+.success-icon {
+  color: var(--ym-brand);
+}
+
+.failed-icon,
+.info-value.amount {
+  color: var(--ym-price);
+}
+
+.bottom-buttons {
+  min-height: 132rpx;
+  height: auto;
+  gap: 16rpx;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top-color: var(--ym-line);
+}
+
+.btn {
+  height: 80rpx;
+  border-radius: var(--ym-radius-control);
+  line-height: 80rpx;
+}
+
+.btn.primary {
+  color: #fff;
+  background: var(--ym-brand);
+  box-shadow: none;
+}
+
+.btn.primary:active {
+  background: var(--ym-brand-strong);
+}
+
+.btn.secondary {
+  color: var(--ym-ink-secondary);
+  border-color: var(--ym-line-strong);
+  background: var(--ym-surface);
+}
+</style>

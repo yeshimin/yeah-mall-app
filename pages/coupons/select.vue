@@ -235,3 +235,56 @@ onUnload(() => {
 		color: #666;
 	}
 </style>
+
+<style scoped>
+.container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(84rpx + env(safe-area-inset-bottom));
+  background: var(--ym-paper);
+}
+
+.coupon-list {
+  padding: 20rpx 24rpx;
+}
+
+.coupon-item {
+  border: 1rpx solid var(--ym-line);
+  border-left: 8rpx solid var(--ym-price);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.coupon-left {
+  flex-basis: 168rpx;
+  border-right-color: var(--ym-line);
+}
+
+.coupon-amount {
+  color: var(--ym-price);
+}
+
+.coupon-name {
+  color: var(--ym-ink);
+}
+
+.coupon-condition,
+.coupon-time,
+.bottom-tip text,
+.empty-text {
+  color: var(--ym-muted);
+}
+
+.range-text {
+  color: var(--ym-brand);
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+}
+
+.bottom-tip {
+  min-height: 72rpx;
+  height: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top-color: var(--ym-line);
+}
+</style>

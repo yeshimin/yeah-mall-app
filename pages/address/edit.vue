@@ -559,3 +559,85 @@ onLoad(async (options = {}) => {
 		background-color: #ff3747;
 	}
 </style>
+
+<style scoped>
+.address-edit {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx calc(132rpx + env(safe-area-inset-bottom));
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.form-content {
+  margin-top: 0;
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.form-item {
+  position: relative;
+  min-height: 96rpx;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  border-bottom: 0;
+}
+
+.form-item:not(:last-child)::after {
+  position: absolute;
+  right: 24rpx;
+  bottom: 0;
+  left: 24rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
+}
+
+.label,
+.region-text,
+.input,
+.textarea {
+  color: var(--ym-ink);
+}
+
+.required {
+  color: var(--ym-price);
+}
+
+.input,
+.textarea {
+  border-color: var(--ym-line);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-paper);
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--ym-brand);
+}
+
+.picker-header .confirm-btn {
+  color: var(--ym-brand);
+}
+
+.bottom-save-bar {
+  min-height: 112rpx;
+  height: auto;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  box-shadow: none;
+}
+
+.save-btn {
+  width: 100%;
+  height: 80rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  box-shadow: none;
+  line-height: 80rpx;
+}
+</style>

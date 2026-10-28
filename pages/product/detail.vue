@@ -203,15 +203,15 @@
 			<!-- 底部操作栏 -->
 		<view class="bottom-bar">
 			<view class="bar-item" @click="goToStore">
-				<text class="icon">🏠</text>
+				<image class="bottom-action-icon" src="/static/icons/store.png" mode="aspectFit" />
 				<text>店铺</text>
 			</view>
 			<view class="bar-item" @click="contactService">
-				<text class="icon">💬</text>
+				<image class="bottom-action-icon" src="/static/quick/service.png" mode="aspectFit" />
 				<text>客服</text>
 			</view>
 			<view class="bottom-bar-item" @click="addToFavorites">
-							<text class="icon">{{ isCollected ? '❤️' : '🤍' }}</text>
+							<image class="bottom-action-icon" :src="isCollected ? '/static/icons/heart-active.png' : '/static/icons/heart.png'" mode="aspectFit" />
 							<text class="bottom-bar-text">{{ isCollected ? '已收藏' : '收藏' }}</text>
 						</view>
 				<view class="bar-item cart-item" @click="addToCart" v-if="scene !== 'seckill' && scene !== 'groupBuy'">
@@ -2306,6 +2306,12 @@ onReady(() => {
 .bar-item .icon,
 .bottom-bar-item .icon {
   font-size: 34rpx;
+}
+
+.bottom-action-icon {
+  width: 34rpx;
+  height: 34rpx;
+  margin-bottom: 6rpx;
 }
 
 .cart-item {

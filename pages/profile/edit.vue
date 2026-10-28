@@ -43,7 +43,7 @@
         <view class="mobile-container">
           <text class="readonly-text">{{ displayMobile }}</text>
           <button class="eye-btn" @click="toggleMobileVisibility">
-            <text>{{ showMobile ? '👁️' : '👁️‍🗨️' }}</text>
+            <image class="eye-icon" :src="showMobile ? '/static/icons/eye.png' : '/static/icons/eye-off.png'" mode="aspectFit" />
           </button>
         </view>
       </view>
@@ -277,9 +277,19 @@ onLoad(() => {
 }
 
 .eye-btn {
+  display: flex;
+  width: 56rpx;
+  height: 56rpx;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   font-size: 28rpx;
+}
+
+.eye-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .bottom-save {
@@ -305,5 +315,71 @@ onLoad(() => {
 
 .picker-view {
   display: none;
+}
+</style>
+
+<style scoped>
+.edit-profile-container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx calc(132rpx + env(safe-area-inset-bottom));
+  color: var(--ym-ink);
+  background: var(--ym-paper);
+}
+
+.content {
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.form-item {
+  position: relative;
+  min-height: 100rpx;
+  box-sizing: border-box;
+  padding: 20rpx 28rpx;
+  border-bottom: 0;
+}
+
+.form-item:not(:last-child)::after {
+  position: absolute;
+  right: 28rpx;
+  bottom: 0;
+  left: 28rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
+}
+
+.label,
+.input,
+.readonly-text {
+  color: var(--ym-ink);
+}
+
+.input,
+.mobile-container,
+.gender-options {
+  min-width: 0;
+}
+
+.gender-option.active {
+  color: var(--ym-brand);
+  border-color: var(--ym-brand);
+  background: var(--ym-brand-soft);
+}
+
+.bottom-save {
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid var(--ym-line);
+  box-shadow: none;
+}
+
+.save-btn {
+  height: 80rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
 }
 </style>

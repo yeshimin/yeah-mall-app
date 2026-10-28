@@ -58,6 +58,10 @@
         // 居中
         margin: '0'
       }">
+        <view v-if="showSearch && showBrand" class="mall-wordmark" aria-label="Yeah Mall">
+          <text>YEAH</text>
+          <text>MALL</text>
+        </view>
         <!-- 搜索框 -->
         <view v-if="showSearch" class="search-container" @click="handleSearch">
           <view class="search-box" :style="{ height: statusBarInfo.controlHeight + 'px' }">
@@ -91,6 +95,10 @@ const props = defineProps({
   showSearch: {
     type: Boolean,
     default: true
+  },
+  showBrand: {
+    type: Boolean,
+    default: false
   },
   searchPlaceholder: {
     type: String,
@@ -270,18 +278,37 @@ onMounted(() => {
 
 /* 应用状态栏 */
 .app-status-bar {
+  gap: 16rpx;
   width: 100%;
   box-sizing: border-box;
 }
 
+.mall-wordmark {
+  display: flex;
+  width: 112rpx;
+  flex: 0 0 112rpx;
+  flex-direction: column;
+  color: var(--ym-ink, #17251f);
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+  line-height: 1.02;
+}
+
+.mall-wordmark text:last-child {
+  color: var(--ym-brand, #24634f);
+}
+
 /* 搜索框样式 */
 .search-container {
+  min-width: 0;
+  flex: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   height: 100%;
-  width: 100%;
+  width: auto;
 }
 
 .search-box {

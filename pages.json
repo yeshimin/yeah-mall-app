@@ -14,12 +14,6 @@
 			}
 		},
 		{
-			"path": "pages/shop/shop",
-			"style": {
-				"navigationBarTitleText": "店铺"
-			}
-		},
-		{
 			"path": "pages/shop/detail",
 			"style": {
 				"navigationBarTitleText": "店铺详情"
@@ -259,7 +253,7 @@
 	"uniIdRouter": {},
 	"tabBar": {
 		"color": "#7A7E83",
-		"selectedColor": "#3cc51f",
+		"selectedColor": "#24634f",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",
 		"height": "50px",
@@ -270,26 +264,26 @@
 			{
 				"pagePath": "pages/index/index",
 				"text": "首页",
-				"iconPath": "static/tab/tab_1.png",
-				"selectedIconPath": "static/tab/tab_1.png"
+				"iconPath": "static/tab/home.png",
+				"selectedIconPath": "static/tab/home-active.png"
 			},
 			{
 				"pagePath": "pages/category/category",
 				"text": "分类",
-				"iconPath": "static/tab/tab_2.png",
-				"selectedIconPath": "static/tab/tab_2.png"
+				"iconPath": "static/tab/category.png",
+				"selectedIconPath": "static/tab/category-active.png"
 			},
 			{
 				"pagePath": "pages/cart/cart",
 				"text": "购物车",
-				"iconPath": "static/tab/tab_3.png",
-				"selectedIconPath": "static/tab/tab_3.png"
+				"iconPath": "static/tab/cart.png",
+				"selectedIconPath": "static/tab/cart-active.png"
 			},
 			{
 				"pagePath": "pages/profile/profile",
 				"text": "我的",
-				"iconPath": "static/tab/tab_4.png",
-				"selectedIconPath": "static/tab/tab_4.png"
+				"iconPath": "static/tab/profile.png",
+				"selectedIconPath": "static/tab/profile-active.png"
 			}
 		]
 	}

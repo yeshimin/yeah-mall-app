@@ -97,27 +97,30 @@ onLoad(() => {
 </script>
 
 <style scoped>
-.points-page { min-height: 100vh; padding: 24rpx; background: #f5f2ec; box-sizing: border-box; }
-.balance-card { padding: 42rpx 36rpx 30rpx; color: #fff; border-radius: 24rpx; background: linear-gradient(135deg, #d64b25, #f29b38); box-shadow: 0 16rpx 40rpx rgba(164, 62, 27, .2); }
+.points-page { min-height: 100vh; padding: 24rpx; background: var(--ym-paper); box-sizing: border-box; }
+.balance-card { padding: 42rpx 36rpx 30rpx; color: #fff; border-radius: var(--ym-radius-card); background: linear-gradient(135deg, var(--ym-ink), var(--ym-brand)); box-shadow: var(--ym-shadow-card); }
 .balance-label { display: block; font-size: 26rpx; opacity: .85; }
 .balance-value { display: block; margin: 10rpx 0 34rpx; font-size: 72rpx; font-weight: 700; }
 .summary-row { display: flex; gap: 60rpx; }
 .summary-row view { display: flex; flex-direction: column; gap: 8rpx; font-size: 24rpx; }
 .summary-value { font-size: 30rpx; font-weight: 700; }
-.section { margin-top: 24rpx; padding: 28rpx; border-radius: 20rpx; background: #fff; }
-.section-title { display: block; margin-bottom: 18rpx; color: #2d2925; font-size: 30rpx; font-weight: 700; }
-.ledger-item { display: flex; justify-content: space-between; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid #eee8e1; }
+.section { margin-top: 24rpx; padding: 28rpx; border: 1rpx solid var(--ym-line); border-radius: var(--ym-radius-card); background: var(--ym-surface); }
+.section-title { display: block; margin-bottom: 18rpx; color: var(--ym-ink); font-size: 30rpx; font-weight: 700; }
+.ledger-item { display: flex; justify-content: space-between; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid var(--ym-line); }
+.ledger-item:last-child { border-bottom: 0; }
 .ledger-main, .ledger-value { display: flex; flex-direction: column; gap: 8rpx; }
-.ledger-desc { color: #333; font-size: 27rpx; }
-.ledger-time, .ledger-balance { color: #999; font-size: 22rpx; }
+.ledger-desc { color: var(--ym-ink); font-size: 27rpx; }
+.ledger-time, .ledger-balance { color: var(--ym-muted); font-size: 22rpx; }
 .ledger-value { text-align: right; }
 .ledger-value > text { font-size: 30rpx; font-weight: 700; }
-.plus { color: #d64b25; }.minus { color: #46776a; }
-.empty { padding: 60rpx 0; color: #aaa; text-align: center; }
-.more-btn { margin-top: 20rpx; color: #8a5b3d; background: #f8f1e8; font-size: 24rpx; }
-.rule-item { display: flex; flex-direction: column; gap: 8rpx; padding: 18rpx 0; border-bottom: 1rpx solid #eee8e1; }
-.rule-item text:first-child { color: #333; font-size: 27rpx; font-weight: 600; }
-.rule-item text:last-child { color: #8a8178; font-size: 24rpx; line-height: 1.5; }
-.mall-entry { display: flex; align-items: center; justify-content: space-between; margin-top: 24rpx; padding: 28rpx 30rpx; color: #fff; border-radius: 20rpx; background: linear-gradient(130deg, #2c4237, #5f775f); box-shadow: 0 12rpx 30rpx rgba(44,66,55,.16); }
+.plus { color: var(--ym-price); }.minus { color: var(--ym-brand); }
+.empty { padding: 60rpx 0; color: var(--ym-muted); text-align: center; }
+.more-btn { margin-top: 20rpx; color: var(--ym-brand); background: var(--ym-brand-soft); font-size: 24rpx; }
+.more-btn::after { border: 0; }
+.rule-item { display: flex; flex-direction: column; gap: 8rpx; padding: 18rpx 0; border-bottom: 1rpx solid var(--ym-line); }
+.rule-item:last-child { border-bottom: 0; }
+.rule-item text:first-child { color: var(--ym-ink); font-size: 27rpx; font-weight: 600; }
+.rule-item text:last-child { color: var(--ym-muted); font-size: 24rpx; line-height: 1.5; }
+.mall-entry { display: flex; align-items: center; justify-content: space-between; margin-top: 24rpx; padding: 28rpx 30rpx; color: #fff; border-radius: var(--ym-radius-card); background: linear-gradient(130deg, var(--ym-ink), var(--ym-brand)); box-shadow: var(--ym-shadow-card); }
 .mall-entry text { display: block; }.mall-eyebrow { font-size: 17rpx; letter-spacing: 4rpx; opacity: .6; }.mall-title { margin-top: 6rpx; font-size: 30rpx; font-weight: 700; }.mall-copy { margin-top: 7rpx; font-size: 21rpx; opacity: .75; }.mall-arrow { font-size: 52rpx; opacity: .8; }
 </style>

@@ -48,7 +48,7 @@
           </view>
         </view>
         <view v-if="availableCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
+          <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无可用优惠券</text>
         </view>
       </view>
@@ -76,7 +76,7 @@
           </view>
         </view>
         <view v-if="usedCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
+          <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无已使用优惠券</text>
         </view>
       </view>
@@ -104,7 +104,7 @@
           </view>
         </view>
         <view v-if="expiredCoupons.length === 0 && !loading" class="empty-state">
-          <image class="empty-icon" src="/static/logo.png" mode="aspectFill" />
+          <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无已过期优惠券</text>
         </view>
       </view>
@@ -511,5 +511,85 @@ onLoad(() => {
 .coupon-item.expired .coupon-left::after {
   background-image: radial-gradient(circle at 0 0, transparent 20rpx, #999 20rpx),
                     radial-gradient(circle at 0 40rpx, #999 20rpx, transparent 20rpx);
+}
+</style>
+
+<style scoped>
+.container {
+  min-height: 100vh;
+  background: var(--ym-paper);
+}
+
+.coupon-tabs {
+  border-bottom: 1rpx solid var(--ym-line);
+  box-shadow: none;
+}
+
+.tab-item.active,
+.coupon-use-range {
+  color: var(--ym-brand);
+}
+
+.tab-item.active::after {
+  background: var(--ym-brand);
+}
+
+.coupon-list {
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+}
+
+.coupon-item {
+  border: 1rpx solid var(--ym-line);
+  border-left: 8rpx solid var(--ym-price);
+  border-radius: var(--ym-radius-card);
+  box-shadow: none;
+}
+
+.coupon-left,
+.coupon-item.used .coupon-left,
+.coupon-item.expired .coupon-left {
+  width: 176rpx;
+  color: var(--ym-price);
+  background: var(--ym-surface);
+}
+
+.coupon-left::after,
+.coupon-item.used .coupon-left::after,
+.coupon-item.expired .coupon-left::after {
+  display: none;
+}
+
+.coupon-item.used,
+.coupon-item.expired {
+  border-left-color: var(--ym-line-strong);
+}
+
+.coupon-item.used .coupon-left,
+.coupon-item.expired .coupon-left {
+  color: var(--ym-muted);
+}
+
+.coupon-title {
+  color: var(--ym-ink);
+}
+
+.coupon-use-range {
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+}
+
+.coupon-btn {
+  color: var(--ym-price);
+  border: 1rpx solid var(--ym-price);
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-surface);
+}
+
+.empty-state,
+.loading-container {
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  box-shadow: none;
 }
 </style>

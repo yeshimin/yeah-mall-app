@@ -267,42 +267,52 @@ onBeforeUnmount(() => {
 
 <style scoped>
 	.login-container {
-		padding: 40rpx;
-		background-color: #f5f5f5;
 		min-height: 100vh;
+		box-sizing: border-box;
+		padding: 56rpx 32rpx;
+		background: var(--ym-paper);
 	}
 	
 	.login-header {
+		width: 100%;
+		max-width: 520px;
+		box-sizing: border-box;
+		margin: 0 auto 44rpx;
+		padding-top: 48rpx;
 		text-align: center;
-		margin-bottom: 60rpx;
-		padding-top: 100rpx;
 	}
 	
 	.login-title {
-		font-size: 48rpx;
-		font-weight: bold;
-		color: #333;
+		color: var(--ym-ink);
+		font-size: 44rpx;
+		font-weight: 700;
 	}
 	
 	.login-form {
-		background-color: #fff;
-		border-radius: 20rpx;
+		width: 100%;
+		max-width: 520px;
+		box-sizing: border-box;
+		margin: 0 auto;
 		padding: 40rpx;
-		box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.05);
+		border: 1rpx solid var(--ym-line);
+		border-radius: var(--ym-radius-card);
+		background: var(--ym-surface);
+		box-shadow: var(--ym-shadow-card);
 	}
 	
 	.input-item {
-		margin-bottom: 30rpx;
-		border-bottom: 1rpx solid #eee;
-		padding-bottom: 20rpx;
 		display: flex;
 		align-items: center;
+		min-height: 92rpx;
+		margin-bottom: 16rpx;
+		border-bottom: 1rpx solid var(--ym-line);
 	}
 	
 	.input {
 		flex: 1;
-		font-size: 32rpx;
-		padding: 20rpx 0;
+		min-width: 0;
+		color: var(--ym-ink);
+		font-size: 30rpx;
 	}
 
 	.code-row {
@@ -314,38 +324,44 @@ onBeforeUnmount(() => {
 	}
 
 	.code-btn {
-		width: 220rpx;
-		height: 60rpx;
-		line-height: 60rpx;
-		font-size: 26rpx;
-		border-radius: 30rpx;
-		background-color: #007AFF;
+		width: 224rpx;
+		height: 68rpx;
+		padding: 0 16rpx;
 		color: #fff;
-		text-align: center;
-		padding: 0;
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-brand);
+		font-size: 26rpx;
+		line-height: 68rpx;
+		white-space: nowrap;
 	}
 
 	.code-btn[disabled] {
-		background-color: #cccccc;
-		color: #666666;
+		color: var(--ym-muted);
+		background: var(--ym-brand-soft);
 	}
 	
 	.login-btn {
 		width: 100%;
-		height: 80rpx;
-		line-height: 80rpx;
-		background-color: #007AFF;
+		height: 88rpx;
+		margin-top: 36rpx;
 		color: #fff;
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-brand);
 		font-size: 32rpx;
-		border-radius: 10rpx;
-		margin-top: 40rpx;
+		font-weight: 600;
+		line-height: 88rpx;
+	}
+
+	.code-btn::after,
+	.login-btn::after {
+		border: 0;
 	}
 	
 	.register-link {
 		display: block;
-		text-align: center;
 		margin-top: 30rpx;
-		color: #007AFF;
+		color: var(--ym-brand);
 		font-size: 28rpx;
+		text-align: center;
 	}
 </style>

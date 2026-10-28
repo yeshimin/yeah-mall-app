@@ -852,10 +852,21 @@ onLoad((options = {}) => {
 }
 
 .section-title {
+  position: relative;
   padding: 22rpx 24rpx;
   color: var(--ym-ink);
-  border-bottom-color: #edf0ed;
+  border-bottom: 0;
   background: var(--ym-surface);
+}
+
+.section-title::after {
+  position: absolute;
+  right: 24rpx;
+  bottom: 0;
+  left: 24rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
 }
 
 .section-title .iconfont {
@@ -961,5 +972,9 @@ onLoad((options = {}) => {
   color: var(--ym-ink-secondary);
   border-color: var(--ym-line-strong);
   background: var(--ym-surface);
+}
+
+.action-btn::after {
+  border: 0;
 }
 </style>

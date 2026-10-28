@@ -80,15 +80,97 @@ onReachBottom(() => load())
 </script>
 
 <style scoped>
-.page { min-height: 100vh; padding: 20rpx; box-sizing: border-box; background: #f7f8fa; }
-.product-card { display: flex; align-items: center; gap: 18rpx; margin-bottom: 16rpx; padding: 18rpx; background: #fff; border-radius: 14rpx; }
-.image { width: 132rpx; height: 132rpx; border-radius: 10rpx; background: #eee; }
-.content { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 10rpx; }
-.name { overflow: hidden; color: #222; font-size: 28rpx; text-overflow: ellipsis; white-space: nowrap; }
-.price { color: #e64340; font-size: 30rpx; font-weight: 700; }
-.time, .invalid { color: #999; font-size: 22rpx; }
-.actions { display: flex; flex-direction: column; align-items: flex-end; gap: 14rpx; }
-.remove { color: #576b95; font-size: 24rpx; }
-.state, .footer { padding: 100rpx 0; color: #999; font-size: 26rpx; text-align: center; }
-.footer { padding: 26rpx 0; }
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 40rpx;
+  background: var(--ym-paper);
+}
+
+.product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.product-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  box-sizing: border-box;
+  padding: 18rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.image {
+  width: 132rpx;
+  height: 132rpx;
+  flex: 0 0 132rpx;
+  border-radius: 14rpx;
+  background: var(--ym-brand-soft);
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 28rpx;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.price {
+  color: var(--ym-price);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.time,
+.invalid {
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.remove {
+  display: flex;
+  min-height: 56rpx;
+  align-items: center;
+  padding-left: 12rpx;
+  color: var(--ym-brand);
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.state,
+.footer {
+  padding: 120rpx 0;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.footer {
+  padding: 28rpx 0 12rpx;
+  font-size: 23rpx;
+}
 </style>

@@ -21,7 +21,7 @@
       <view class="order-stats">
         <view class="stat-item" v-for="(stat, index) in orderStats" :key="index" @click="viewOrdersByStatus(index)">
           <view class="stat-icon-box">
-            <text class="stat-symbol">{{ stat.icon }}</text>
+            <image class="stat-symbol" :src="stat.icon" mode="aspectFit" />
             <text v-if="stat.count > 0" class="stat-count">{{ stat.count }}</text>
           </view>
           <text class="stat-label">{{ stat.name }}</text>
@@ -33,7 +33,9 @@
     <view class="section">
       <view class="function-grid">
         <view class="function-item" v-for="(func, index) in functions" :key="index" @click="useFunction(index)">
-          <text class="function-icon">{{ func.short }}</text>
+          <view class="function-icon">
+            <image :src="func.icon" mode="aspectFit" />
+          </view>
           <text class="function-text">{{ func.name }}</text>
         </view>
       </view>
@@ -67,18 +69,18 @@ const userInfo = reactive({
 })
 
 const orderStats = reactive([
-  { name: '待付款', icon: '单', key: 'waitPayCount', count: 0 },
-  { name: '待发货', icon: '箱', key: 'waitShipCount', count: 0 },
-  { name: '待收货', icon: '运', key: 'waitReceiveCount', count: 0 },
-  { name: '待评价', icon: '评', key: 'waitCommentCount', count: 0 },
-  { name: '退款/售后', icon: '售', key: 'refundAndAfterSaleCount', count: 0 }
+  { name: '待付款', icon: '/static/icons/order.png', key: 'waitPayCount', count: 0 },
+  { name: '待发货', icon: '/static/icons/box.png', key: 'waitShipCount', count: 0 },
+  { name: '待收货', icon: '/static/icons/truck.png', key: 'waitReceiveCount', count: 0 },
+  { name: '待评价', icon: '/static/icons/review.png', key: 'waitCommentCount', count: 0 },
+  { name: '退款/售后', icon: '/static/icons/aftersale.png', key: 'refundAndAfterSaleCount', count: 0 }
 ])
 
 const functions = [
-  { name: '优惠券', short: '券' },
-  { name: '积分', short: '分' },
-  { name: '收藏', short: '藏' },
-  { name: '地址', short: '址' }
+  { name: '优惠券', icon: '/static/quick/coupon.png' },
+  { name: '积分', icon: '/static/quick/points.png' },
+  { name: '收藏', icon: '/static/icons/heart.png' },
+  { name: '地址', icon: '/static/icons/location.png' }
 ]
 
 const settings = [
@@ -220,84 +222,119 @@ onShow(() => {
 
 <style scoped>
 .profile-container {
-  height: 100vh;
-  background-color: #f5f5f5;
-  padding-top: var(--status-bar-height);
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
+  background: var(--ym-paper);
 }
 
 .profile-header {
-  background-color: white;
-  padding: 40rpx 30rpx;
-  margin: 20rpx;
-  border-radius: 10rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 40rpx 28rpx 68rpx;
+  border-radius: 0;
+  background: var(--ym-ink);
+  box-shadow: none;
+}
+
+.user-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.user-avatar {
+  width: 104rpx;
+  height: 104rpx;
+  margin-right: 24rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: var(--ym-brand-soft);
+}
+
+.user-name {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 6rpx;
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-meta {
+  display: block;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
 }
 
 .edit-arrow {
   width: 14rpx;
   height: 14rpx;
-  color: #999;
+  flex: 0 0 auto;
+  margin-left: 20rpx;
+  color: rgba(255, 255, 255, 0.78);
   border-top: 2rpx solid currentColor;
   border-right: 2rpx solid currentColor;
   transform: rotate(45deg);
 }
 
-.user-name {
-  font-size: 36rpx;
-  font-weight: bold;
-  margin-bottom: 10rpx;
-  color: #333;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-}
-
-.user-avatar {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  margin-right: 30rpx;
-  border: 4rpx solid rgba(255, 255, 255, 0.3);
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-}
-
 .section {
-  background-color: white;
-  margin: 20rpx;
-  border-radius: 10rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  margin: 18rpx 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.profile-header + .section {
+  margin-top: -34rpx;
 }
 
 .section-header {
+  position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20rpx 30rpx;
-  border-bottom: 1rpx solid #f5f5f5;
+  justify-content: space-between;
+  padding: 24rpx;
+}
+
+.section-header::after {
+  position: absolute;
+  right: 24rpx;
+  bottom: 0;
+  left: 24rpx;
+  height: 1rpx;
+  background: var(--ym-line);
+  content: '';
 }
 
 .section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  color: var(--ym-ink);
+  font-size: 30rpx;
+  font-weight: 700;
 }
 
 .section-more {
   display: flex;
   align-items: center;
   gap: 8rpx;
-  font-size: 24rpx;
-  color: #999;
+  color: var(--ym-muted);
+  font-size: 23rpx;
 }
 
 .section-more::after {
@@ -311,158 +348,14 @@ onShow(() => {
 
 .order-stats {
   display: flex;
-  padding: 30rpx 0;
-}
-
-.stat-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-icon {
-  font-size: 28rpx;
-  color: #666;
-  margin-bottom: 10rpx;
-}
-
-.stat-count {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ff6b35;
-}
-
-.function-grid {
-  display: flex;
-  padding: 30rpx 0;
-}
-
-.function-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.function-icon {
-  width: 80rpx;
-  height: 80rpx;
-  background-color: #ffeee6;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24rpx;
-  color: #ff6b35;
-  margin-bottom: 15rpx;
-}
-
-.function-text {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-}
-
-.list-item:last-child {
-  border-bottom: none;
-}
-
-.list-item-text {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.list-item-arrow {
-  width: 12rpx;
-  height: 12rpx;
-  color: #999;
-  border-top: 2rpx solid currentColor;
-  border-right: 2rpx solid currentColor;
-  transform: rotate(45deg);
-}
-</style>
-
-<style scoped>
-.profile-container {
-  min-height: 100%;
-  height: auto;
-  padding-top: 0;
-  padding-bottom: calc(var(--window-bottom) + 24rpx);
-  background: var(--ym-paper);
-}
-
-.profile-header {
-  margin: 0;
-  padding: 40rpx 28rpx 68rpx;
-  border-radius: 0;
-  background: var(--ym-ink);
-  box-shadow: none;
-}
-
-.user-avatar {
-  width: 104rpx;
-  height: 104rpx;
-  margin-right: 24rpx;
-  border: 0;
-  border-radius: 20rpx;
-  background: var(--ym-brand-soft);
-}
-
-.user-name {
-  margin-bottom: 6rpx;
-  color: #fff;
-  font-size: 36rpx;
-}
-
-.user-meta {
-  color: rgba(255, 255, 255, 0.64);
-  font-size: 22rpx;
-}
-
-.edit-arrow {
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.section {
-  margin: 18rpx 24rpx;
-  border: 1rpx solid var(--ym-line);
-  border-radius: var(--ym-radius-card);
-  background: var(--ym-surface);
-  box-shadow: none;
-}
-
-.profile-header + .section {
-  margin-top: -34rpx;
-}
-
-.section-header {
-  padding: 24rpx;
-  border-bottom-color: #edf0ed;
-}
-
-.section-title {
-  color: var(--ym-ink);
-  font-size: 30rpx;
-}
-
-.section-more {
-  color: var(--ym-muted);
-  font-size: 23rpx;
-}
-
-.order-stats {
   padding: 26rpx 8rpx 28rpx;
 }
 
 .stat-item {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-direction: column;
   gap: 10rpx;
 }
 
@@ -480,6 +373,8 @@ onShow(() => {
 }
 
 .stat-symbol {
+  width: 32rpx;
+  height: 32rpx;
   font-size: 23rpx;
   font-weight: 700;
 }
@@ -510,22 +405,35 @@ onShow(() => {
 }
 
 .function-grid {
+  display: flex;
   padding: 24rpx 8rpx 28rpx;
 }
 
 .function-item {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  flex-direction: column;
   gap: 10rpx;
 }
 
 .function-icon {
+  display: flex;
   width: 68rpx;
   height: 68rpx;
   margin-bottom: 0;
+  align-items: center;
+  justify-content: center;
   color: var(--ym-brand);
   border-radius: 20rpx;
   background: var(--ym-brand-soft);
   font-size: 24rpx;
   font-weight: 700;
+}
+
+.function-icon image {
+  width: 38rpx;
+  height: 38rpx;
 }
 
 .function-text {
@@ -534,10 +442,28 @@ onShow(() => {
 }
 
 .list-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-height: 92rpx;
   box-sizing: border-box;
   padding: 0 26rpx;
-  border-bottom-color: #edf0ed;
+  border-bottom: 0;
+}
+
+.list-item:not(:last-child)::after {
+  position: absolute;
+  right: 26rpx;
+  bottom: 0;
+  left: 26rpx;
+  height: 1rpx;
+  background: #edf0ed;
+  content: '';
+}
+
+.list-item:active {
+  background: #f7faf8;
 }
 
 .list-item-text {
@@ -546,6 +472,19 @@ onShow(() => {
 }
 
 .list-item-arrow {
+  width: 12rpx;
+  height: 12rpx;
+  flex: 0 0 auto;
+  margin-left: 20rpx;
   color: var(--ym-muted);
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.stat-item:active,
+.function-item:active,
+.section-header:active {
+  opacity: 0.72;
 }
 </style>

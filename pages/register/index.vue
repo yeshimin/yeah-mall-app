@@ -110,58 +110,74 @@ function handleRegister() {
 
 <style scoped>
 	.register-container {
-		padding: 40rpx;
-		background-color: #f5f5f5;
 		min-height: 100vh;
+		box-sizing: border-box;
+		padding: 56rpx 32rpx;
+		background: var(--ym-paper);
 	}
 	
 	.register-header {
+		width: 100%;
+		max-width: 520px;
+		box-sizing: border-box;
+		margin: 0 auto 44rpx;
+		padding-top: 48rpx;
 		text-align: center;
-		margin-bottom: 60rpx;
-		padding-top: 100rpx;
 	}
 	
 	.register-title {
-		font-size: 48rpx;
-		font-weight: bold;
-		color: #333;
+		color: var(--ym-ink);
+		font-size: 44rpx;
+		font-weight: 700;
 	}
 	
 	.register-form {
-		background-color: #fff;
-		border-radius: 20rpx;
+		width: 100%;
+		max-width: 520px;
+		box-sizing: border-box;
+		margin: 0 auto;
 		padding: 40rpx;
-		box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.05);
+		border: 1rpx solid var(--ym-line);
+		border-radius: var(--ym-radius-card);
+		background: var(--ym-surface);
+		box-shadow: var(--ym-shadow-card);
 	}
 	
 	.input-item {
-		margin-bottom: 30rpx;
-		border-bottom: 1rpx solid #eee;
-		padding-bottom: 20rpx;
+		display: flex;
+		min-height: 92rpx;
+		align-items: center;
+		margin-bottom: 16rpx;
+		border-bottom: 1rpx solid var(--ym-line);
 	}
 	
 	.input {
 		width: 100%;
-		font-size: 32rpx;
-		padding: 20rpx 0;
+		color: var(--ym-ink);
+		font-size: 30rpx;
 	}
 	
 	.register-btn {
 		width: 100%;
-		height: 80rpx;
-		line-height: 80rpx;
-		background-color: #007AFF;
+		height: 88rpx;
+		margin-top: 36rpx;
 		color: #fff;
+		border-radius: var(--ym-radius-control);
+		background: var(--ym-brand);
 		font-size: 32rpx;
-		border-radius: 10rpx;
-		margin-top: 40rpx;
+		font-weight: 600;
+		line-height: 88rpx;
+	}
+
+	.register-btn::after {
+		border: 0;
 	}
 	
 	.login-link {
 		display: block;
-		text-align: center;
 		margin-top: 30rpx;
-		color: #007AFF;
+		color: var(--ym-brand);
 		font-size: 28rpx;
+		text-align: center;
 	}
 </style>

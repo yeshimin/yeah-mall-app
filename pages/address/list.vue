@@ -10,7 +10,7 @@
 			<template v-else>
 				<!-- 无地址提示 -->
 				<view class="empty-state" v-if="addressList.length === 0">
-					<text class="empty-icon">📍</text>
+					<image class="empty-icon-image" src="/static/icons/location.png" mode="aspectFit" />
 					<text class="empty-text">暂无收货地址</text>
 					<view class="empty-action">
 						<button class="add-address-btn" @click="goToAddAddress">立即添加收货地址</button>
@@ -244,6 +244,12 @@ onShow(() => {
 		margin-bottom: 30rpx;
 	}
 
+	.empty-icon-image {
+		width: 96rpx;
+		height: 96rpx;
+		margin-bottom: 30rpx;
+	}
+
 	.empty-text {
 		font-size: 32rpx;
 		color: #999;
@@ -371,4 +377,74 @@ onShow(() => {
 		margin-right: 10rpx;
 		font-weight: bold;
 	}
+</style>
+
+<style scoped>
+.address-list {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(132rpx + env(safe-area-inset-bottom));
+  background: var(--ym-paper);
+}
+
+.address-content {
+  padding: 20rpx 24rpx 40rpx;
+}
+
+.address-item,
+.empty-state {
+  margin: 0 0 18rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+  box-shadow: none;
+}
+
+.name,
+.edit-btn {
+  color: var(--ym-ink);
+}
+
+.phone,
+.address-detail,
+.action-btn,
+.loading-text,
+.empty-text {
+  color: var(--ym-muted);
+}
+
+.default-tag {
+  color: var(--ym-brand);
+  border-radius: 8rpx;
+  background: var(--ym-brand-soft);
+}
+
+.default-btn {
+  color: var(--ym-brand);
+}
+
+.delete-btn {
+  color: var(--ym-price);
+}
+
+.add-address-btn {
+  height: 72rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-control);
+  background: var(--ym-brand);
+  box-shadow: none;
+  line-height: 72rpx;
+}
+
+.bottom-add {
+  min-height: 112rpx;
+  height: auto;
+  box-sizing: border-box;
+  padding: 14rpx 24rpx calc(14rpx + env(safe-area-inset-bottom));
+  color: #fff;
+  border-top: 1rpx solid var(--ym-line);
+  background: var(--ym-brand);
+  box-shadow: none;
+}
 </style>

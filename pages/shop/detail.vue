@@ -1,141 +1,426 @@
 <template>
-  <view class="shop-detail-page">
-    <view class="hero-card">
-      <text class="shop-label">店铺详情</text>
-      <text class="shop-name">{{ shopName }}</text>
-      <text class="shop-desc">
-        当前店铺详情路由已经接通，后续可以直接在这里替换成真实店铺接口与商品数据。
-      </text>
+  <view class="shop-page">
+    <view v-if="loading" class="page-state">
+      <text>正在加载店铺...</text>
     </view>
 
-    <view class="action-card">
-      <button class="primary-btn" @click="viewProducts">查看店铺商品</button>
-      <button class="secondary-btn" @click="contactService">联系店铺客服</button>
+    <view v-else-if="error" class="page-state error-state">
+      <text class="state-title">店铺加载失败</text>
+      <text class="state-copy">{{ error }}</text>
+      <view class="retry-button" @click="loadPage">重新加载</view>
     </view>
 
-    <view class="meta-card">
-      <view class="meta-row">
-        <text class="meta-label">店铺 ID</text>
-        <text class="meta-value">{{ shopId || '--' }}</text>
+    <template v-else>
+      <view class="shop-hero">
+        <image class="shop-logo" :src="shopLogo" mode="aspectFill" />
+        <view class="shop-copy">
+          <text class="shop-name">{{ shop.shopName || fallbackShopName }}</text>
+          <text class="shop-no">店铺编号 {{ shop.shopNo || '-' }}</text>
+        </view>
+        <view class="contact-button" @click="contactService">联系客服</view>
       </view>
-      <view class="meta-row">
-        <text class="meta-label">当前状态</text>
-        <text class="meta-value">开发阶段占位详情页</text>
+
+      <view class="shop-summary">
+        <view class="summary-item">
+          <text class="summary-value">{{ shop.productCount || 0 }}</text>
+          <text class="summary-label">店铺商品</text>
+        </view>
+        <view class="summary-divider"></view>
+        <view class="summary-note">
+          <text class="summary-title">店铺好物</text>
+          <text class="summary-subtitle">精选商品，放心选购</text>
+        </view>
       </view>
-    </view>
+
+      <view class="product-section">
+        <view class="section-heading">
+          <text class="section-title">全部商品</text>
+          <text class="section-count">共 {{ shop.productCount || products.length }} 件</text>
+        </view>
+
+        <view v-if="products.length" class="product-grid">
+          <view v-for="product in products" :key="product.id" class="product-card" @click="openProduct(product.id)">
+            <image class="product-image" :src="productImage(product.mainImage)" mode="aspectFill" />
+            <view class="product-info">
+              <text class="product-name">{{ product.name }}</text>
+              <view class="product-meta">
+                <text class="product-price">{{ productPrice(product) }}</text>
+                <text class="product-sales">已售 {{ product.sales || 0 }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view v-else-if="!productLoading" class="empty-products">
+          <text class="empty-title">暂无店铺商品</text>
+          <text class="empty-copy">店铺商品上新后会展示在这里</text>
+        </view>
+
+        <view v-if="productLoading" class="list-footer">正在加载商品...</view>
+        <view v-else-if="products.length" class="list-footer">
+          {{ hasMore ? '上拉加载更多' : '已经到底了' }}
+        </view>
+      </view>
+    </template>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { computed, reactive, ref } from 'vue'
+import { onLoad, onReachBottom } from '@dcloudio/uni-app'
+import { fetchShopDetail, fetchShopProducts } from '@/utils/api.js'
+import { getStoragePreviewUrl } from '@/utils/config.js'
 
 const shopId = ref('')
-const shopName = ref('店铺')
+const fallbackShopName = ref('店铺')
+const shop = reactive({
+  id: '',
+  shopNo: '',
+  shopName: '',
+  shopLogo: '',
+  productCount: 0
+})
+const products = ref([])
+const loading = ref(true)
+const productLoading = ref(false)
+const error = ref('')
+const current = ref(1)
+const pages = ref(1)
+const pageSize = 10
 
-function viewProducts() {
-  uni.navigateTo({
-    url: `/pages/product/list?query=${encodeURIComponent(shopName.value)}`
-  })
+const shopLogo = computed(() => getStoragePreviewUrl(shop.shopLogo) || '/static/logo.png')
+const hasMore = computed(() => current.value < pages.value)
+
+async function loadPage() {
+  if (!shopId.value) {
+    loading.value = false
+    error.value = '缺少店铺ID'
+    return
+  }
+
+  loading.value = true
+  error.value = ''
+  try {
+    const detail = await fetchShopDetail(shopId.value)
+    Object.assign(shop, detail || {})
+    await loadProducts(true)
+  } catch (loadError) {
+    error.value = loadError?.message || '请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadProducts(reset = false) {
+  if (productLoading.value || (!reset && !hasMore.value)) return
+  productLoading.value = true
+  try {
+    const targetPage = reset ? 1 : current.value + 1
+    const result = await fetchShopProducts(shopId.value, targetPage, pageSize)
+    const records = result?.records || []
+    products.value = reset ? records : products.value.concat(records)
+    current.value = Number(result?.current || targetPage)
+    pages.value = Number(result?.pages || 1)
+  } finally {
+    productLoading.value = false
+  }
+}
+
+function productImage(fileKey) {
+  return getStoragePreviewUrl(fileKey) || '/static/logo.png'
+}
+
+function productPrice(product) {
+  const minPrice = Number(product.minPrice || 0)
+  const maxPrice = Number(product.maxPrice || minPrice)
+  if (maxPrice > minPrice) {
+    return `¥${minPrice.toFixed(2)} 起`
+  }
+  return `¥${minPrice.toFixed(2)}`
+}
+
+function openProduct(productId) {
+  uni.navigateTo({ url: `/pages/product/detail?id=${productId}` })
 }
 
 function contactService() {
-  const query = shopId.value ? `?shopId=${encodeURIComponent(shopId.value)}` : ''
-  uni.navigateTo({
-    url: `/pages/customer-service/index${query}`
-  })
+  uni.navigateTo({ url: `/pages/customer-service/index?shopId=${encodeURIComponent(shopId.value)}` })
 }
 
 onLoad((options = {}) => {
   shopId.value = options.shopId || ''
-  shopName.value = options.shopName ? decodeURIComponent(options.shopName) : '店铺'
+  fallbackShopName.value = options.shopName ? decodeURIComponent(options.shopName) : '店铺'
+  loadPage()
+})
+
+onReachBottom(() => {
+  loadProducts()
 })
 </script>
 
 <style scoped>
-.shop-detail-page {
+.shop-page {
   min-height: 100vh;
-  padding: 32rpx;
-  background: linear-gradient(180deg, #f7f0e7 0%, #f8f8f8 40%, #ffffff 100%);
   box-sizing: border-box;
+  padding: 24rpx 24rpx 48rpx;
+  background: var(--ym-paper);
 }
 
-.hero-card,
-.action-card,
-.meta-card {
-  background-color: #fff;
+.page-state {
+  display: flex;
+  min-height: 480rpx;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.error-state {
+  margin-top: 20rpx;
+  min-height: 360rpx;
+  padding: 40rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.state-title {
+  color: var(--ym-ink);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.state-copy {
+  margin-top: 12rpx;
+}
+
+.retry-button,
+.contact-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ym-radius-control);
+  font-weight: 600;
+}
+
+.retry-button {
+  min-width: 176rpx;
+  height: 68rpx;
+  margin-top: 28rpx;
+  padding: 0 24rpx;
+  color: #fff;
+  background: var(--ym-brand);
+}
+
+.shop-hero {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 30rpx;
+  color: #fff;
+  border-radius: var(--ym-radius-card);
+  background: linear-gradient(135deg, var(--ym-ink), var(--ym-brand));
+  box-shadow: var(--ym-shadow-card);
+}
+
+.shop-logo {
+  width: 112rpx;
+  height: 112rpx;
+  flex: 0 0 112rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.22);
   border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.05);
+  background: var(--ym-surface);
 }
 
-.action-card,
-.meta-card {
-  margin-top: 24rpx;
-}
-
-.shop-label {
-  display: inline-flex;
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  background-color: #f6ede2;
-  color: #8d5f2c;
-  font-size: 24rpx;
+.shop-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  margin-left: 24rpx;
 }
 
 .shop-name {
-  display: block;
-  margin-top: 24rpx;
-  font-size: 44rpx;
-  font-weight: 600;
-  color: #2a2118;
+  overflow: hidden;
+  font-size: 34rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.shop-desc {
-  display: block;
-  margin-top: 18rpx;
-  line-height: 1.7;
-  color: #675949;
-  font-size: 28rpx;
+.shop-no {
+  margin-top: 10rpx;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 22rpx;
 }
 
-.primary-btn,
-.secondary-btn {
-  border-radius: 999rpx;
-  font-size: 28rpx;
+.contact-button {
+  height: 64rpx;
+  flex: 0 0 auto;
+  margin-left: 20rpx;
+  padding: 0 22rpx;
+  color: var(--ym-brand-strong);
+  background: #fff;
+  font-size: 24rpx;
 }
 
-.primary-btn {
-  background-color: #2f6b55;
-  color: #fff;
-}
-
-.secondary-btn {
-  margin-top: 20rpx;
-  background-color: #f2f4f1;
-  color: #2f6b55;
-}
-
-.meta-row {
+.shop-summary {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f1f1f1;
+  margin-top: 18rpx;
+  padding: 24rpx 28rpx;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
 }
 
-.meta-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.summary-item {
+  display: flex;
+  min-width: 120rpx;
+  align-items: center;
+  flex-direction: column;
 }
 
-.meta-label {
-  color: #8a8a8a;
-  font-size: 26rpx;
+.summary-value {
+  color: var(--ym-ink);
+  font-size: 34rpx;
+  font-weight: 700;
 }
 
-.meta-value {
-  color: #222;
+.summary-label,
+.summary-subtitle {
+  margin-top: 4rpx;
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.summary-divider {
+  width: 1rpx;
+  height: 64rpx;
+  margin: 0 28rpx;
+  background: var(--ym-line);
+}
+
+.summary-note {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.summary-title {
+  color: var(--ym-ink-secondary);
   font-size: 28rpx;
+  font-weight: 600;
+}
+
+.product-section {
+  margin-top: 28rpx;
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+  padding: 0 4rpx;
+}
+
+.section-title {
+  color: var(--ym-ink);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.section-count {
+  color: var(--ym-muted);
+  font-size: 22rpx;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.product-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.product-image {
+  width: 100%;
+  height: 310rpx;
+  background: var(--ym-brand-soft);
+}
+
+.product-info {
+  padding: 18rpx;
+}
+
+.product-name {
+  display: -webkit-box;
+  min-height: 78rpx;
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 27rpx;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.product-price {
+  color: var(--ym-price);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.product-sales {
+  color: var(--ym-muted);
+  font-size: 20rpx;
+  white-space: nowrap;
+}
+
+.empty-products {
+  display: flex;
+  min-height: 280rpx;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1rpx solid var(--ym-line);
+  border-radius: var(--ym-radius-card);
+  background: var(--ym-surface);
+}
+
+.empty-title {
+  color: var(--ym-ink);
+  font-size: 29rpx;
+  font-weight: 600;
+}
+
+.empty-copy {
+  margin-top: 10rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+}
+
+.list-footer {
+  padding: 30rpx 0 10rpx;
+  color: var(--ym-muted);
+  font-size: 23rpx;
+  text-align: center;
 }
 </style>
