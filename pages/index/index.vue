@@ -127,19 +127,26 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <view class="product-image-shell">
+            <view class="product-image-shell" :style="{ minHeight: `${getProductImageHeight(product)}rpx` }">
               <image
                 v-if="product.image && !product.imageFailed"
                 class="product-image"
+                :class="{ 'is-loaded': product.imageLoaded }"
                 :src="product.image"
-                mode="aspectFill"
+                mode="widthFix"
+                @load="handleProductImageLoad(product, $event)"
                 @error="handleProductImageError(product)"
               />
               <view v-else class="product-image-placeholder"></view>
             </view>
             <view class="product-info">
               <text class="product-name">{{ product.name }}</text>
-              <text class="product-subtitle">{{ product.subtitle }}</text>
+              <text v-if="product.promotionText" class="product-promotion">{{ product.promotionText }}</text>
+              <text
+                v-if="product.subtitle"
+                class="product-subtitle"
+                :class="{ 'with-promotion': product.promotionText }"
+              >{{ product.subtitle }}</text>
               <view class="price-sales-container">
                 <text class="product-price">¥{{ product.price }}</text>
                 <text class="product-sales">已售 {{ product.sales }}</text>
@@ -154,19 +161,26 @@
             :key="product.id"
             @click="goToProduct(product.id)"
           >
-            <view class="product-image-shell">
+            <view class="product-image-shell" :style="{ minHeight: `${getProductImageHeight(product)}rpx` }">
               <image
                 v-if="product.image && !product.imageFailed"
                 class="product-image"
+                :class="{ 'is-loaded': product.imageLoaded }"
                 :src="product.image"
-                mode="aspectFill"
+                mode="widthFix"
+                @load="handleProductImageLoad(product, $event)"
                 @error="handleProductImageError(product)"
               />
               <view v-else class="product-image-placeholder"></view>
             </view>
             <view class="product-info">
               <text class="product-name">{{ product.name }}</text>
-              <text class="product-subtitle">{{ product.subtitle }}</text>
+              <text v-if="product.promotionText" class="product-promotion">{{ product.promotionText }}</text>
+              <text
+                v-if="product.subtitle"
+                class="product-subtitle"
+                :class="{ 'with-promotion': product.promotionText }"
+              >{{ product.subtitle }}</text>
               <view class="price-sales-container">
                 <text class="product-price">¥{{ product.price }}</text>
                 <text class="product-sales">已售 {{ product.sales }}</text>
@@ -253,6 +267,8 @@ const scrollToken = ref(null)
 const hasMore = ref(true)
 const navBarHeight = ref(0)
 const homeInitialized = ref(false)
+const PRODUCT_COLUMN_WIDTH_RPX = 342
+let waterfallReflowTimer = null
 
 const quickLinkRows = computed(() => {
   const count = quickLinks.value.length
@@ -399,21 +415,60 @@ function goToNewArrivals() {
 }
 
 function initWaterfall() {
-  leftColumnProducts.value = []
-  rightColumnProducts.value = []
-
   const selectedCategory = homeCategories.value.find((item) => item.id === activeHomeCategory.value)
   const visibleProducts = activeHomeCategory.value === 'recommend'
     ? hotProducts.value
     : hotProducts.value.filter((product) => product.categoryName === selectedCategory?.name)
 
-  visibleProducts.forEach((product, index) => {
-    if (index % 2 === 0) {
-      leftColumnProducts.value.push(product)
+  const leftProducts = []
+  const rightProducts = []
+  let leftHeight = 0
+  let rightHeight = 0
+
+  visibleProducts.forEach((product) => {
+    const estimatedHeight = estimateProductCardHeight(product)
+    if (leftHeight <= rightHeight) {
+      leftProducts.push(product)
+      leftHeight += estimatedHeight
     } else {
-      rightColumnProducts.value.push(product)
+      rightProducts.push(product)
+      rightHeight += estimatedHeight
     }
   })
+
+  leftColumnProducts.value = leftProducts
+  rightColumnProducts.value = rightProducts
+}
+
+function getProductImageHeight(product) {
+  const ratio = Number(product.imageAspectRatio || 1)
+  return Math.max(Math.round(PRODUCT_COLUMN_WIDTH_RPX * ratio), 1)
+}
+
+function estimateTextLines(text, maxLines) {
+  if (!text) {
+    return 0
+  }
+  return Math.min(Math.max(Math.ceil([...String(text)].length / 13), 1), maxLines)
+}
+
+function estimateProductCardHeight(product) {
+  const subtitleMaxLines = product.promotionText ? 1 : 2
+  const subtitleLines = estimateTextLines(product.subtitle, subtitleMaxLines)
+  const promotionHeight = product.promotionText ? 42 : 0
+  const subtitleHeight = subtitleLines * 34 + (subtitleLines ? 8 : 0)
+  const contentHeight = 40 + 42 + promotionHeight + subtitleHeight + 52
+  return getProductImageHeight(product) + contentHeight + 18
+}
+
+function scheduleWaterfallReflow() {
+  if (waterfallReflowTimer) {
+    clearTimeout(waterfallReflowTimer)
+  }
+  waterfallReflowTimer = setTimeout(() => {
+    waterfallReflowTimer = null
+    initWaterfall()
+  }, 80)
 }
 
 function getActionForQuickLink(type, target) {
@@ -507,6 +562,40 @@ function handleQuickLinkLongPress() {
 
 function handleProductImageError(product) {
   product.imageFailed = true
+  product.imageLoaded = false
+  if (product.imageAspectRatio !== 1) {
+    product.imageAspectRatio = 1
+    scheduleWaterfallReflow()
+  }
+}
+
+function handleProductImageLoad(product, event) {
+  const width = Number(event?.detail?.width || 0)
+  const height = Number(event?.detail?.height || 0)
+  product.imageLoaded = true
+  product.imageFailed = false
+  if (!width || !height) {
+    return
+  }
+  const nextRatio = height / width
+  if (Math.abs(Number(product.imageAspectRatio || 1) - nextRatio) > 0.01) {
+    product.imageAspectRatio = nextRatio
+    scheduleWaterfallReflow()
+  }
+}
+
+function createPromotionText(item) {
+  const promotions = item.promotions || item.promotionList || []
+  const firstPromotion = promotions[0]
+  const promotionText = item.promotionText
+    || item.marketingText
+    || item.promotionLabel
+    || item.activityLabel
+    || (typeof firstPromotion === 'string'
+      ? firstPromotion
+      : firstPromotion?.name || firstPromotion?.label || firstPromotion?.text)
+    || (item.tags || item.labelList || [])[0]
+  return promotionText ? String(promotionText).trim().slice(0, 24) : ''
 }
 
 function createProductSubtitle(item) {
@@ -515,17 +604,12 @@ function createProductSubtitle(item) {
     return String(directSubtitle).trim()
   }
 
-  const tags = item.tags || item.labelList || []
-  if (tags.length) {
-    return tags.slice(0, 2).join(' · ')
-  }
-
   const detailText = String(item.detailDesc || '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  return detailText ? detailText.slice(0, 28) : '更多商品信息请查看详情'
+  return detailText ? detailText.slice(0, 52) : ''
 }
 
 function selectHomeCategory(category) {
@@ -682,18 +766,29 @@ function fetchHotProducts(reset = false) {
           scrollToken.value = responseData.scrollToken || null
           hasMore.value = !!responseData.hasMore
 
-          const productsWithDetails = (responseData.data || []).map((item) => ({
-            ...item,
-            id: item.id,
-            name: item.name,
-            price: Number(item.minPrice || 0).toFixed(2),
-            sales: item.sales !== undefined ? item.sales : 0,
-            categoryName: item.categoryName || '',
-            tags: item.tags || item.labelList || [],
-            subtitle: createProductSubtitle(item),
-            image: getStoragePreviewUrl(item.mainImage),
-            imageFailed: false
-          }))
+          const previousProductMap = new Map(hotProducts.value
+            .map((product) => [String(product.id), product]))
+          const productsWithDetails = (responseData.data || []).map((item) => {
+            const image = getStoragePreviewUrl(item.mainImage)
+            const previousProduct = previousProductMap.get(String(item.id))
+            const keepImageState = previousProduct?.image === image
+            const promotionText = createPromotionText(item)
+            const subtitle = createProductSubtitle(item)
+            return {
+              ...item,
+              id: item.id,
+              name: item.name,
+              price: Number(item.minPrice || 0).toFixed(2),
+              sales: item.sales !== undefined ? item.sales : 0,
+              categoryName: item.categoryName || '',
+              promotionText,
+              subtitle: subtitle === promotionText ? '' : subtitle,
+              image,
+              imageFailed: false,
+              imageLoaded: keepImageState ? previousProduct.imageLoaded : false,
+              imageAspectRatio: keepImageState ? previousProduct.imageAspectRatio || 1 : 1
+            }
+          })
 
           const mergedProducts = reset
             ? productsWithDetails
@@ -765,6 +860,10 @@ onReachBottom(() => {
 
 onUnmounted(() => {
   uni.offNetworkStatusChange(handleNetworkStatusChange)
+  if (waterfallReflowTimer) {
+    clearTimeout(waterfallReflowTimer)
+    waterfallReflowTimer = null
+  }
 })
 </script>
 
@@ -1303,23 +1402,30 @@ onUnmounted(() => {
 }
 
 .product-image-shell {
+  position: relative;
   width: 100%;
-  height: 280rpx;
   overflow: hidden;
   border-bottom: 1rpx solid var(--ym-line);
-  background: #edf1ee;
+  background: #e6ebe8;
+  transition: min-height 0.18s ease;
 }
 
 .product-image {
   display: block;
   width: 100%;
-  height: 280rpx;
-  object-fit: cover;
+  height: auto;
+  aspect-ratio: auto;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.product-image.is-loaded {
+  opacity: 1;
 }
 
 .product-image-placeholder {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   background: #e6ebe8;
 }
 
@@ -1338,15 +1444,36 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-.product-subtitle {
+.product-promotion {
   display: block;
   overflow: hidden;
-  min-height: 34rpx;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 8rpx;
+  padding: 4rpx 10rpx;
+  color: var(--ym-price);
+  border-radius: 8rpx;
+  background: var(--ym-price-soft);
+  font-size: 20rpx;
+  line-height: 30rpx;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.product-subtitle {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: 8rpx;
   color: var(--ym-muted);
   font-size: 22rpx;
   line-height: 34rpx;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-subtitle.with-promotion {
+  -webkit-line-clamp: 1;
 }
 
 .product-price {
