@@ -22,7 +22,11 @@
         <view class="stat-item" v-for="stat in orderStats" :key="stat.key" @click="viewOrdersByStatus(stat)">
           <view class="stat-icon-box">
             <image class="stat-symbol" :src="stat.icon" mode="aspectFit" />
-            <text v-if="stat.count > 0" class="stat-count">{{ stat.count }}</text>
+            <text
+              v-if="stat.count > 0"
+              class="stat-count"
+              :class="{ 'is-double': stat.count > 9 && stat.count <= 99, 'is-overflow': stat.count > 99 }"
+            >{{ stat.count > 99 ? '99+' : stat.count }}</text>
           </view>
           <text class="stat-label">{{ stat.name }}</text>
         </view>
@@ -313,18 +317,40 @@ onShow(() => {
   top: -10rpx;
   right: -12rpx;
   display: flex;
+  width: 28rpx;
   min-width: 28rpx;
+  max-width: 28rpx;
   height: 28rpx;
+  flex: 0 0 28rpx;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: 0 7rpx;
+  padding: 0;
   color: #fff;
   border: 3rpx solid var(--ym-surface);
-  border-radius: 16rpx;
+  border-radius: 50%;
   background: var(--ym-price);
   font-size: 18rpx;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stat-count.is-double {
+  width: 40rpx;
+  min-width: 40rpx;
+  max-width: 40rpx;
+  flex-basis: 40rpx;
+  border-radius: 999rpx;
+}
+
+.stat-count.is-overflow {
+  width: 48rpx;
+  min-width: 48rpx;
+  max-width: 48rpx;
+  flex-basis: 48rpx;
+  border-radius: 999rpx;
+  font-size: 16rpx;
 }
 
 .stat-label {
