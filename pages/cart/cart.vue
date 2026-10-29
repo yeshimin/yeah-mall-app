@@ -8,6 +8,12 @@
 
     <!-- 购物车商品列表 -->
     <scroll-view class="cart-content" scroll-y>
+      <view v-if="loading" class="cart-state">购物车加载中...</view>
+      <view v-else-if="loadError" class="cart-state">
+        <text>{{ loadError }}</text>
+        <view class="cart-state-action" @click="fetchCartData">重新加载</view>
+      </view>
+      <template v-else>
       <!-- 按店铺分组展示商品 -->
       <view class="shop-group" v-for="(shop, shopIndex) in groupedCartItems" :key="shopIndex">
         <!-- 店铺头部 -->
@@ -55,10 +61,11 @@
         <text class="empty-hint">去挑选一些喜欢的商品吧</text>
         <view class="empty-action" @click="goShopping">去逛逛</view>
       </view>
+      </template>
     </scroll-view>
 
     <!-- 底部结算栏 -->
-    <view v-if="groupedCartItems.length > 0" class="cart-footer">
+    <view v-if="!loading && !loadError && groupedCartItems.length > 0" class="cart-footer">
       <view class="footer-left">
         <view class="select-all" @click="toggleSelectAll">
           <view class="selector" :class="{ selected: isAllSelected }">
@@ -90,6 +97,8 @@ import { handleAuthFailure, isAuthenticated } from '../../utils/auth.js'
 
 const isEditing = ref(false)
 const groupedCartItems = ref([])
+const loading = ref(true)
+const loadError = ref('')
 
 const totalPrice = computed(() => {
   return groupedCartItems.value
@@ -278,9 +287,12 @@ function deleteSelectedItems() {
 
 function fetchCartData() {
   if (!ensureLogin()) {
+    loading.value = false
     return
   }
 
+  loading.value = true
+  loadError.value = ''
   fetchCartItems()
     .then((data) => {
       groupedCartItems.value = (data || []).map((shop) => ({
@@ -306,10 +318,14 @@ function fetchCartData() {
       }
 
       console.error('获取购物车数据失败:', error)
+      loadError.value = '购物车加载失败，请稍后重试'
       uni.showToast({
         title: '获取购物车数据失败',
         icon: 'none'
       })
+    })
+    .finally(() => {
+      loading.value = false
     })
 }
 
@@ -627,6 +643,25 @@ onShow(() => {
 .cart-content {
   box-sizing: border-box;
   padding: 20rpx 24rpx calc(var(--window-bottom, 0px) + 128rpx);
+}
+
+.cart-state {
+  display: flex;
+  min-height: 50vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20rpx;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.cart-state-action {
+  padding: 14rpx 30rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: var(--ym-brand);
 }
 
 .shop-group {

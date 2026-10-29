@@ -23,6 +23,14 @@
       :refresher-triggered="refreshing"
       refresher-threshold="80"
     >
+      <view v-if="loading && currentCoupons.length === 0" class="loading-more">
+        <text class="loading-text">加载中...</text>
+      </view>
+      <view v-else-if="loadError && currentCoupons.length === 0" class="empty-state">
+        <text class="empty-text">{{ loadError }}</text>
+        <text class="state-retry" @click="fetchCoupons">重新加载</text>
+      </view>
+
       <!-- 可用优惠券 -->
       <view v-if="activeTab === 'available'">
         <view 
@@ -47,7 +55,7 @@
             </view>
           </view>
         </view>
-        <view v-if="availableCoupons.length === 0 && !loading" class="empty-state">
+        <view v-if="availableCoupons.length === 0 && !loading && !loadError" class="empty-state">
           <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无可用优惠券</text>
         </view>
@@ -75,7 +83,7 @@
             </view>
           </view>
         </view>
-        <view v-if="usedCoupons.length === 0 && !loading" class="empty-state">
+        <view v-if="usedCoupons.length === 0 && !loading && !loadError" class="empty-state">
           <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无已使用优惠券</text>
         </view>
@@ -103,7 +111,7 @@
             </view>
           </view>
         </view>
-        <view v-if="expiredCoupons.length === 0 && !loading" class="empty-state">
+        <view v-if="expiredCoupons.length === 0 && !loading && !loadError" class="empty-state">
           <image class="empty-icon" src="/static/quick/coupon.png" mode="aspectFit" />
           <text class="empty-text">暂无已过期优惠券</text>
         </view>
@@ -123,7 +131,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { BASE_API } from '@/utils/config.js'
 import { authRequest } from '@/utils/auth.js'
@@ -138,13 +146,20 @@ const activeTab = ref('available')
 const availableCoupons = ref([])
 const usedCoupons = ref([])
 const expiredCoupons = ref([])
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 const refreshing = ref(false)
 const loadingMore = ref(false)
 const noMore = ref(false)
 const pagination = reactive({
   currentPage: 1,
   pageSize: 10
+})
+
+const currentCoupons = computed(() => {
+  if (activeTab.value === 'used') return usedCoupons.value
+  if (activeTab.value === 'expired') return expiredCoupons.value
+  return availableCoupons.value
 })
 
 function switchTab(tabId) {
@@ -175,6 +190,10 @@ function onLoadMore() {
 }
 
 function fetchCoupons() {
+  if (pagination.currentPage === 1) {
+    loading.value = true
+    loadError.value = ''
+  }
   let condition = 1
   if (activeTab.value === 'used') {
     condition = 2
@@ -221,6 +240,7 @@ function fetchCoupons() {
       noMore.value = coupons.length < pagination.pageSize
     } else {
       console.error('获取优惠券列表失败:', res.data && res.data.message)
+      loadError.value = (res.data && res.data.message) || '优惠券加载失败'
     }
 
     loading.value = false
@@ -228,6 +248,7 @@ function fetchCoupons() {
     loadingMore.value = false
   }, (error) => {
     console.error('请求优惠券列表失败:', error)
+    loadError.value = '网络错误，请稍后重试'
     loading.value = false
     refreshing.value = false
     loadingMore.value = false
@@ -592,4 +613,6 @@ onLoad(() => {
   border-radius: var(--ym-radius-card);
   box-shadow: none;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 </style>

@@ -69,12 +69,17 @@
     </view>
 
     <!-- 加载状态 -->
-    <view v-if="loading" class="loading-container">
+    <view v-if="loading || !loaded" class="loading-container">
       <text class="loading-text">加载中...</text>
     </view>
 
+    <view v-else-if="loadError" class="empty-container">
+      <text class="empty-text">{{ loadError }}</text>
+      <text class="state-retry" @click="fetchSeckillProducts(activityInfo.id)">重新加载</text>
+    </view>
+
     <!-- 无数据 -->
-    <view v-if="!loading && seckillProducts.length === 0" class="empty-container">
+    <view v-else-if="seckillProducts.length === 0" class="empty-container">
       <text class="empty-text">暂无秒杀商品</text>
     </view>
   </view>
@@ -89,6 +94,8 @@ import { authRequest } from '@/utils/auth.js'
 const activityInfo = ref(null)
 const seckillProducts = ref([])
 const loading = ref(false)
+const loadError = ref('')
+const loaded = ref(false)
 
 function handleImageLoad() {}
 
@@ -112,6 +119,7 @@ function fetchSeckillProducts(activityId) {
   }
 
   loading.value = true
+  loadError.value = ''
   authRequest({
     url: `${BASE_API}/app/seckill/queryProduct?activityId=${activityId}`,
     method: 'GET',
@@ -125,11 +133,8 @@ function fetchSeckillProducts(activityId) {
         id: item.id,
         name: item.name,
         image: getStoragePreviewUrl(item.mainImage),
-        seckillPrice: item.minSeckillPrice ? item.minSeckillPrice.toFixed(2) : '0.00',
-        originalPrice: item.minOriginPrice ? item.minOriginPrice.toFixed(2) : '0.00',
-        stock: 0,
-        progress: 0,
-        sales: item.sales || 0,
+        seckillPrice: formatPrice(item.minSeckillPrice),
+        originalPrice: formatPrice(item.minOriginPrice),
         mchName: item.mchName,
         shopName: item.shopName,
         sessionName: item.sessionName
@@ -137,13 +142,24 @@ function fetchSeckillProducts(activityId) {
     } else {
       console.error('获取秒杀商品失败:', res.data && res.data.message)
       seckillProducts.value = []
+      loadError.value = (res.data && res.data.message) || '秒杀商品加载失败'
     }
     loading.value = false
+    loaded.value = true
   }, (error) => {
     console.error('请求秒杀商品失败:', error)
     seckillProducts.value = []
+    loadError.value = '网络错误，请稍后重试'
     loading.value = false
+    loaded.value = true
   })
+}
+
+function formatPrice(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) {
+    return '--'
+  }
+  return Number(value).toFixed(2)
 }
 
 function getActivityStatusText(status) {
@@ -161,6 +177,8 @@ function getActivityStatusText(status) {
 onLoad((options = {}) => {
   const activityId = options.activityId
   if (!activityId) {
+    loadError.value = '缺少秒杀活动ID'
+    loaded.value = true
     return
   }
 
@@ -171,7 +189,7 @@ onLoad((options = {}) => {
     coverImage: decodeURIComponent(options.coverImage || ''),
     activityBeginTime: decodeURIComponent(options.activityBeginTime || ''),
     activityEndTime: decodeURIComponent(options.activityEndTime || ''),
-    status: options.activityStatus || '1'
+    status: options.activityStatus || ''
   }
 
   fetchSeckillProducts(activityId)
@@ -510,5 +528,11 @@ onLoad((options = {}) => {
 .loading-container,
 .empty-container {
   color: var(--ym-muted);
+}
+
+.state-retry {
+  display: block;
+  margin-top: 18rpx;
+  color: var(--ym-brand);
 }
 </style>

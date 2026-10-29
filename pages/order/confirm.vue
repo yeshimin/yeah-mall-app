@@ -1,5 +1,11 @@
 <template>
 	<view class="order-confirm">
+		<view v-if="loading" class="confirm-page-state">订单信息加载中...</view>
+		<view v-else-if="loadError" class="confirm-page-state">
+			<text>{{ loadError }}</text>
+			<view v-if="requestItems.length" class="confirm-state-action" @click="retryOrderPreview">重新加载</view>
+		</view>
+		<template v-else>
 		
 		<!-- 收货地址 -->
 		<view class="address-section">
@@ -31,11 +37,6 @@
 				<text class="shop-name">{{ shop.shopName }}</text>
 			</view>
 			
-			<view v-if="loading" class="loading-container">
-				<text class="loading-text">加载中...</text>
-			</view>
-			
-			<template v-else>
 				<view class="goods-item" v-for="(item, itemIndex) in shop.items" :key="itemIndex">
 					<image class="goods-image" :src="item.image" mode="aspectFill"></image>
 					<view class="goods-info">
@@ -53,7 +54,6 @@
 					<text>店铺小计: </text>
 					<text class="subtotal-price">¥{{ calculateShopTotal(shop) }}</text>
 				</view>
-			</template>
 		</view>
 		
 		<!-- 空状态提示 -->
@@ -100,6 +100,7 @@
 			</view>
 			<button class="submit-btn" @click="payOrder">付款</button>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -117,7 +118,8 @@ const addressLoading = ref(false)
 const groupedOrderGoods = ref([])
 const goodsTotal = ref('0.00')
 const shippingFee = ref('0.00')
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 const requestItems = ref([])
 const orderSource = ref(1)
 const scene = ref('')
@@ -221,6 +223,7 @@ function calculateShopTotal(shop) {
 function processOrderPreviewData(data) {
   groupedOrderGoods.value = buildGroupedGoods(data)
   goodsTotal.value = calculateTotalPrice()
+  loadError.value = ''
   loading.value = false
   uni.hideLoading()
 }
@@ -245,6 +248,7 @@ async function refreshOrderData() {
 
 async function fetchOrderPreviewData(items) {
   loading.value = true
+  loadError.value = ''
   uni.showLoading({
     title: '加载中...'
   })
@@ -266,12 +270,14 @@ async function fetchOrderPreviewData(items) {
       }
 
       console.error('获取活动订单预览失败:', res.data && res.data.message)
+      loadError.value = (res.data && res.data.message) || '订单信息加载失败，请稍后重试'
       uni.showToast({
         title: '获取订单信息失败，请重试',
         icon: 'none'
       })
     } catch (error) {
       console.error('请求活动订单预览失败:', error)
+      loadError.value = error?.message || '网络错误，请稍后重试'
       uni.showToast({
         title: '网络错误，请稍后重试',
         icon: 'none'
@@ -289,6 +295,7 @@ async function fetchOrderPreviewData(items) {
     goodsTotal.value = calculateTotalPrice()
   } catch (error) {
     console.error('获取订单预览数据失败:', error)
+    loadError.value = error?.message || '订单信息加载失败，请稍后重试'
     uni.showToast({
       title: '获取订单预览数据失败',
       icon: 'none'
@@ -296,6 +303,12 @@ async function fetchOrderPreviewData(items) {
   } finally {
     loading.value = false
     uni.hideLoading()
+  }
+}
+
+function retryOrderPreview() {
+  if (requestItems.value.length > 0) {
+    fetchOrderPreviewData(requestItems.value)
   }
 }
 
@@ -590,7 +603,12 @@ onLoad((options = {}) => {
     }]
 
     if (options.orderPreview) {
-      processOrderPreviewData(JSON.parse(decodeURIComponent(options.orderPreview)))
+      try {
+        processOrderPreviewData(JSON.parse(decodeURIComponent(options.orderPreview)))
+      } catch (error) {
+        loading.value = false
+        loadError.value = '订单预览数据无效，请返回后重新提交'
+      }
       return
     }
 
@@ -599,6 +617,11 @@ onLoad((options = {}) => {
   }
 
   const eventChannel = instance?.proxy?.getOpenerEventChannel?.()
+  if (!eventChannel?.on) {
+    loading.value = false
+    loadError.value = '没有可结算的商品信息'
+    return
+  }
   eventChannel?.on('acceptDataFromCartPage', (data) => {
     if (data && data.selectedItems && data.selectedItems.length > 0) {
       orderSource.value = 2
@@ -608,6 +631,7 @@ onLoad((options = {}) => {
     }
 
     loading.value = false
+    loadError.value = '没有选择需要结算的商品'
     uni.showToast({
       title: '没有选择商品',
       icon: 'none'
@@ -1003,6 +1027,25 @@ onUnload(() => {
   padding: 20rpx 24rpx calc(140rpx + env(safe-area-inset-bottom));
   color: var(--ym-ink);
   background: var(--ym-paper);
+}
+
+.confirm-page-state {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20rpx;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.confirm-state-action {
+  padding: 14rpx 32rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: var(--ym-brand);
 }
 
 .address-section,

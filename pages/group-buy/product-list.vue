@@ -2,9 +2,13 @@
   <view class="page">
     <view class="activity-header">
       <text class="activity-name">{{ activityName }}</text>
-      <text class="activity-time">{{ activityEndTime }} 截止</text>
+      <text v-if="activityEndTime" class="activity-time">{{ activityEndTime }} 截止</text>
     </view>
-    <view v-if="loading" class="state">加载中...</view>
+    <view v-if="loading || !loaded" class="state">加载中...</view>
+    <view v-else-if="loadError" class="state">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="loadProducts(true)">重新加载</text>
+    </view>
     <view v-else-if="products.length === 0" class="state">暂无可查看的拼团商品</view>
     <view v-else class="product-list">
       <view v-for="product in products" :key="product.id" class="product-card" @click="openProduct(product)">
@@ -37,6 +41,8 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = 20
 const hasMore = ref(true)
+const loadError = ref('')
+const loaded = ref(false)
 
 function loadProducts(reset = false) {
   if (loading.value || (!reset && !hasMore.value)) {
@@ -46,8 +52,10 @@ function loadProducts(reset = false) {
     currentPage.value = 1
     hasMore.value = true
     products.value = []
+    loaded.value = false
   }
   loading.value = true
+  loadError.value = ''
   authRequest({
     url: `${BASE_API}/app/groupBuy/queryProduct?activityId=${activityId.value}&current=${currentPage.value}&size=${pageSize}`,
     method: 'GET'
@@ -67,17 +75,24 @@ function loadProducts(reset = false) {
         currentPage.value += 1
       }
     } else {
+      loadError.value = res.data?.message || '拼团商品加载失败'
       uni.showToast({ title: res.data?.message || '获取拼团商品失败', icon: 'none' })
     }
     loading.value = false
+    loaded.value = true
   }, () => {
     loading.value = false
+    loaded.value = true
+    loadError.value = '网络错误，请稍后重试'
     uni.showToast({ title: '网络错误，请稍后重试', icon: 'none' })
   })
 }
 
 function formatPrice(value) {
-  return Number(value || 0).toFixed(2)
+  if (value == null || value === '' || !Number.isFinite(Number(value))) {
+    return '--'
+  }
+  return Number(value).toFixed(2)
 }
 
 function openProduct(product) {
@@ -202,5 +217,11 @@ onReachBottom(() => loadProducts())
   color: var(--ym-muted);
   font-size: 28rpx;
   text-align: center;
+}
+
+.state-retry {
+  display: block;
+  margin-top: 18rpx;
+  color: var(--ym-brand);
 }
 </style>

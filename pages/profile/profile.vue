@@ -5,8 +5,8 @@
       <view class="user-info">
         <image class="user-avatar" :src="userInfo.avatarUrl" mode="aspectFill"></image>
         <view class="user-details">
-          <text class="user-name">{{ userInfo.nickname }}</text>
-          <text class="user-meta">普通会员 · ID {{ userInfo.id || '-' }}</text>
+          <text class="user-name">{{ userLoading ? '加载中...' : userError ? '会员信息加载失败' : (userInfo.nickname || '未设置昵称') }}</text>
+          <text v-if="!userLoading && !userError && userInfo.id" class="user-meta">会员 · ID {{ userInfo.id }}</text>
         </view>
       </view>
       <view class="edit-arrow"></view>
@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { fetchOrderCounts, fetchUserDetail } from '../../utils/api.js'
 import { handleAuthFailure, isAuthenticated } from '../../utils/auth.js'
@@ -60,13 +60,15 @@ import { getStoragePreviewUrl } from '../../utils/config.js'
 
 const userInfo = reactive({
   id: '',
-  nickname: '用户名',
+  nickname: '',
   avatarUrl: '../../static/logo.png',
   mobile: '',
   account: '',
   gender: 0,
   birthday: ''
 })
+const userLoading = ref(true)
+const userError = ref(false)
 
 const orderStats = reactive([
   { name: '待付款', icon: '/static/icons/order.png', key: 'waitPayCount', count: 0 },
@@ -94,11 +96,13 @@ const settings = [
 ]
 
 function loadUserInfo() {
+  userLoading.value = true
+  userError.value = false
   fetchUserDetail()
     .then((data) => {
       Object.assign(userInfo, {
         id: data.id || '',
-        nickname: data.nickname || data.mobile || '用户名',
+        nickname: data.nickname || data.mobile || '',
         avatarUrl: getStoragePreviewUrl(data.avatar) || '../../static/logo.png',
         mobile: data.mobile || '',
         account: data.account || '',
@@ -110,7 +114,11 @@ function loadUserInfo() {
       if (error && error.message === 'AUTH_401') {
         return
       }
+      userError.value = true
       console.error('获取用户信息失败', error)
+    })
+    .finally(() => {
+      userLoading.value = false
     })
 }
 

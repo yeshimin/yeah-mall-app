@@ -72,21 +72,6 @@
           </view>
 
           <view class="filter-section">
-            <text class="filter-section-title">品牌</text>
-            <view class="brand-list">
-              <view
-                class="brand-item"
-                v-for="brand in brands"
-                :key="brand"
-                :class="{ active: filterOptions.selectedBrands.includes(brand) }"
-                @click="toggleBrand(brand)"
-              >
-                {{ brand }}
-              </view>
-            </view>
-          </view>
-
-          <view class="filter-section">
             <text class="filter-section-title">发货速度</text>
             <view class="shipping-options">
               <view
@@ -122,7 +107,7 @@
 
     <scroll-view class="results-scroll" scroll-y @scrolltolower="loadMore">
       <view class="results-content">
-        <view class="state-card loading-card" v-if="loadingProducts && !hasLoadedOnce">
+        <view class="state-card loading-card" v-if="!hasLoadedOnce || (loadingProducts && !products.length)">
           <text class="state-title">正在加载搜索结果</text>
           <text class="state-desc">正在根据当前关键词和排序条件拉取商品列表</text>
         </view>
@@ -136,7 +121,7 @@
                   <text class="product-name">{{ item.name }}</text>
                   <view class="price-sales-container">
                     <text class="product-price">￥{{ item.price }}</text>
-                    <text class="product-sales">已售{{ item.sales }}件</text>
+                    <text v-if="item.sales != null" class="product-sales">已售{{ item.sales }}件</text>
                   </view>
                 </view>
               </view>
@@ -148,7 +133,7 @@
                   <text class="product-name">{{ item.name }}</text>
                   <view class="price-sales-container">
                     <text class="product-price">￥{{ item.price }}</text>
-                    <text class="product-sales">已售{{ item.sales }}件</text>
+                    <text v-if="item.sales != null" class="product-sales">已售{{ item.sales }}件</text>
                   </view>
                 </view>
               </view>
@@ -162,7 +147,7 @@
                 <text class="result-row-name">{{ item.name }}</text>
                 <view class="result-row-meta">
                   <text class="result-row-price">￥{{ item.price }}</text>
-                  <text class="result-row-sales">销量 {{ item.sales }}</text>
+                  <text v-if="item.sales != null" class="result-row-sales">销量 {{ item.sales }}</text>
                 </view>
               </view>
             </view>
@@ -205,10 +190,8 @@ const showFilterPopup = ref(false)
 const filterOptions = reactive({
   minPrice: '',
   maxPrice: '',
-  selectedBrands: [],
   shippingOption: 'all'
 })
-const brands = ['品牌A', '品牌B', '品牌C', '品牌D']
 const products = ref([])
 const scrollToken = ref(null)
 const hasMore = ref(false)
@@ -221,7 +204,6 @@ const activeFilterCount = computed(() => {
   let count = 0
   if (filterOptions.minPrice) count += 1
   if (filterOptions.maxPrice) count += 1
-  if (filterOptions.selectedBrands.length) count += 1
   if (filterOptions.shippingOption !== 'all') count += 1
   return count
 })
@@ -230,9 +212,6 @@ const activeFilterTags = computed(() => {
   const tags = []
   if (filterOptions.minPrice || filterOptions.maxPrice) {
     tags.push(`价格 ${filterOptions.minPrice || '0'}-${filterOptions.maxPrice || '不限'}`)
-  }
-  if (filterOptions.selectedBrands.length) {
-    tags.push(`品牌 ${filterOptions.selectedBrands.join(' / ')}`)
   }
   if (filterOptions.shippingOption === 'free') {
     tags.push('包邮')
@@ -306,15 +285,6 @@ function searchProducts() {
   fetchProducts()
 }
 
-function toggleBrand(brand) {
-  const index = filterOptions.selectedBrands.indexOf(brand)
-  if (index > -1) {
-    filterOptions.selectedBrands.splice(index, 1)
-  } else {
-    filterOptions.selectedBrands.push(brand)
-  }
-}
-
 function selectShipping(option) {
   filterOptions.shippingOption = option
 }
@@ -322,7 +292,6 @@ function selectShipping(option) {
 function resetFilter() {
   filterOptions.minPrice = ''
   filterOptions.maxPrice = ''
-  filterOptions.selectedBrands.splice(0, filterOptions.selectedBrands.length)
   filterOptions.shippingOption = 'all'
 }
 
@@ -391,8 +360,8 @@ function fetchProducts() {
       const responseData = res.data.data || {}
       const incomingProducts = (responseData.data || []).map((item) => ({
         ...item,
-        price: Number(item.minPrice || 0).toFixed(2),
-        sales: item.sales !== undefined ? item.sales : 0,
+        price: formatOptionalPrice(item.minPrice),
+        sales: item.sales != null ? item.sales : null,
         image: getStoragePreviewUrl(item.mainImage) || '/static/logo.png'
       }))
 
@@ -418,6 +387,13 @@ function fetchProducts() {
       loadingProducts.value = false
     }
   })
+}
+
+function formatOptionalPrice(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) {
+    return '--'
+  }
+  return Number(value).toFixed(2)
 }
 
 onLoad((options = {}) => {

@@ -1,7 +1,11 @@
 <template>
   <view class="page">
     <view v-if="items.length" class="header"><text class="clear" @click="clear">清空</text></view>
-    <view v-if="loading && items.length === 0" class="state">加载中...</view>
+    <view v-if="(!loaded || loading) && items.length === 0" class="state">加载中...</view>
+    <view v-else-if="loadError && items.length === 0" class="state">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="load(true)">重新加载</text>
+    </view>
     <view v-else-if="items.length === 0" class="state">暂未浏览商品</view>
     <view v-else class="product-list">
       <view v-for="item in items" :key="item.id" class="product-card" @click="openProduct(item)">
@@ -9,7 +13,7 @@
         <view class="content">
           <text class="name">{{ item.name || '商品已失效' }}</text>
           <text class="price">¥{{ price(item.minPrice) }}</text>
-          <text class="time">浏览 {{ item.browseCount || 0 }} 次 · {{ item.lastBrowseTime || '-' }}</text>
+          <text class="time">浏览 {{ item.browseCount != null ? item.browseCount : '--' }} 次 · {{ item.lastBrowseTime || '-' }}</text>
         </view>
         <text class="remove" @click.stop="remove(item)">删除</text>
       </view>
@@ -28,19 +32,33 @@ const items = ref([])
 const current = ref(1)
 const loading = ref(false)
 const noMore = ref(false)
+const loadError = ref('')
+const loaded = ref(false)
 
 function load(reset = false) {
   if (loading.value || (!reset && noMore.value)) return
-  if (reset) { current.value = 1; noMore.value = false; items.value = [] }
+  if (reset) { current.value = 1; noMore.value = false; items.value = []; loaded.value = false }
   loading.value = true
+  loadError.value = ''
   authRequest({ url: `${BASE_API}/app/productBrowseHistory/query?current=${current.value}&size=20`, method: 'GET' }, (res) => {
+    if (res.statusCode !== 200 || res.data?.code !== 0) {
+      loadError.value = res.data?.message || '浏览足迹加载失败'
+      loading.value = false
+      loaded.value = true
+      return
+    }
     const data = res.data?.data || {}
     const records = data.records || []
     items.value = reset ? records : items.value.concat(records)
     noMore.value = Number(data.current || current.value) >= Number(data.pages || 1)
     if (!noMore.value) current.value += 1
     loading.value = false
-  }, () => { loading.value = false })
+    loaded.value = true
+  }, () => {
+    loadError.value = '网络错误，请稍后重试'
+    loading.value = false
+    loaded.value = true
+  })
 }
 
 function remove(item) {
@@ -64,7 +82,10 @@ function openProduct(item) {
   if (item.available) uni.navigateTo({ url: `/pages/product/detail?id=${item.id}` })
 }
 function imageUrl(fileKey) { return getStoragePreviewUrl(fileKey) || '/static/logo.png' }
-function price(value) { return Number(value || 0).toFixed(2) }
+function price(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '--'
+  return Number(value).toFixed(2)
+}
 onLoad(() => load(true))
 onReachBottom(() => load())
 </script>
@@ -160,6 +181,8 @@ onReachBottom(() => load())
   font-size: 26rpx;
   text-align: center;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 
 .footer {
   padding: 28rpx 0 12rpx;

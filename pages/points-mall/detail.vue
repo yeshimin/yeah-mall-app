@@ -1,5 +1,11 @@
 <template>
-  <view class="page" v-if="product.id">
+  <view class="page">
+    <view v-if="loading" class="page-state">积分商品加载中...</view>
+    <view v-else-if="loadError" class="page-state">
+      <text>{{ loadError }}</text>
+      <button class="retry-btn" @click="loadProduct">重新加载</button>
+    </view>
+    <template v-else>
     <image class="cover" :src="imageUrl(product.mainImage)" mode="aspectFill" />
     <view class="content-card">
       <view class="title-row">
@@ -43,6 +49,7 @@
       <view><text class="total-label">合计</text><text class="total-points">{{ totalPoints }} 积分</text></view>
       <button class="exchange-btn" :disabled="!selectedSku || selectedSku.stock <= 0" @click="openConfirm">立即兑换</button>
     </view>
+    </template>
   </view>
 </template>
 
@@ -62,6 +69,9 @@ const product = reactive({})
 const skus = ref([])
 const selectedSku = ref(null)
 const quantity = ref(POINTS_EXCHANGE_MIN_QUANTITY)
+const loading = ref(true)
+const loadError = ref('')
+const productId = ref('')
 const totalPoints = computed(() => Number(selectedSku.value?.pointsPrice || 0) * quantity.value)
 
 function imageUrl(key) { return key ? getStoragePreviewUrl(key) : '/static/logo.png' }
@@ -75,13 +85,32 @@ function openConfirm() {
   uni.navigateTo({ url: `/pages/points-mall/confirm?spuId=${product.id}&skuId=${selectedSku.value.id}&quantity=${quantity.value}` })
 }
 
-onLoad(async ({ id }) => {
+async function loadProduct() {
+  loading.value = true
+  loadError.value = ''
   try {
-    const [detail, skuData] = await Promise.all([fetchPointsMallDetail(id), fetchPointsMallSkus(id)])
+    const [detail, skuData] = await Promise.all([
+      fetchPointsMallDetail(productId.value),
+      fetchPointsMallSkus(productId.value),
+    ])
     Object.assign(product, detail || {})
     skus.value = skuData || []
     selectedSku.value = skus.value.find((item) => item.stock > 0) || null
-  } catch (error) { uni.showToast({ title: error.message || '商品加载失败', icon: 'none' }) }
+  } catch (error) {
+    loadError.value = error?.message || '积分商品加载失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad(({ id }) => {
+  productId.value = id || ''
+  if (!productId.value) {
+    loading.value = false
+    loadError.value = '缺少积分商品ID'
+    return
+  }
+  loadProduct()
 })
 </script>
 
@@ -92,6 +121,10 @@ onLoad(async ({ id }) => {
   color: var(--ym-ink);
   background: var(--ym-paper);
 }
+
+.page-state { display: flex; min-height: 60vh; align-items: center; justify-content: center; flex-direction: column; gap: 24rpx; padding: 48rpx; color: var(--ym-muted); font-size: 26rpx; text-align: center; }
+.retry-btn { padding: 0 34rpx; color: #fff; background: var(--ym-brand); font-size: 24rpx; }
+.retry-btn::after { border: 0; }
 
 .cover {
   width: 100%;

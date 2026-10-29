@@ -1,13 +1,17 @@
 <template>
   <view class="page">
-    <view v-if="loading" class="state">加载中...</view>
+    <view v-if="loading || !loaded" class="state">加载中...</view>
+    <view v-else-if="loadError" class="state">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="loadActivities(true)">重新加载</text>
+    </view>
     <view v-else-if="activities.length === 0" class="state">暂无可查看的拼团活动</view>
     <view v-else class="activity-list">
       <view v-for="activity in activities" :key="activity.id" class="activity-card" @click="openActivity(activity)">
-        <image class="cover" :src="activity.coverImage" mode="aspectFill" />
+        <image class="cover" :src="activity.coverImage || '/static/logo.png'" mode="aspectFill" />
         <view class="content">
           <text class="title">{{ activity.name }}</text>
-          <text class="desc">{{ activity.description || '多人拼团，优惠更划算' }}</text>
+          <text v-if="activity.description" class="desc">{{ activity.description }}</text>
           <text class="meta">{{ activityStatusText(activity) }} · {{ activity.minPeople }}人团</text>
         </view>
       </view>
@@ -26,6 +30,8 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = 20
 const hasMore = ref(true)
+const loadError = ref('')
+const loaded = ref(false)
 
 function loadActivities(reset = false) {
   if (loading.value || (!reset && !hasMore.value)) {
@@ -35,8 +41,10 @@ function loadActivities(reset = false) {
     currentPage.value = 1
     hasMore.value = true
     activities.value = []
+    loaded.value = false
   }
   loading.value = true
+  loadError.value = ''
   authRequest({
     url: `${BASE_API}/app/groupBuy/queryActivity?current=${currentPage.value}&size=${pageSize}`,
     method: 'GET'
@@ -56,11 +64,15 @@ function loadActivities(reset = false) {
         currentPage.value += 1
       }
     } else {
+      loadError.value = res.data?.message || '拼团活动加载失败'
       uni.showToast({ title: res.data?.message || '获取拼团活动失败', icon: 'none' })
     }
     loading.value = false
+    loaded.value = true
   }, () => {
     loading.value = false
+    loaded.value = true
+    loadError.value = '网络错误，请稍后重试'
     uni.showToast({ title: '网络错误，请稍后重试', icon: 'none' })
   })
 }
@@ -76,7 +88,9 @@ function openActivity(activity) {
 }
 
 function activityStatusText(activity) {
-  return String(activity.status) === '6' ? '活动已结束，仅可查看' : '活动进行中'
+  if (String(activity.status) === '5') return '活动进行中'
+  if (String(activity.status) === '6') return '活动已结束，仅可查看'
+  return '活动暂未开始'
 }
 
 onLoad(() => loadActivities(true))
@@ -159,5 +173,11 @@ onReachBottom(() => loadActivities())
   color: var(--ym-muted);
   font-size: 28rpx;
   text-align: center;
+}
+
+.state-retry {
+  display: block;
+  margin-top: 18rpx;
+  color: var(--ym-brand);
 }
 </style>

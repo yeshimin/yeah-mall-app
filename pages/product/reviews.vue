@@ -7,17 +7,17 @@
 					class="tag-item" 
 					:class="{ active: currentType === 'all' }"
 					@click="switchType('all')"
-				>全部 {{ total }}</view>
+				>全部 {{ total == null ? '--' : total }}</view>
 				<view 
 					class="tag-item" 
 					:class="{ active: currentType === 'pic' }"
 					@click="switchType('pic')"
-				>有图 {{ picCount }}</view>
+				>有图 {{ picCount == null ? '--' : picCount }}</view>
 				<view 
 					class="tag-item" 
 					:class="{ active: currentType === 'good' }"
 					@click="switchType('good')"
-				>好评 {{ goodCount }}</view>
+				>好评 {{ goodCount == null ? '--' : goodCount }}</view>
 			</view>
 		</view>
 
@@ -107,9 +107,9 @@ import { getStoragePreviewUrl } from '@/utils/config.js'
 const productId = ref('')
 const currentType = ref('all')
 const list = ref([])
-const total = ref(0)
-const picCount = ref(0)
-const goodCount = ref(0)
+const total = ref(null)
+const picCount = ref(null)
+const goodCount = ref(null)
 const page = ref(1)
 const loading = ref(false)
 const noMore = ref(false)

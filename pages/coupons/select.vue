@@ -1,6 +1,11 @@
 <template>
 	<view class="container">
 		<view class="coupon-list">
+			<view v-if="loading" class="empty-state"><text class="empty-text">优惠券加载中...</text></view>
+			<view v-else-if="loadError" class="empty-state">
+				<text class="empty-text">{{ loadError }}</text>
+				<text v-if="previewItems.length" class="state-retry" @click="fetchAvailableCoupons">重新加载</text>
+			</view>
 			<view class="coupon-item" v-for="coupon in availableCoupons" :key="coupon.id" @click="selectCoupon(coupon)">
 				<view class="coupon-left">
 					<text class="coupon-amount">{{ formatCouponValue(coupon) }}</text>
@@ -18,7 +23,7 @@
 				</view>
 			</view>
 			
-			<view class="empty-state" v-if="availableCoupons.length === 0 && !loading">
+			<view class="empty-state" v-if="availableCoupons.length === 0 && !loading && !loadError">
 				<text class="empty-text">暂无可用优惠券</text>
 			</view>
 		</view>
@@ -37,7 +42,8 @@ import { getToken } from '@/utils/auth.js'
 
 const instance = getCurrentInstance()
 const availableCoupons = ref([])
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 const previewItems = ref([])
 const previewScene = ref('')
 
@@ -52,11 +58,14 @@ function buildRequestItems(items) {
 
 function fetchAvailableCoupons() {
   if (previewItems.value.length === 0) {
+    loading.value = false
+    loadError.value = '订单商品信息缺失'
     uni.showToast({ title: '订单商品信息缺失', icon: 'none' })
     return
   }
 
   loading.value = true
+  loadError.value = ''
   uni.showLoading({ title: '加载中...' })
   uni.request({
     url: `${BASE_API}/app/coupon/${previewScene.value === 'groupBuy' ? 'availableGroupBuyList' : 'availableList'}`,
@@ -72,10 +81,12 @@ function fetchAvailableCoupons() {
       if (res.statusCode === 200 && res.data.code === 0) {
         availableCoupons.value = res.data.data || []
       } else {
+        loadError.value = (res.data && res.data.message) || '优惠券加载失败'
         uni.showToast({ title: '获取优惠券失败', icon: 'none' })
       }
     },
     fail: () => {
+      loadError.value = '网络错误，请稍后重试'
       uni.showToast({ title: '网络错误', icon: 'none' })
     },
     complete: () => {
@@ -120,6 +131,9 @@ onLoad(() => {
   previewItems.value = buildRequestItems(storedItems)
   if (previewItems.value.length > 0) {
     fetchAvailableCoupons()
+  } else {
+    loading.value = false
+    loadError.value = '订单商品信息缺失'
   }
 })
 
@@ -287,4 +301,6 @@ onUnload(() => {
   padding-bottom: env(safe-area-inset-bottom);
   border-top-color: var(--ym-line);
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 </style>

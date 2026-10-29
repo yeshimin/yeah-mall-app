@@ -12,6 +12,18 @@
 			@back="goBack"
 		/>
 
+		<view v-if="loading" class="detail-state">
+			<text class="detail-state-title">商品信息加载中</text>
+			<text class="detail-state-desc">正在获取最新商品、库存和活动信息</text>
+		</view>
+		<view v-else-if="loadError" class="detail-state">
+			<text class="detail-state-title">商品加载失败</text>
+			<text class="detail-state-desc">{{ loadError }}</text>
+			<view class="detail-state-action" @click="retryLoad">重新加载</view>
+		</view>
+
+		<template v-else>
+
 		<view
 			class="floating-section-tabs"
 			:style="{
@@ -41,25 +53,26 @@
 		>
 			<view id="section-base" class="base-section">
 			<!-- 商品图片轮播 -->
-			<swiper class="product-swiper" indicator-dots autoplay>
+			<swiper v-if="banners.length" class="product-swiper" indicator-dots autoplay>
 				<swiper-item v-for="(banner, index) in banners" :key="index">
 					<image class="swiper-image" :src="banner"></image>
 				</swiper-item>
 			</swiper>
+			<view v-if="banners.length === 0" class="product-image-placeholder">暂无商品图片</view>
 			
 			<!-- 价格区域 -->
 			<view class="price-section">
-				<text class="current-price">￥{{ product.minPrice }}</text>
-				<text class="original-price">￥{{ product.maxPrice }}</text>
+				<text class="current-price">￥{{ formatOptionalPrice(product.minPrice) }}</text>
+				<text v-if="product.maxPrice != null" class="original-price">￥{{ formatOptionalPrice(product.maxPrice) }}</text>
 				<view class="sales-info">
-					<text class="sales-count">销量: {{ product.sales }}</text>
-					<text class="collect-count">收藏: 567</text>
+					<text v-if="product.sales != null" class="sales-count">销量: {{ product.sales }}</text>
+					<text v-if="product.collectCount != null" class="collect-count">收藏: {{ product.collectCount }}</text>
 				</view>
 			</view>
 			
 			<!-- 商品名称区域 -->
 			<view class="name-section">
-				<text class="product-name">{{ product.name }}</text>
+				<text class="product-name">{{ product.name || '商品名称暂不可用' }}</text>
 			</view>
 			</view>
             
@@ -67,8 +80,8 @@
             <view id="section-review" class="review-section">
                 <view class="review-header">
                     <view class="review-title">
-                        <text class="title-text">评价 ({{ reviewSummary.totalCount }})</text>
-                        <text class="good-rate">好评度 {{ reviewSummary.goodRate }}%</text>
+						<text class="title-text">评价 ({{ reviewSummary.totalCount == null ? '--' : reviewSummary.totalCount }})</text>
+						<text v-if="reviewSummary.goodRate != null" class="good-rate">好评度 {{ reviewSummary.goodRate }}%</text>
                     </view>
                     <view class="review-more" @click="openReviewList()">
                         <text>查看全部</text>
@@ -112,8 +125,11 @@
                         </view>
                     </view>
                 </view>
-				<view v-else class="review-empty">
+				<view v-else-if="reviewSummary.totalCount === 0" class="review-empty">
 					<text>暂无评价内容</text>
+				</view>
+				<view v-else class="review-empty">
+					<text>评价加载中...</text>
 				</view>
             </view>
 			
@@ -121,7 +137,8 @@
 			<view id="section-detail" class="detail-section">
 				<text class="section-title">商品详情</text>
 				<view class="detail-content">
-					<rich-text :nodes="product.detailDesc"></rich-text>
+					<rich-text v-if="product.detailDesc" :nodes="product.detailDesc"></rich-text>
+					<text v-else class="review-empty">暂无商品详情</text>
 				</view>
 				<view class="end-of-content">
 					<text class="end-text">-- 已经到底了 --</text>
@@ -227,7 +244,7 @@
 			<view class="popup-content" @click.stop>
 				<text class="close-btn" @click="closeSpecPopup">×</text>
 				<view class="popup-header">
-					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
+					<image class="popup-image" :src="banners[0] || '/static/logo.png'"></image>
 					<view class="popup-info">
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
@@ -305,7 +322,7 @@
 			<view class="popup-content" @click.stop>
 				<text class="close-btn" @click="closeCartPopup">×</text>
 				<view class="popup-header">
-					<image class="popup-image" :src="banners[0] || 'https://images.unsplash.com/photo-1752407828538-17e055766592?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'"></image>
+					<image class="popup-image" :src="banners[0] || '/static/logo.png'"></image>
 					<view class="popup-info">
 						<text class="popup-price">￥{{ getCurrentSkuInfo().price !== null ? getCurrentSkuInfo().price : '无价格' }}</text>
 						<text class="popup-stock" v-if="getCurrentSkuInfo().stock > 0">库存: {{ getCurrentSkuInfo().stock }}件</text>
@@ -377,6 +394,7 @@
 				<view class="confirm-btn" @click="confirmAddToCart">{{ purchaseMode === 'buy' ? '立即购买' : '加入购物车' }}</view>
 			</view>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -403,9 +421,12 @@ const selectedSpecs = reactive({})
 const selectedSku = ref(null)
 const isCollected = ref(false)
 const selectedQuantity = ref(1)
+const loading = ref(true)
+const loadError = ref('')
+const currentProductId = ref('')
 const reviewSummary = reactive({
-  totalCount: 0,
-  goodRate: 100,
+  totalCount: null,
+  goodRate: null,
   topReviews: []
 })
 const shop = ref({})
@@ -417,6 +438,9 @@ const groupId = ref('')
 const groupJoinMode = ref('create')
 const groupBuyPurchasable = ref(true)
 const showGroupSelector = ref(false)
+const groupOptionsLoading = ref(false)
+const groupOptionsLoaded = ref(false)
+const groupOptionsError = ref('')
 const groupOptions = reactive({
   groupLimit: -1,
   usedGroupCount: 0,
@@ -448,10 +472,10 @@ const tabsOpacity = computed(() => {
   return Math.max(0, Math.min(progress, 1))
 })
 
-const canCreateGroup = computed(() => !groupOptions.hasJoinedActivity
+const canCreateGroup = computed(() => groupOptionsLoaded.value && !groupOptions.hasJoinedActivity
   && (Number(groupOptions.remainingGroupCount) < 0 || Number(groupOptions.remainingGroupCount) > 0))
 
-const canRandomJoin = computed(() => !groupOptions.hasJoinedActivity
+const canRandomJoin = computed(() => groupOptionsLoaded.value && !groupOptions.hasJoinedActivity
   && groupOptions.groups.some((group) => isGroupJoinable(group)))
 
 const isJoinedGroupListed = computed(() => groupOptions.joinedGroup
@@ -464,11 +488,19 @@ const groupCreateDescription = computed(() => {
   return canCreateGroup.value ? '支付后成为团长，邀请好友参团' : '当前活动已达到最大团数'
 })
 
-const groupLimitText = computed(() => Number(groupOptions.groupLimit) < 0
-  ? '不限开团数量'
-  : `已开 ${groupOptions.usedGroupCount}/${groupOptions.groupLimit} 个团`)
+const groupLimitText = computed(() => {
+  if (groupOptionsLoading.value) return '拼团信息加载中...'
+  if (groupOptionsError.value) return '拼团信息加载失败'
+  if (!groupOptionsLoaded.value) return '拼团信息暂不可用'
+  return Number(groupOptions.groupLimit) < 0
+    ? '不限开团数量'
+    : `已开 ${groupOptions.usedGroupCount}/${groupOptions.groupLimit} 个团`
+})
 
 const groupChoiceText = computed(() => {
+  if (groupOptionsLoading.value) return '拼团信息加载中...'
+  if (groupOptionsError.value) return '拼团信息加载失败'
+  if (!groupOptionsLoaded.value) return '拼团信息暂不可用'
   if (groupJoinMode.value === 'random') {
     return '随机加入拼团'
   }
@@ -522,6 +554,13 @@ function processRichText(html) {
   html = html.replace(/<code/gi, '<code style="max-width:100%;word-break:break-word;overflow-wrap:break-word;font-size:12px;"')
 
   return html
+}
+
+function formatOptionalPrice(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) {
+    return '--'
+  }
+  return Number(value).toFixed(2)
 }
 
 function goBack() {
@@ -641,6 +680,19 @@ function initSelectedSpecs() {
 }
 
 async function fetchProductDetail(productId, sceneValue) {
+  loading.value = true
+  loadError.value = ''
+  reviewSummary.totalCount = null
+  reviewSummary.goodRate = null
+  reviewSummary.topReviews = []
+  groupOptionsLoaded.value = false
+  groupOptionsError.value = ''
+  if (!productId) {
+    loadError.value = '缺少商品ID'
+    loading.value = false
+    return
+  }
+
   const url = sceneValue === 'seckill'
     ? `${BASE_API}/app/seckill/queryProductDetail?id=${productId}`
     : sceneValue === 'groupBuy'
@@ -655,8 +707,7 @@ async function fetchProductDetail(productId, sceneValue) {
     })
 
     if (res.statusCode !== 200 || res.data.code !== 0) {
-      console.error('获取商品详情失败:', res.data && res.data.message)
-      return
+      throw new Error((res.data && res.data.message) || '请稍后重试')
     }
 
     const data = res.data.data || {}
@@ -696,10 +747,19 @@ async function fetchProductDetail(productId, sceneValue) {
     })
   } catch (error) {
     console.error('请求商品详情失败:', error)
+    loadError.value = error?.message || '请检查网络后重试'
+  } finally {
+    loading.value = false
   }
 }
 
+function retryLoad() {
+  fetchProductDetail(currentProductId.value, scene.value)
+}
+
 function loadGroupOptions(groupBuySpuId) {
+  groupOptionsLoading.value = true
+  groupOptionsError.value = ''
   request({
     url: `${BASE_API}/app/groupBuy/queryGroupOptions?groupBuySpuId=${groupBuySpuId}`,
     method: 'GET',
@@ -715,9 +775,17 @@ function loadGroupOptions(groupBuySpuId) {
         groups: [],
         ...(res.data.data || {})
       })
+      groupOptionsLoaded.value = true
+    } else {
+      groupOptionsLoaded.value = false
+      groupOptionsError.value = (res.data && res.data.message) || '拼团信息加载失败'
     }
-  }).catch(() => {
+  }).catch((error) => {
+    groupOptionsLoaded.value = false
+    groupOptionsError.value = error?.message || '拼团信息加载失败'
     Object.assign(groupOptions, { groups: [] })
+  }).finally(() => {
+    groupOptionsLoading.value = false
   })
 }
 
@@ -726,8 +794,12 @@ function openGroupSelector() {
     uni.showToast({ title: '拼团活动已结束，仅可查看', icon: 'none' })
     return
   }
-  if (product.value.id) {
-    loadGroupOptions(product.value.id)
+  if (!groupOptionsLoaded.value) {
+    if (product.value.id && !groupOptionsLoading.value) {
+      loadGroupOptions(product.value.id)
+    }
+    uni.showToast({ title: groupOptionsLoading.value ? '拼团信息加载中' : '正在重新加载拼团信息', icon: 'none' })
+    return
   }
   showGroupSelector.value = true
 }
@@ -1361,6 +1433,7 @@ onLoad((options = {}) => {
   const productId = options.productId || options.id
   const sceneValue = options.scene || ''
   scene.value = sceneValue
+  currentProductId.value = productId || ''
 
   if (sceneValue === 'seckill' || sceneValue === 'groupBuy') {
     activityBeginTime.value = options.activityBeginTime ? decodeURIComponent(options.activityBeginTime) : ''
@@ -2091,6 +2164,39 @@ onReady(() => {
   background: var(--ym-paper);
 }
 
+.detail-state {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16rpx;
+  box-sizing: border-box;
+  padding: calc(var(--status-bar-height) + 120rpx) 48rpx 80rpx;
+  text-align: center;
+}
+
+.detail-state-title {
+  color: var(--ym-ink);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.detail-state-desc {
+  color: var(--ym-muted);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.detail-state-action {
+  margin-top: 12rpx;
+  padding: 16rpx 34rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: var(--ym-brand);
+  font-size: 25rpx;
+}
+
 .detail-scroll {
   box-sizing: border-box;
   margin-bottom: calc(116rpx + env(safe-area-inset-bottom));
@@ -2100,6 +2206,16 @@ onReady(() => {
 .product-swiper {
   height: 650rpx;
   background: #edf1ee;
+}
+
+.product-image-placeholder {
+  display: flex;
+  height: 650rpx;
+  align-items: center;
+  justify-content: center;
+  color: var(--ym-muted);
+  background: #edf1ee;
+  font-size: 25rpx;
 }
 
 .swiper-image {

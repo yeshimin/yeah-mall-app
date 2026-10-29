@@ -1,5 +1,11 @@
 <template>
   <view class="points-page">
+    <view v-if="pageLoading" class="page-state">积分信息加载中...</view>
+    <view v-else-if="pageError" class="page-state">
+      <text>{{ pageError }}</text>
+      <button class="retry-btn" @click="reloadPage">重新加载</button>
+    </view>
+    <template v-else>
     <view class="balance-card">
       <text class="balance-label">可用积分</text>
       <text class="balance-value">{{ overview.balance }}</text>
@@ -43,6 +49,7 @@
         <text>{{ rule.description }}</text>
       </view>
     </view>
+    </template>
   </view>
 </template>
 
@@ -57,6 +64,8 @@ const rules = ref([])
 const current = ref(1)
 const loading = ref(false)
 const hasMore = ref(false)
+const pageLoading = ref(true)
+const pageError = ref('')
 
 async function loadPage() {
   const [overviewData, ruleData] = await Promise.all([fetchPointsOverview(), fetchPointsRules()])
@@ -91,13 +100,26 @@ function openPointsMall() {
   uni.navigateTo({ url: '/pages/points-mall/list' })
 }
 
-onLoad(() => {
-  loadPage().catch((error) => uni.showToast({ title: error.message || '积分加载失败', icon: 'none' }))
-})
+async function reloadPage() {
+  pageLoading.value = true
+  pageError.value = ''
+  try {
+    await loadPage()
+  } catch (error) {
+    pageError.value = error?.message || '积分信息加载失败，请稍后重试'
+  } finally {
+    pageLoading.value = false
+  }
+}
+
+onLoad(reloadPage)
 </script>
 
 <style scoped>
 .points-page { min-height: 100vh; padding: 24rpx; background: var(--ym-paper); box-sizing: border-box; }
+.page-state { display: flex; min-height: 50vh; align-items: center; justify-content: center; flex-direction: column; gap: 24rpx; color: var(--ym-muted); font-size: 26rpx; text-align: center; }
+.retry-btn { padding: 0 34rpx; color: #fff; background: var(--ym-brand); font-size: 24rpx; }
+.retry-btn::after { border: 0; }
 .balance-card { padding: 42rpx 36rpx 30rpx; color: #fff; border-radius: var(--ym-radius-card); background: linear-gradient(135deg, var(--ym-ink), var(--ym-brand)); box-shadow: var(--ym-shadow-card); }
 .balance-label { display: block; font-size: 26rpx; opacity: .85; }
 .balance-value { display: block; margin: 10rpx 0 34rpx; font-size: 72rpx; font-weight: 700; }

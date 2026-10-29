@@ -6,6 +6,10 @@
 			<view v-if="loading" class="loading-container">
 				<text class="loading-text">加载中...</text>
 			</view>
+			<view v-else-if="loadError" class="empty-state">
+				<text class="empty-text">{{ loadError }}</text>
+				<button class="add-address-btn" @click="fetchAddressList">重新加载</button>
+			</view>
 			
 			<template v-else>
 				<!-- 无地址提示 -->
@@ -65,17 +69,20 @@ import {
 } from '../../utils/api.js'
 
 const addressList = ref([])
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 const fromOrder = ref(false)
 
 function fetchAddressList() {
   loading.value = true
+  loadError.value = ''
   queryAddressList()
     .then((data) => {
       addressList.value = data
     })
     .catch((error) => {
       console.error('获取地址列表失败:', error)
+      loadError.value = error?.message || '地址列表加载失败，请稍后重试'
       uni.showToast({
         title: '获取地址列表失败',
         icon: 'none'

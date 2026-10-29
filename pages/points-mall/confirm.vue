@@ -1,5 +1,11 @@
 <template>
-  <view class="page" v-if="product.id && sku.id">
+  <view class="page">
+    <view v-if="loading" class="page-state">兑换信息加载中...</view>
+    <view v-else-if="loadError" class="page-state">
+      <text>{{ loadError }}</text>
+      <button class="retry-btn" @click="loadConfirmData">重新加载</button>
+    </view>
+    <template v-else>
     <view v-if="product.fulfillmentType === POINTS_FULFILLMENT_TYPE.LOGISTICS" class="address-card" @click="chooseAddress">
       <template v-if="address.id">
         <view class="address-head"><text>{{ address.name }}</text><text>{{ address.contact }}</text></view>
@@ -38,6 +44,7 @@
         {{ balance < totalPoints ? '积分不足' : '确认兑换' }}
       </button>
     </view>
+    </template>
   </view>
 </template>
 
@@ -59,6 +66,10 @@ const quantity = ref(POINTS_EXCHANGE_MIN_QUANTITY)
 const balance = ref(0)
 const submitting = ref(false)
 const requestNo = ref('')
+const loading = ref(true)
+const loadError = ref('')
+const routeSpuId = ref('')
+const routeSkuId = ref('')
 const totalPoints = computed(() => Number(sku.pointsPrice || 0) * quantity.value)
 const remainingPointsText = computed(() => {
   const remaining = balance.value - totalPoints.value
@@ -92,20 +103,37 @@ async function submitExchange() {
   finally { submitting.value = false }
 }
 
-onLoad(async ({ spuId, skuId, quantity: count }) => {
-  requestNo.value = `PX${Date.now()}${Math.random().toString(36).slice(2, 8)}`
-  quantity.value = Math.max(POINTS_EXCHANGE_MIN_QUANTITY, Number(count || POINTS_EXCHANGE_MIN_QUANTITY))
+async function loadConfirmData() {
+  loading.value = true
+  loadError.value = ''
   try {
     const [detail, skuList, overview] = await Promise.all([
-      fetchPointsMallDetail(spuId), fetchPointsMallSkus(spuId), fetchPointsOverview(),
+      fetchPointsMallDetail(routeSpuId.value), fetchPointsMallSkus(routeSpuId.value), fetchPointsOverview(),
     ])
     Object.assign(product, detail || {})
-    const target = (skuList || []).find((item) => item.id === skuId)
+    const target = (skuList || []).find((item) => String(item.id) === String(routeSkuId.value))
     if (!target) throw new Error('积分商品规格已失效')
     Object.assign(sku, target)
     balance.value = Number(overview?.balance || 0)
     await loadDefaultAddress()
-  } catch (error) { uni.showToast({ title: error.message || '兑换信息加载失败', icon: 'none' }) }
+  } catch (error) {
+    loadError.value = error?.message || '兑换信息加载失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
+
+onLoad(({ spuId, skuId, quantity: count }) => {
+  requestNo.value = `PX${Date.now()}${Math.random().toString(36).slice(2, 8)}`
+  routeSpuId.value = spuId || ''
+  routeSkuId.value = skuId || ''
+  quantity.value = Math.max(POINTS_EXCHANGE_MIN_QUANTITY, Number(count || POINTS_EXCHANGE_MIN_QUANTITY))
+  if (!routeSpuId.value || !routeSkuId.value) {
+    loading.value = false
+    loadError.value = '缺少积分商品兑换参数'
+    return
+  }
+  loadConfirmData()
 })
 
 onShow(() => {
@@ -125,6 +153,10 @@ onShow(() => {
   color: var(--ym-ink);
   background: var(--ym-paper);
 }
+
+.page-state { display: flex; min-height: 60vh; align-items: center; justify-content: center; flex-direction: column; gap: 24rpx; padding: 48rpx; color: var(--ym-muted); font-size: 26rpx; text-align: center; }
+.retry-btn { padding: 0 34rpx; color: #fff; background: var(--ym-brand); font-size: 24rpx; }
+.retry-btn::after { border: 0; }
 
 .address-card,
 .order-card,

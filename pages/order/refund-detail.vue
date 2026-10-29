@@ -97,7 +97,10 @@ const timeline = computed(() => {
   return rows
 })
 
-function amount(value) { return Number(value || 0).toFixed(2) }
+function amount(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '--'
+  return Number(value).toFixed(2)
+}
 function specText(specs) { return (specs || []).map((item) => `${item.specName}:${item.optName}`).join('；') }
 
 async function load() {

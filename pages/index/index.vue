@@ -110,7 +110,7 @@
           </view>
         </view>
       </scroll-view>
-      <view v-if="hotProductsLoading && hotProducts.length === 0" class="home-product-state">
+      <view v-if="!homeInitialized || (hotProductsLoading && hotProducts.length === 0)" class="home-product-state">
         <text>正在加载精选商品...</text>
       </view>
       <view v-else-if="hotProducts.length === 0" class="home-product-state">
@@ -149,7 +149,7 @@
               >{{ product.subtitle }}</text>
               <view class="price-sales-container">
                 <text class="product-price">¥{{ product.price }}</text>
-                <text class="product-sales">已售 {{ product.sales }}</text>
+                <text v-if="product.sales != null" class="product-sales">已售 {{ product.sales }}</text>
               </view>
             </view>
           </view>
@@ -183,7 +183,7 @@
               >{{ product.subtitle }}</text>
               <view class="price-sales-container">
                 <text class="product-price">¥{{ product.price }}</text>
-                <text class="product-sales">已售 {{ product.sales }}</text>
+                <text v-if="product.sales != null" class="product-sales">已售 {{ product.sales }}</text>
               </view>
             </view>
           </view>
@@ -778,8 +778,8 @@ function fetchHotProducts(reset = false) {
               ...item,
               id: item.id,
               name: item.name,
-              price: Number(item.minPrice || 0).toFixed(2),
-              sales: item.sales !== undefined ? item.sales : 0,
+              price: formatOptionalPrice(item.minPrice),
+              sales: item.sales != null ? item.sales : null,
               categoryName: item.categoryName || '',
               promotionText,
               subtitle: subtitle === promotionText ? '' : subtitle,
@@ -812,6 +812,13 @@ function fetchHotProducts(reset = false) {
       }
     })
   })
+}
+
+function formatOptionalPrice(value) {
+  if (value == null || value === '' || !Number.isFinite(Number(value))) {
+    return '--'
+  }
+  return Number(value).toFixed(2)
 }
 
 function retryHomeData() {

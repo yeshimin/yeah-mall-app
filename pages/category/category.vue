@@ -2,8 +2,9 @@
 	<view class="category-container">
 		<view v-if="categoryLoading || primaryCategories.length === 0" class="category-state">
 			<view class="category-state-mark">Y</view>
-			<text class="category-state-title">{{ categoryLoading ? '分类加载中' : '暂无商品分类' }}</text>
-			<text class="category-state-hint">{{ categoryLoading ? '正在整理商城分类，请稍候' : '分类配置完成后会显示在这里' }}</text>
+			<text class="category-state-title">{{ categoryLoading ? '分类加载中' : categoryError ? '分类加载失败' : '暂无商品分类' }}</text>
+			<text class="category-state-hint">{{ categoryLoading ? '正在整理商城分类，请稍候' : categoryError || '分类配置完成后会显示在这里' }}</text>
+			<view v-if="categoryError" class="category-state-action" @click="loadCategoryTree">重新加载</view>
 		</view>
 		<template v-else>
 		<!-- 一级分类 -->
@@ -87,6 +88,7 @@ const instance = getCurrentInstance()
 const currentPrimaryIndex = ref(0)
 const currentSecondaryIndex = ref(0)
 const categoryLoading = ref(true)
+const categoryError = ref('')
 const primaryCategories = ref([])
 const secondaryCategories = ref([])
 const tertiaryScrollTop = ref(0)
@@ -180,6 +182,7 @@ function resolveCategoryImages(nodes) {
 
 function loadCategoryTree() {
   categoryLoading.value = true
+  categoryError.value = ''
   fetchProductCategoryTree()
     .then((data) => {
       primaryCategories.value = resolveCategoryImages(data)
@@ -192,6 +195,7 @@ function loadCategoryTree() {
     })
     .catch((error) => {
       console.error('Failed to fetch category data:', error)
+      categoryError.value = error?.message || '请检查网络后重试'
     })
     .finally(() => {
       categoryLoading.value = false
@@ -547,5 +551,14 @@ onMounted(() => {
   margin-top: 10rpx;
   color: var(--ym-muted);
   font-size: 23rpx;
+}
+
+.category-state-action {
+  margin-top: 24rpx;
+  padding: 14rpx 32rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: var(--ym-brand);
+  font-size: 24rpx;
 }
 </style>

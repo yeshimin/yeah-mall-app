@@ -19,6 +19,11 @@
       <view v-if="loading" class="loading-container">
         <text class="loading-text">加载中...</text>
       </view>
+
+      <view v-else-if="loadError" class="empty-state">
+        <text class="empty-text">{{ loadError }}</text>
+        <text class="state-retry" @click="fetchCoupons">重新加载</text>
+      </view>
       
       <!-- 优惠券列表 -->
       <view v-else>
@@ -73,7 +78,8 @@ const tabs = [
 
 const activeTab = ref('all')
 const coupons = ref([])
-const loading = ref(false)
+const loading = ref(true)
+const loadError = ref('')
 
 const currentUseRange = computed(() => {
   const tab = tabs.find((item) => item.id === activeTab.value)
@@ -87,6 +93,7 @@ function switchTab(tabId) {
 
 function fetchCoupons() {
   loading.value = true
+  loadError.value = ''
   let url = `${BASE_API}/app/coupon/centerList`
   if (currentUseRange.value !== null) {
     url += `?useRange=${currentUseRange.value}`
@@ -125,10 +132,12 @@ function fetchCoupons() {
       })
     } else {
       console.error('获取优惠券列表失败:', res.data && res.data.message)
+      loadError.value = (res.data && res.data.message) || '优惠券加载失败'
     }
     loading.value = false
   }, (error) => {
     console.error('请求优惠券列表失败:', error)
+    loadError.value = '网络错误，请稍后重试'
     loading.value = false
   }, '/pages/coupons/center')
 }
@@ -449,4 +458,6 @@ onLoad(() => {
   border-radius: var(--ym-radius-card);
   box-shadow: none;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 </style>

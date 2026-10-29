@@ -13,7 +13,11 @@
       </view>
     </scroll-view>
 
-    <view v-if="loading && !products.length" class="state">正在准备积分好物...</view>
+    <view v-if="!initialized || (loading && !products.length)" class="state">正在准备积分好物...</view>
+    <view v-else-if="loadError && !products.length" class="state">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="initializePage">重新加载</text>
+    </view>
     <view v-else-if="!products.length" class="state">当前分类暂无可兑换商品</view>
     <view v-else class="grid">
       <view v-for="item in products" :key="item.id" class="card" @click="openDetail(item.id)">
@@ -22,8 +26,8 @@
           <text class="card-name">{{ item.name }}</text>
           <text class="card-subtitle">{{ item.subtitle || fulfillmentText(item.fulfillmentType) }}</text>
           <view class="card-footer">
-            <text class="points">{{ item.minPointsPrice }}<text>积分起</text></text>
-            <text class="stock">库存 {{ item.stock }}</text>
+            <text class="points">{{ displayNumber(item.minPointsPrice) }}<text>积分起</text></text>
+            <text v-if="item.stock != null" class="stock">库存 {{ item.stock }}</text>
           </view>
         </view>
       </view>
@@ -48,10 +52,13 @@ const categoryId = ref('')
 const current = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
+const loadError = ref('')
+const initialized = ref(false)
 const pageSize = 12
 
 function imageUrl(key) { return key ? getStoragePreviewUrl(key) : '/static/logo.png' }
 function fulfillmentText(value) { return getPointsFulfillmentText(value) || '积分兑换' }
+function displayNumber(value) { return value == null || value === '' ? '--' : value }
 
 async function loadBase() {
   categories.value = await fetchPointsMallCategories() || []
@@ -61,6 +68,7 @@ async function loadProducts(reset = false) {
   if (loading.value || (!reset && !hasMore.value)) return
   if (reset) { current.value = 1; products.value = []; hasMore.value = true }
   loading.value = true
+  loadError.value = ''
   try {
     const data = await fetchPointsMallProducts({ current: current.value, size: pageSize, categoryId: categoryId.value || undefined })
     const records = data?.records || []
@@ -68,6 +76,7 @@ async function loadProducts(reset = false) {
     hasMore.value = Number(data?.current || current.value) < Number(data?.pages || 0)
     if (hasMore.value) current.value += 1
   } catch (error) {
+    loadError.value = error?.message || '积分商品加载失败，请稍后重试'
     uni.showToast({ title: error.message || '积分商品加载失败', icon: 'none' })
   } finally { loading.value = false }
 }
@@ -76,9 +85,28 @@ function selectCategory(id) { categoryId.value = id; loadProducts(true) }
 function openDetail(id) { uni.navigateTo({ url: `/pages/points-mall/detail?id=${id}` }) }
 function openOrders() { uni.navigateTo({ url: '/pages/points-mall/orders' }) }
 
-onLoad(async () => { try { await loadBase(); await loadProducts(true) } catch (error) { uni.showToast({ title: error.message || '积分商城暂不可用', icon: 'none' }) } })
+async function initializePage() {
+  initialized.value = false
+  loadError.value = ''
+  try {
+    await loadBase()
+    await loadProducts(true)
+  } catch (error) {
+    loadError.value = error?.message || '积分商城暂不可用，请稍后重试'
+  } finally {
+    initialized.value = true
+  }
+}
+
+onLoad(initializePage)
 onReachBottom(() => loadProducts())
-onPullDownRefresh(async () => { await loadBase(); await loadProducts(true); uni.stopPullDownRefresh() })
+onPullDownRefresh(async () => {
+  try {
+    await initializePage()
+  } finally {
+    uni.stopPullDownRefresh()
+  }
+})
 </script>
 
 <style scoped>
@@ -200,6 +228,8 @@ onPullDownRefresh(async () => { await loadBase(); await loadProducts(true); uni.
 .more-state {
   padding: 36rpx 0;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 
 .orders-entry {
   position: fixed;

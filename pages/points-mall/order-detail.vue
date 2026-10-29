@@ -1,5 +1,11 @@
 <template>
-  <view class="page" v-if="order.id">
+  <view class="page">
+    <view v-if="loading" class="page-state">积分订单加载中...</view>
+    <view v-else-if="loadError" class="page-state">
+      <text>{{ loadError }}</text>
+      <button class="retry-btn" @click="reloadOrder">重新加载</button>
+    </view>
+    <template v-else>
     <view class="status-card" :class="statusClass(order.status)">
       <text class="status-title">{{ statusText(order.status) }}</text>
       <text>{{ statusHint(order) }}</text>
@@ -41,11 +47,12 @@
     <view v-if="order.status === POINTS_ORDER_STATUS.SHIPPED" class="bottom-bar">
       <button class="confirm-btn" @click="confirmOrder">确认收货</button>
     </view>
+    </template>
   </view>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getStoragePreviewUrl } from '@/utils/config.js'
 import { cancelPointsOrder, confirmPointsOrder, fetchPointsOrderDetail } from '@/utils/api.js'
@@ -59,6 +66,8 @@ import {
 
 const order = reactive({})
 let orderId = ''
+const loading = ref(true)
+const loadError = ref('')
 function imageUrl(key) { return key ? getStoragePreviewUrl(key) : '/static/logo.png' }
 function statusText(value) { return getPointsOrderStatusText(value) }
 function statusClass(value) { return getPointsOrderStatusClass(value) }
@@ -73,6 +82,17 @@ function statusHint(value) {
 }
 function openCoupons() { uni.navigateTo({ url: '/pages/coupons/list' }) }
 async function load() { const data = await fetchPointsOrderDetail(orderId); Object.assign(order, data || {}) }
+async function reloadOrder() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    await load()
+  } catch (error) {
+    loadError.value = error?.message || '积分订单加载失败，请稍后重试'
+  } finally {
+    loading.value = false
+  }
+}
 function cancelOrder() {
   uni.showModal({ title: '取消兑换', content: '取消后积分和库存将自动退回，确认继续？', success: async ({ confirm }) => {
     if (!confirm) return
@@ -87,7 +107,15 @@ function confirmOrder() {
     catch (error) { uni.showToast({ title: error.message || '操作失败', icon: 'none' }) }
   } })
 }
-onLoad(async ({ id }) => { orderId = id; try { await load() } catch (error) { uni.showToast({ title: error.message || '订单加载失败', icon: 'none' }) } })
+onLoad(({ id }) => {
+  orderId = id || ''
+  if (!orderId) {
+    loading.value = false
+    loadError.value = '缺少积分订单ID'
+    return
+  }
+  reloadOrder()
+})
 </script>
 
 <style scoped>
@@ -98,6 +126,10 @@ onLoad(async ({ id }) => { orderId = id; try { await load() } catch (error) { un
   color: var(--ym-ink);
   background: var(--ym-paper);
 }
+
+.page-state { display: flex; min-height: 60vh; align-items: center; justify-content: center; flex-direction: column; gap: 24rpx; padding: 48rpx; color: var(--ym-muted); font-size: 26rpx; text-align: center; }
+.retry-btn { padding: 0 34rpx; color: #fff; background: var(--ym-brand); font-size: 24rpx; }
+.retry-btn::after { border: 0; }
 
 .status-card {
   display: flex;

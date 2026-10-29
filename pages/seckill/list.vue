@@ -45,12 +45,17 @@
 
 
     <!-- 加载状态 -->
-    <view v-if="loading" class="loading-container">
+    <view v-if="loading || !loaded" class="loading-container">
       <text class="loading-text">加载中...</text>
     </view>
 
+    <view v-else-if="loadError" class="empty-container">
+      <text class="empty-text">{{ loadError }}</text>
+      <text class="state-retry" @click="fetchSeckillActivities">重新加载</text>
+    </view>
+
     <!-- 无数据 -->
-    <view v-if="!loading && seckillActivities.length === 0" class="empty-container">
+    <view v-else-if="seckillActivities.length === 0" class="empty-container">
       <text class="empty-text">暂无秒杀活动</text>
     </view>
   </view>
@@ -64,6 +69,8 @@ import { authRequest } from '@/utils/auth.js'
 
 const seckillActivities = ref([])
 const loading = ref(false)
+const loadError = ref('')
+const loaded = ref(false)
 
 function handleImageLoad() {}
 
@@ -77,6 +84,7 @@ function fetchSeckillActivities() {
   }
 
   loading.value = true
+  loadError.value = ''
   authRequest({
     url: `${BASE_API}/app/seckill/queryActivity`,
     method: 'GET',
@@ -99,11 +107,15 @@ function fetchSeckillActivities() {
       }))
     } else {
       console.error('获取秒杀活动失败:', res.data && res.data.message)
+      loadError.value = (res.data && res.data.message) || '秒杀活动加载失败'
     }
     loading.value = false
+    loaded.value = true
   }, (error) => {
     console.error('请求秒杀活动失败:', error)
+    loadError.value = '网络错误，请稍后重试'
     loading.value = false
+    loaded.value = true
   })
 }
 
@@ -509,4 +521,6 @@ onLoad(() => {
   color: var(--ym-muted);
   background: transparent;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 </style>

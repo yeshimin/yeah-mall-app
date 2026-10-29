@@ -1,5 +1,11 @@
 <template>
 	<view class="order-detail">
+		<view v-if="loading" class="order-page-state">订单信息加载中...</view>
+		<view v-else-if="loadError" class="order-page-state">
+			<text>{{ loadError }}</text>
+			<view class="order-state-action" @click="retryLoad">重新加载</view>
+		</view>
+		<template v-else>
 		<!-- 订单状态 -->
 		<view class="order-status-section" :class="`status-${orderInfo.orderStatus}`">
 			<text class="status-text">{{ orderInfo.statusText }}</text>
@@ -134,6 +140,7 @@
 				{{ action.label }}
 			</button>
 		</view>
+		</template>
 	</view>
 </template>
 
@@ -187,6 +194,8 @@ const orderInfo = reactive({
 })
 
 const loading = ref(true)
+const loadError = ref('')
+const currentOrderKey = ref('')
 
 function getOrderActions(status, refundStatus = 0, isReviewed = false) {
   const actions = []
@@ -306,18 +315,27 @@ function processOrderData(orderData) {
 }
 
 async function loadOrderDetail(orderNo) {
+  currentOrderKey.value = orderNo
   loading.value = true
+  loadError.value = ''
   try {
     const orderData = await fetchOrderDetail(orderNo)
     processOrderData(orderData)
   } catch (error) {
     console.error('获取订单详情失败:', error)
+    loadError.value = error?.message || '订单信息加载失败，请稍后重试'
     uni.showToast({
       title: error.message || '获取订单详情失败',
       icon: 'none'
     })
   } finally {
     loading.value = false
+  }
+}
+
+function retryLoad() {
+  if (currentOrderKey.value) {
+    loadOrderDetail(currentOrderKey.value)
   }
 }
 
@@ -824,6 +842,26 @@ onLoad((options = {}) => {
   padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
   color: var(--ym-ink);
   background: var(--ym-paper);
+}
+
+.order-page-state {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 48rpx;
+  color: var(--ym-muted);
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.order-state-action {
+  padding: 14rpx 32rpx;
+  border-radius: 999rpx;
+  color: #fff;
+  background: var(--ym-brand);
 }
 
 .order-status-section,

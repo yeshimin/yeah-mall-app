@@ -5,16 +5,20 @@
         <view v-for="tab in tabs" :key="tab.value" class="tab" :class="{ active: status === tab.value }" @click="switchTab(tab.value)">{{ tab.label }}</view>
       </view>
     </scroll-view>
-    <view v-if="!orders.length && !loading" class="empty">暂无积分兑换订单</view>
+    <view v-if="loadError && !orders.length && !loading" class="empty">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="loadOrders(true)">重新加载</text>
+    </view>
+    <view v-else-if="loaded && !orders.length && !loading" class="empty">暂无积分兑换订单</view>
     <view v-for="order in orders" :key="order.id" class="order-card" @click="openDetail(order.id)">
       <view class="order-head"><text>{{ order.orderNo }}</text><text :class="['status', statusClass(order.status)]">{{ statusText(order.status) }}</text></view>
       <view class="goods-row">
         <image :src="imageUrl(order.productImage)" mode="aspectFill" />
-        <view class="goods-copy"><text>{{ order.productName }}</text><text>{{ order.skuName }} × {{ order.quantity }}</text><text>{{ order.totalPoints }} 积分</text></view>
+        <view class="goods-copy"><text>{{ order.productName }}</text><text>{{ order.skuName }} × {{ order.quantity }}</text><text>{{ displayNumber(order.totalPoints) }} 积分</text></view>
       </view>
       <view class="order-foot"><text>{{ order.createTime }}</text><text>{{ fulfillmentText(order.fulfillmentType) }}</text></view>
     </view>
-    <view v-if="loading" class="state">加载中...</view>
+    <view v-if="loading || !loaded" class="state">加载中...</view>
     <view v-else-if="orders.length && !hasMore" class="state">已经到底了</view>
   </view>
 </template>
@@ -38,12 +42,14 @@ const current = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
 const loaded = ref(false)
+const loadError = ref('')
 const pageSize = 10
 
 function imageUrl(key) { return key ? getStoragePreviewUrl(key) : '/static/logo.png' }
 function statusText(value) { return getPointsOrderStatusText(value) }
 function statusClass(value) { return getPointsOrderStatusClass(value) }
 function fulfillmentText(value) { return getPointsFulfillmentText(value) }
+function displayNumber(value) { return value == null || value === '' ? '--' : value }
 function openDetail(id) { uni.navigateTo({ url: `/pages/points-mall/order-detail?id=${id}` }) }
 function switchTab(value) { status.value = value; loadOrders(true) }
 
@@ -51,6 +57,7 @@ async function loadOrders(reset = false) {
   if (loading.value || (!reset && !hasMore.value)) return
   if (reset) { current.value = 1; orders.value = []; hasMore.value = true }
   loading.value = true
+  loadError.value = ''
   try {
     const data = await fetchPointsOrders({ current: current.value, size: pageSize, status: status.value || undefined })
     const records = data?.records || []
@@ -58,8 +65,10 @@ async function loadOrders(reset = false) {
     hasMore.value = Number(data?.current || current.value) < Number(data?.pages || 0)
     if (hasMore.value) current.value += 1
     loaded.value = true
-  } catch (error) { uni.showToast({ title: error.message || '订单加载失败', icon: 'none' }) }
-  finally { loading.value = false }
+  } catch (error) {
+    loadError.value = error?.message || '积分订单加载失败，请稍后重试'
+  }
+  finally { loading.value = false; loaded.value = true }
 }
 
 onLoad(() => loadOrders(true))
@@ -188,4 +197,6 @@ onReachBottom(() => loadOrders())
 .state {
   padding: 36rpx 0;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 </style>

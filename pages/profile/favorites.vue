@@ -1,6 +1,10 @@
 <template>
   <view class="page">
-    <view v-if="loading && items.length === 0" class="state">加载中...</view>
+    <view v-if="(!loaded || loading) && items.length === 0" class="state">加载中...</view>
+    <view v-else-if="loadError && items.length === 0" class="state">
+      <text>{{ loadError }}</text>
+      <text class="state-retry" @click="load(true)">重新加载</text>
+    </view>
     <view v-else-if="items.length === 0" class="state">暂未收藏商品</view>
     <view v-else class="product-list">
       <view v-for="item in items" :key="item.id" class="product-card" @click="openProduct(item)">
@@ -30,6 +34,8 @@ const items = ref([])
 const current = ref(1)
 const loading = ref(false)
 const noMore = ref(false)
+const loadError = ref('')
+const loaded = ref(false)
 
 function load(reset = false) {
   if (loading.value || (!reset && noMore.value)) return
@@ -37,16 +43,29 @@ function load(reset = false) {
     current.value = 1
     noMore.value = false
     items.value = []
+    loaded.value = false
   }
   loading.value = true
+  loadError.value = ''
   authRequest({ url: `${BASE_API}/app/productFavorites/query?current=${current.value}&size=20`, method: 'GET' }, (res) => {
+    if (res.statusCode !== 200 || res.data?.code !== 0) {
+      loadError.value = res.data?.message || '收藏列表加载失败'
+      loading.value = false
+      loaded.value = true
+      return
+    }
     const data = res.data?.data || {}
     const records = data.records || []
     items.value = reset ? records : items.value.concat(records)
     noMore.value = Number(data.current || current.value) >= Number(data.pages || 1)
     if (!noMore.value) current.value += 1
     loading.value = false
-  }, () => { loading.value = false })
+    loaded.value = true
+  }, () => {
+    loadError.value = '网络错误，请稍后重试'
+    loading.value = false
+    loaded.value = true
+  })
 }
 
 function remove(item) {
@@ -72,7 +91,8 @@ function imageUrl(fileKey) {
 }
 
 function price(value) {
-  return Number(value || 0).toFixed(2)
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return '--'
+  return Number(value).toFixed(2)
 }
 
 onLoad(() => load(true))
@@ -168,6 +188,8 @@ onReachBottom(() => load())
   font-size: 26rpx;
   text-align: center;
 }
+
+.state-retry { display: block; margin-top: 18rpx; color: var(--ym-brand); }
 
 .footer {
   padding: 28rpx 0 12rpx;
