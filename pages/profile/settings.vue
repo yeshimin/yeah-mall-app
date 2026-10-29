@@ -22,6 +22,13 @@
         </view>
         <view class="arrow"></view>
       </view>
+      <view class="setting-row" @click="openAbout">
+        <view>
+          <text class="setting-title">关于我们</text>
+          <text class="setting-desc">了解 Yeah Mall 与当前版本</text>
+        </view>
+        <view class="arrow"></view>
+      </view>
     </view>
 
     <view class="logout-area">
@@ -44,6 +51,10 @@ function openNotifications() {
 
 function openPrivacy() {
   uni.navigateTo({ url: '/pages/profile/privacy' })
+}
+
+function openAbout() {
+  uni.navigateTo({ url: '/pages/profile/about' })
 }
 
 function confirmLogout() {

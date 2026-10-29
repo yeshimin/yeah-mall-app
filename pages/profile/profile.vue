@@ -6,20 +6,20 @@
         <image class="user-avatar" :src="userInfo.avatarUrl" mode="aspectFill"></image>
         <view class="user-details">
           <text class="user-name">{{ userLoading ? '加载中...' : userError ? '会员信息加载失败' : (userInfo.nickname || '未设置昵称') }}</text>
-          <text v-if="!userLoading && !userError && userInfo.id" class="user-meta">会员 · ID {{ userInfo.id }}</text>
+          <text v-if="!userLoading && !userError" class="user-meta">{{ userInfo.account ? '会员 · ' + userInfo.account : '会员' }}</text>
         </view>
       </view>
       <view class="edit-arrow"></view>
     </view>
     
     <!-- 订单管理 -->
-    <view class="section">
+    <view class="profile-section profile-order-panel">
       <view class="section-header" @click="viewAllOrders">
         <text class="section-title">我的订单</text>
-        <view class="section-more">查看全部订单</view>
+        <view class="section-more">全部订单</view>
       </view>
       <view class="order-stats">
-        <view class="stat-item" v-for="(stat, index) in orderStats" :key="index" @click="viewOrdersByStatus(index)">
+        <view class="stat-item" v-for="stat in orderStats" :key="stat.key" @click="viewOrdersByStatus(stat)">
           <view class="stat-icon-box">
             <image class="stat-symbol" :src="stat.icon" mode="aspectFit" />
             <text v-if="stat.count > 0" class="stat-count">{{ stat.count }}</text>
@@ -29,23 +29,12 @@
       </view>
     </view>
     
-    <!-- 功能入口 -->
-    <view class="section">
-      <view class="function-grid">
-        <view class="function-item" v-for="(func, index) in functions" :key="index" @click="useFunction(index)">
-          <view class="function-icon">
-            <image :src="func.icon" mode="aspectFit" />
-          </view>
-          <text class="function-text">{{ func.name }}</text>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 其他功能 -->
-    <view class="section">
-      <view class="list-item" v-for="(setting, index) in settings" :key="index" @click="openSetting(index)">
-        <text class="list-item-text">{{ setting.name }}</text>
-        <view class="list-item-arrow"></view>
+    <!-- 个人功能 -->
+    <view v-for="(menus, groupIndex) in menuGroups" :key="groupIndex" class="profile-section profile-menu">
+      <view v-for="menu in menus" :key="menu.name" class="menu-item" @click="openMenu(menu)">
+        <image class="menu-icon" :src="menu.icon" mode="aspectFit" :draggable="false" />
+        <text class="menu-text">{{ menu.name }}</text>
+        <view class="menu-arrow"></view>
       </view>
     </view>
   </view>
@@ -71,28 +60,26 @@ const userLoading = ref(true)
 const userError = ref(false)
 
 const orderStats = reactive([
-  { name: '待付款', icon: '/static/icons/order.png', key: 'waitPayCount', count: 0 },
-  { name: '待发货', icon: '/static/icons/box.png', key: 'waitShipCount', count: 0 },
-  { name: '待收货', icon: '/static/icons/truck.png', key: 'waitReceiveCount', count: 0 },
-  { name: '待评价', icon: '/static/icons/review.png', key: 'waitCommentCount', count: 0 },
-  { name: '退款/售后', icon: '/static/icons/aftersale.png', key: 'refundAndAfterSaleCount', count: 0 }
+  { name: '待付款', icon: '/static/profile-icons/order.png', key: 'waitPayCount', status: 1, count: 0 },
+  { name: '待发货', icon: '/static/profile-icons/box.png', key: 'waitShipCount', status: 2, count: 0 },
+  { name: '待收货', icon: '/static/profile-icons/truck.png', key: 'waitReceiveCount', status: 3, count: 0 },
+  { name: '待评价', icon: '/static/profile-icons/message.png', key: 'waitCommentCount', status: 5, count: 0 },
+  { name: '退款/售后', icon: '/static/profile-icons/refund.png', key: 'refundAndAfterSaleCount', status: 4, count: 0 }
 ])
 
-const functions = [
-  { name: '优惠券', icon: '/static/quick/coupon.png' },
-  { name: '积分', icon: '/static/quick/points.png' },
-  { name: '收藏', icon: '/static/icons/heart.png' },
-  { name: '地址', icon: '/static/icons/location.png' }
-]
-
-const settings = [
-  { name: '消息通知' },
-  { name: '店铺列表' },
-  { name: '客服中心' },
-  { name: '浏览足迹' },
-  { name: '意见反馈' },
-  { name: '关于我们' },
-  { name: '设置' }
+const menuGroups = [
+  [
+    { name: '我的收藏', icon: '/static/profile-icons/heart.png', url: '/pages/profile/favorites' },
+    { name: '浏览足迹', icon: '/static/profile-icons/clock.png', url: '/pages/profile/browse-history' },
+    { name: '我的优惠券', icon: '/static/profile-icons/ticket.png', url: '/pages/coupons/list' },
+    { name: '我的积分', icon: '/static/profile-icons/diamond.png', url: '/pages/profile/points' },
+    { name: '地址管理', icon: '/static/profile-icons/location.png', url: '/pages/address/list' }
+  ],
+  [
+    { name: '客服中心', icon: '/static/profile-icons/message.png', url: '/pages/customer-service/index' },
+    { name: '意见反馈', icon: '/static/profile-icons/spark.png', url: '/pages/profile/feedback' },
+    { name: '设置', icon: '/static/profile-icons/settings.png', url: '/pages/profile/settings' }
+  ]
 ]
 
 function loadUserInfo() {
@@ -128,16 +115,9 @@ function viewAllOrders() {
   })
 }
 
-function viewOrdersByStatus(index) {
-  let status = 0
-  if (index === 0) status = 1
-  else if (index === 1) status = 2
-  else if (index === 2) status = 3
-  else if (index === 3) status = 5
-  else if (index === 4) status = 4
-
+function viewOrdersByStatus(stat) {
   uni.navigateTo({
-    url: `/pages/order/list?status=${status}`
+    url: `/pages/order/list?status=${stat.status}`
   })
 }
 
@@ -160,66 +140,8 @@ function loadOrderCounts() {
     })
 }
 
-function useFunction(index) {
-  if (index === 0) {
-    uni.navigateTo({
-      url: '/pages/coupons/list'
-    })
-  } else if (index === 1) {
-    uni.navigateTo({ url: '/pages/profile/points' })
-  } else if (index === 2) {
-    uni.navigateTo({ url: '/pages/profile/favorites' })
-  } else if (index === 3) {
-    uni.navigateTo({
-      url: '/pages/address/list'
-    })
-  }
-}
-
-function openSetting(index) {
-  if (settings[index].name === '消息通知') {
-    uni.navigateTo({ url: '/pages/profile/notifications' })
-    return
-  }
-
-  if (settings[index].name === '店铺列表') {
-    uni.navigateTo({ url: '/pages/shop/list' })
-    return
-  }
-
-  if (settings[index].name === '客服中心') {
-    uni.navigateTo({
-      url: '/pages/customer-service/index'
-    })
-    return
-  }
-
-  if (settings[index].name === '浏览足迹') {
-    uni.navigateTo({ url: '/pages/profile/browse-history' })
-    return
-  }
-
-  if (settings[index].name === '设置') {
-    uni.navigateTo({
-      url: '/pages/profile/settings'
-    })
-    return
-  }
-
-  if (settings[index].name === '意见反馈') {
-    uni.navigateTo({ url: '/pages/profile/feedback' })
-    return
-  }
-
-  if (settings[index].name === '关于我们') {
-    uni.navigateTo({ url: '/pages/profile/about' })
-    return
-  }
-
-  uni.showToast({
-    title: '功能开发中',
-    icon: 'none'
-  })
+function openMenu(menu) {
+  uni.navigateTo({ url: menu.url })
 }
 
 function editProfile() {
@@ -253,9 +175,9 @@ onShow(() => {
   justify-content: space-between;
   box-sizing: border-box;
   margin: 0;
-  padding: 40rpx 28rpx 68rpx;
+  padding: 40rpx 32rpx 36rpx;
   border-radius: 0;
-  background: var(--ym-ink);
+  background: var(--ym-surface);
   box-shadow: none;
 }
 
@@ -278,7 +200,7 @@ onShow(() => {
   display: block;
   overflow: hidden;
   margin-bottom: 6rpx;
-  color: #fff;
+  color: var(--ym-ink);
   font-size: 36rpx;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -288,7 +210,7 @@ onShow(() => {
 .user-meta {
   display: block;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--ym-muted);
   font-size: 22rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -305,41 +227,28 @@ onShow(() => {
   height: 14rpx;
   flex: 0 0 auto;
   margin-left: 20rpx;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--ym-brand);
   border-top: 2rpx solid currentColor;
   border-right: 2rpx solid currentColor;
   transform: rotate(45deg);
 }
 
-.section {
+.profile-section {
   overflow: hidden;
-  margin: 18rpx 24rpx;
-  border: 1rpx solid var(--ym-line);
-  border-radius: var(--ym-radius-card);
+  margin-top: 20rpx;
+  border: 0;
+  border-radius: 0;
   background: var(--ym-surface);
   box-shadow: none;
 }
 
-.profile-header + .section {
-  margin-top: -34rpx;
-}
-
 .section-header {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx;
-}
-
-.section-header::after {
-  position: absolute;
-  right: 24rpx;
-  bottom: 0;
-  left: 24rpx;
-  height: 1rpx;
-  background: var(--ym-line);
-  content: '';
+  margin: 0 32rpx;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid var(--ym-line);
 }
 
 .section-title {
@@ -367,7 +276,7 @@ onShow(() => {
 
 .order-stats {
   display: flex;
-  padding: 26rpx 8rpx 28rpx;
+  padding: 28rpx 12rpx 30rpx;
 }
 
 .stat-item {
@@ -381,19 +290,20 @@ onShow(() => {
 .stat-icon-box {
   position: relative;
   display: flex;
-  width: 56rpx;
-  height: 56rpx;
+  width: 58rpx;
+  height: 58rpx;
   align-items: center;
   justify-content: center;
   color: var(--ym-brand);
-  border: 1rpx solid var(--ym-line);
-  border-radius: 16rpx;
-  background: var(--ym-brand-soft);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .stat-symbol {
-  width: 32rpx;
-  height: 32rpx;
+  width: 42rpx;
+  height: 42rpx;
+  background: transparent;
   font-size: 23rpx;
   font-weight: 700;
 }
@@ -423,78 +333,48 @@ onShow(() => {
   white-space: nowrap;
 }
 
-.function-grid {
-  display: flex;
-  padding: 24rpx 8rpx 28rpx;
+.profile-menu {
+  padding: 0 32rpx;
 }
 
-.function-item {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  flex-direction: column;
-  gap: 10rpx;
-}
-
-.function-icon {
-  display: flex;
-  width: 68rpx;
-  height: 68rpx;
-  margin-bottom: 0;
-  align-items: center;
-  justify-content: center;
-  color: var(--ym-brand);
-  border-radius: 20rpx;
-  background: var(--ym-brand-soft);
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.function-icon image {
-  width: 38rpx;
-  height: 38rpx;
-}
-
-.function-text {
-  color: var(--ym-ink-secondary);
-  font-size: 23rpx;
-}
-
-.list-item {
+.menu-item {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 38rpx minmax(0, 1fr) 14rpx;
   align-items: center;
-  justify-content: space-between;
   min-height: 92rpx;
   box-sizing: border-box;
-  padding: 0 26rpx;
+  gap: 20rpx;
   border-bottom: 0;
 }
 
-.list-item:not(:last-child)::after {
-  position: absolute;
-  right: 26rpx;
-  bottom: 0;
-  left: 26rpx;
-  height: 1rpx;
-  background: #edf0ed;
-  content: '';
+.menu-item:not(:last-child) {
+  border-bottom: 1rpx solid var(--ym-line);
 }
 
-.list-item:active {
+.menu-item:active {
   background: #f7faf8;
 }
 
-.list-item-text {
-  color: var(--ym-ink);
-  font-size: 27rpx;
+.menu-icon {
+  display: block;
+  width: 36rpx;
+  height: 36rpx;
+  background: transparent;
 }
 
-.list-item-arrow {
+.menu-text {
+  overflow: hidden;
+  color: var(--ym-ink);
+  font-size: 27rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-arrow {
   width: 12rpx;
   height: 12rpx;
   flex: 0 0 auto;
-  margin-left: 20rpx;
   color: var(--ym-muted);
   border-top: 2rpx solid currentColor;
   border-right: 2rpx solid currentColor;
@@ -502,7 +382,6 @@ onShow(() => {
 }
 
 .stat-item:active,
-.function-item:active,
 .section-header:active {
   opacity: 0.72;
 }

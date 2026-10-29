@@ -275,7 +275,7 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Yeah Mall",
-		"navigationBarBackgroundColor": "#F4F6F3",
+		"navigationBarBackgroundColor": "#FFFFFF",
 		"backgroundColor": "#F4F6F3"
 	},
 	"uniIdRouter": {},

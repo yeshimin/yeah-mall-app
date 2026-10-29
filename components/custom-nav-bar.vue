@@ -394,7 +394,7 @@ onUnmounted(() => {
   height: 100%;
   border: 1rpx solid var(--ym-line, #dce4de);
   border-radius: 18rpx;
-  background-color: rgba(255, 255, 255, 0.96);
+  background-color: var(--ym-surface-subtle, #f8faf8);
   box-shadow: 0 2rpx 8rpx rgba(18, 38, 29, 0.04);
 }
 

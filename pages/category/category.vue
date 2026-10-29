@@ -1,7 +1,6 @@
 <template>
 	<view class="category-container">
 		<view v-if="categoryLoading || primaryCategories.length === 0" class="category-state">
-			<view class="category-state-mark">Y</view>
 			<text class="category-state-title">{{ categoryLoading ? '分类加载中' : categoryError ? '分类加载失败' : '暂无商品分类' }}</text>
 			<text class="category-state-hint">{{ categoryLoading ? '正在整理商城分类，请稍候' : categoryError || '分类配置完成后会显示在这里' }}</text>
 			<view v-if="categoryError" class="category-state-action" @click="loadCategoryTree">重新加载</view>
@@ -47,7 +46,13 @@
 			</view>
 			
 			<!-- 三级分类 -->
-			<scroll-view class="tertiary-category" scroll-y scroll-with-animation :scroll-top="tertiaryScrollTop" @scroll="handleTertiaryScroll" ref="tertiaryScrollView">
+			<scroll-view
+				class="tertiary-category"
+				scroll-y
+				scroll-with-animation
+				:scroll-into-view="tertiaryScrollIntoView"
+				@scroll="handleTertiaryScroll"
+			>
 				<view class="tertiary-section" v-for="(secondary, sIndex) in secondaryCategories" :key="secondary.id" :id="'secondarySection' + sIndex" :ref="'secondarySection' + sIndex">
 					<view class="secondary-title">{{ secondary.name }}</view>
 					<view v-if="secondary.children && secondary.children.length" class="tertiary-grid">
@@ -79,7 +84,7 @@
 </template>
 
 <script setup>
-import { getCurrentInstance, nextTick, onMounted, ref } from 'vue'
+import { getCurrentInstance, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { fetchProductCategoryTree } from '../../utils/api.js'
 import { getStoragePreviewUrl } from '@/utils/config.js'
 
@@ -91,17 +96,24 @@ const categoryLoading = ref(true)
 const categoryError = ref('')
 const primaryCategories = ref([])
 const secondaryCategories = ref([])
-const tertiaryScrollTop = ref(0)
+const tertiaryScrollIntoView = ref('')
+const currentTertiaryScrollTop = ref(0)
 const secondaryOffsets = ref([])
+const programmaticScrollIndex = ref(null)
+let scrollIntoViewTimer = null
 
 function selectPrimaryCategory(index) {
   currentPrimaryIndex.value = index
   const selectedCategory = primaryCategories.value[index]
   secondaryCategories.value = (selectedCategory && selectedCategory.children) || []
   currentSecondaryIndex.value = 0
-	tertiaryScrollTop.value = 0
   nextTick(() => {
-		updateSecondaryOffsets()
+    updateSecondaryOffsets()
+    if (secondaryCategories.value.length > 0) {
+      scrollToSecondary(0)
+    } else {
+      tertiaryScrollIntoView.value = ''
+    }
   })
 }
 
@@ -113,45 +125,54 @@ function selectSecondaryCategory(index) {
 }
 
 function scrollToSecondary(index) {
-	const targetOffset = secondaryOffsets.value[index]
-	if (Number.isFinite(targetOffset)) {
-		tertiaryScrollTop.value = targetOffset
-		return
-	}
+  if (!secondaryCategories.value[index]) {
+    return
+  }
 
+  currentSecondaryIndex.value = index
+  programmaticScrollIndex.value = index
+  tertiaryScrollIntoView.value = ''
   nextTick(() => {
-    const query = uni.createSelectorQuery().in(instance?.proxy)
-    query.select('.tertiary-category').boundingClientRect()
-    query.select(`#secondarySection${index}`).boundingClientRect()
-
-    query.exec((res) => {
-      if (!res[0] || !res[1]) {
-        return
-      }
-
-      tertiaryScrollTop.value = res[1].top - res[0].top
-    })
+    tertiaryScrollIntoView.value = `secondarySection${index}`
   })
+
+  if (scrollIntoViewTimer) {
+    clearTimeout(scrollIntoViewTimer)
+  }
+  scrollIntoViewTimer = setTimeout(() => {
+    tertiaryScrollIntoView.value = ''
+    programmaticScrollIndex.value = null
+    scrollIntoViewTimer = null
+  }, 500)
 }
 
 function updateSecondaryOffsets() {
 	nextTick(() => {
 		const query = uni.createSelectorQuery().in(instance?.proxy)
+		query.select('.tertiary-category').boundingClientRect()
 		query.selectAll('.tertiary-section').boundingClientRect()
 		query.exec((res) => {
-			const sections = res[0] || []
-			if (!sections.length) {
+			const container = res[0]
+			const sections = res[1] || []
+			if (!container || !sections.length) {
 				secondaryOffsets.value = []
 				return
 			}
-			const firstTop = sections[0].top
-			secondaryOffsets.value = sections.map((section) => Math.max(section.top - firstTop, 0))
+			secondaryOffsets.value = sections.map((section) => Math.max(
+        section.top - container.top + currentTertiaryScrollTop.value,
+        0
+      ))
 		})
 	})
 }
 
 function handleTertiaryScroll(event) {
 	const scrollTop = event.detail.scrollTop || 0
+	currentTertiaryScrollTop.value = scrollTop
+	if (programmaticScrollIndex.value !== null) {
+		currentSecondaryIndex.value = programmaticScrollIndex.value
+		return
+	}
 	let activeIndex = 0
 	secondaryOffsets.value.forEach((offset, index) => {
 		if (scrollTop + 24 >= offset) {
@@ -204,6 +225,12 @@ function loadCategoryTree() {
 
 onMounted(() => {
   loadCategoryTree()
+})
+
+onUnmounted(() => {
+  if (scrollIntoViewTimer) {
+    clearTimeout(scrollIntoViewTimer)
+  }
 })
 </script>
 
@@ -351,6 +378,7 @@ onMounted(() => {
 .category-container {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   padding-top: 0;
   background: var(--ym-surface);
 }
@@ -358,7 +386,7 @@ onMounted(() => {
 .primary-category {
   width: 176rpx;
   height: 100%;
-  background: #eef2ef;
+  background: #f7f8f7;
 }
 
 .primary-item {
@@ -369,7 +397,7 @@ onMounted(() => {
   padding: 0 12rpx;
   color: var(--ym-muted);
   border-bottom: 0;
-  font-size: 28rpx;
+  font-size: 24rpx;
   text-align: center;
   transition: color 0.18s ease, background-color 0.18s ease;
 }
@@ -405,7 +433,7 @@ onMounted(() => {
   height: 88rpx;
   margin: 0 12rpx;
   color: var(--ym-muted);
-  font-size: 26rpx;
+  font-size: 24rpx;
   line-height: 88rpx;
 }
 
@@ -414,10 +442,7 @@ onMounted(() => {
 }
 
 .secondary-tab.active::after {
-  width: 42rpx;
-  height: 5rpx;
-  border-radius: 3rpx;
-  background: var(--ym-brand);
+  display: none;
 }
 
 .tertiary-category {
@@ -439,20 +464,22 @@ onMounted(() => {
 .tertiary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20rpx 0;
-  padding: 8rpx 16rpx 30rpx;
+  gap: 20rpx 16rpx;
+  padding: 8rpx 24rpx 32rpx;
 }
 
 .tertiary-item {
   width: auto;
+  min-height: 196rpx;
+  justify-content: center;
   margin: 0;
   padding: 4rpx;
   box-sizing: border-box;
 }
 
 .tertiary-icon {
-  width: 128rpx;
-  height: 96rpx;
+  width: 144rpx;
+  height: 144rpx;
   margin-bottom: 10rpx;
   border-radius: 0;
   background: transparent;
@@ -460,8 +487,8 @@ onMounted(() => {
 
 .tertiary-icon-placeholder {
   display: flex;
-  width: 128rpx;
-  height: 96rpx;
+  width: 144rpx;
+  height: 144rpx;
   align-items: center;
   justify-content: center;
   margin: 0 0 10rpx;
@@ -524,21 +551,7 @@ onMounted(() => {
   flex-direction: column;
   box-sizing: border-box;
   padding: 40rpx;
-  background: var(--ym-paper);
-}
-
-.category-state-mark {
-  display: flex;
-  width: 96rpx;
-  height: 96rpx;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 24rpx;
-  color: #fff;
-  border-radius: 24rpx;
-  background: var(--ym-brand);
-  font-size: 46rpx;
-  font-weight: 700;
+  background: var(--ym-surface);
 }
 
 .category-state-title {

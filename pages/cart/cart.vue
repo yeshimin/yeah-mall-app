@@ -15,7 +15,7 @@
       </view>
       <template v-else>
       <!-- 按店铺分组展示商品 -->
-      <view class="shop-group" v-for="(shop, shopIndex) in groupedCartItems" :key="shopIndex">
+      <view class="shop-group" v-for="(shop, shopIndex) in groupedCartItems" :key="shop.shopId">
         <!-- 店铺头部 -->
         <view class="shop-header">
           <view class="shop-selector" @click="toggleShopSelection(shopIndex)">
@@ -23,18 +23,30 @@
               <text class="checkmark" v-if="shop.selected">✓</text>
             </view>
           </view>
+          <view class="shop-store-icon" aria-hidden="true">
+            <view class="shop-store-awning">
+              <view></view>
+              <view></view>
+              <view></view>
+            </view>
+            <view class="shop-store-body">
+              <view class="shop-store-door"></view>
+            </view>
+          </view>
           <text class="shop-name">{{ shop.shopName }}</text>
+          <text class="shop-item-count">共 {{ shop.items.length }} 件商品</text>
         </view>
 
         <!-- 店铺内商品列表 -->
-        <view class="cart-item" v-for="(item, itemIndex) in shop.items" :key="itemIndex">
+        <view class="cart-item" v-for="(item, itemIndex) in shop.items" :key="item.id">
           <view class="item-selector" @click="toggleItemSelection(shopIndex, itemIndex)">
             <view class="selector" :class="{ selected: item.selected }">
               <text class="checkmark" v-if="item.selected">✓</text>
             </view>
           </view>
-          <view class="item-image" v-if="item.image">
-            <image :src="item.image" mode="aspectFill"></image>
+          <view class="item-image">
+            <image v-if="item.image && !item.imageFailed" :src="item.image" mode="aspectFill" @error="handleCartImageError(item)"></image>
+            <view v-else class="item-image-placeholder"></view>
           </view>
           <view class="item-info">
             <text class="item-name">{{ item.name }}</text>
@@ -90,7 +102,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import { deleteCartItems, fetchCartItems, updateCartItemQuantity } from '../../utils/api.js'
 import { getStoragePreviewUrl } from '@/utils/config.js'
 import { handleAuthFailure, isAuthenticated } from '../../utils/auth.js'
@@ -131,6 +143,10 @@ function ensureLogin() {
 
 function toggleEdit() {
   isEditing.value = !isEditing.value
+}
+
+function handleCartImageError(item) {
+  item.imageFailed = true
 }
 
 function toggleItemSelection(shopIndex, itemIndex) {
@@ -307,6 +323,7 @@ function fetchCartData() {
           price: item.price,
           quantity: item.quantity,
           image: getStoragePreviewUrl(item.spuMainImage),
+          imageFailed: false,
           selected: false
         }))
       }))
@@ -361,12 +378,6 @@ function goShopping() {
     url: '/pages/index/index'
   })
 }
-
-onLoad(() => {
-  if (ensureLogin()) {
-    fetchCartData()
-  }
-})
 
 onShow(() => {
   if (ensureLogin()) {
@@ -642,7 +653,8 @@ onShow(() => {
 
 .cart-content {
   box-sizing: border-box;
-  padding: 20rpx 24rpx calc(var(--window-bottom, 0px) + 128rpx);
+  padding: 0 0 calc(var(--window-bottom, 0px) + 136rpx);
+  background: var(--ym-paper);
 }
 
 .cart-state {
@@ -665,57 +677,132 @@ onShow(() => {
 }
 
 .shop-group {
-  margin-bottom: 18rpx;
+  margin-bottom: 20rpx;
   overflow: hidden;
-  border: 1rpx solid var(--ym-line);
-  border-radius: var(--ym-radius-card);
+  border: 0;
+  border-radius: 0;
   background: var(--ym-surface);
   box-shadow: none;
 }
 
 .shop-header {
-  position: relative;
-  height: 76rpx;
-  padding: 0 24rpx;
+  display: grid;
+  height: 84rpx;
+  grid-template-columns: 38rpx 32rpx minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14rpx;
+  box-sizing: border-box;
+  padding: 0 32rpx;
   border-bottom: 0;
 }
 
 .shop-header::after {
-  position: absolute;
-  right: 24rpx;
-  bottom: 0;
-  left: 24rpx;
-  height: 1rpx;
-  background: var(--ym-line);
-  content: '';
+  display: none;
 }
 
 .shop-selector {
-  margin-right: 18rpx;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.shop-store-icon {
+  position: relative;
+  box-sizing: border-box;
+  width: 34rpx;
+  height: 34rpx;
+}
+
+.shop-store-awning {
+  position: absolute;
+  top: 1rpx;
+  left: 0;
+  display: flex;
+  box-sizing: border-box;
+  width: 34rpx;
+  height: 13rpx;
+  border: 3rpx solid var(--ym-brand);
+  border-radius: 3rpx 3rpx 7rpx 7rpx;
+  background: transparent;
+  overflow: hidden;
+}
+
+.shop-store-awning view {
+  box-sizing: border-box;
+  width: 33.333%;
+  height: 100%;
+  border-right: 2rpx solid var(--ym-brand);
+}
+
+.shop-store-awning view:last-child {
+  border-right: 0;
+}
+
+.shop-store-body {
+  position: absolute;
+  top: 13rpx;
+  left: 3rpx;
+  box-sizing: border-box;
+  width: 28rpx;
+  height: 20rpx;
+  border-right: 3rpx solid var(--ym-brand);
+  border-bottom: 3rpx solid var(--ym-brand);
+  border-left: 3rpx solid var(--ym-brand);
+  background: transparent;
+}
+
+.shop-store-door {
+  position: absolute;
+  right: 4rpx;
+  bottom: 0;
+  box-sizing: border-box;
+  width: 8rpx;
+  height: 11rpx;
+  border-top: 2rpx solid var(--ym-brand);
+  border-right: 2rpx solid var(--ym-brand);
+  border-left: 2rpx solid var(--ym-brand);
 }
 
 .shop-name {
+  overflow: hidden;
+  min-width: 0;
   color: var(--ym-ink);
   font-size: 28rpx;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.shop-item-count {
+  flex: 0 0 auto;
+  color: var(--ym-muted);
+  font-size: 21rpx;
 }
 
 .cart-item {
   position: relative;
-  padding: 22rpx 24rpx;
+  box-sizing: border-box;
+  padding: 28rpx 32rpx;
   border-top: 0;
+  border-bottom: 0;
+  background: var(--ym-surface);
 }
 
 .cart-item + .cart-item::before {
   position: absolute;
   top: 0;
-  right: 24rpx;
-  left: 24rpx;
+  right: 32rpx;
+  left: 288rpx;
+  display: block;
   height: 1rpx;
   background: var(--ym-line);
   content: '';
 }
 
 .item-selector {
+  width: 48rpx;
+  flex: 0 0 48rpx;
+  justify-content: flex-start;
   margin-right: 18rpx;
 }
 
@@ -731,9 +818,10 @@ onShow(() => {
 }
 
 .item-image {
-  width: 144rpx;
-  height: 144rpx;
-  margin-right: 20rpx;
+  width: 172rpx;
+  height: 172rpx;
+  flex: 0 0 172rpx;
+  margin-right: 18rpx;
   overflow: hidden;
   border-radius: 20rpx;
   background: var(--ym-paper);
@@ -741,6 +829,12 @@ onShow(() => {
 
 .item-image image {
   border-radius: 20rpx;
+}
+
+.item-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #e6ebe8;
 }
 
 .item-info {
@@ -773,8 +867,11 @@ onShow(() => {
 }
 
 .quantity-controls {
-  width: 216rpx;
-  height: 68rpx;
+  display: flex;
+  width: 232rpx;
+  height: 72rpx;
+  box-sizing: border-box;
+  align-items: stretch;
   overflow: hidden;
   border: 1rpx solid var(--ym-line);
   border-radius: var(--ym-radius-control);
@@ -782,9 +879,10 @@ onShow(() => {
 }
 
 .control-btn {
-  width: 68rpx;
-  height: 68rpx;
-  flex: 0 0 68rpx;
+  width: 72rpx;
+  height: 100%;
+  flex: 0 0 72rpx;
+  box-sizing: border-box;
   border-radius: 0;
   background: var(--ym-paper);
   color: var(--ym-ink);
@@ -793,10 +891,13 @@ onShow(() => {
 
 .quantity {
   display: flex;
-  width: 80rpx;
-  height: 68rpx;
+  width: auto;
+  height: 100%;
+  min-width: 0;
   align-items: center;
   justify-content: center;
+  flex: 1;
+  box-sizing: border-box;
   margin: 0;
   color: var(--ym-ink);
   font-size: 26rpx;
@@ -811,7 +912,7 @@ onShow(() => {
 .cart-footer {
   bottom: var(--window-bottom, 0px);
   width: 100%;
-  height: 112rpx;
+  height: 124rpx;
   box-sizing: border-box;
   padding: 12rpx 24rpx;
   border-top: 1rpx solid var(--ym-line);
@@ -843,8 +944,8 @@ onShow(() => {
 }
 
 .checkout-btn {
-  width: 210rpx;
-  height: 88rpx;
+  width: 228rpx;
+  height: 84rpx;
   border-radius: var(--ym-radius-control);
   background: var(--ym-brand);
   font-size: 28rpx;

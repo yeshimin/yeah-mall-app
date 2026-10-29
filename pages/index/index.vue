@@ -4,7 +4,7 @@
     <custom-nav-bar
       :show-search="true"
       :show-brand="true"
-      background-color="#f4f6f3"
+      background-color="#ffffff"
       :search-placeholder="'搜索商品'"
       @search="handleSearch"
       @brand="goToAbout"
@@ -17,7 +17,7 @@
         <swiper-item
           v-for="(banner, index) in banners"
           :key="banner.id || index"
-          @click="handleBannerClick(banner.id)"
+          @click="handleBannerClick(banner)"
         >
           <image
             class="banner-image"
@@ -114,9 +114,9 @@
         <text>正在加载精选商品...</text>
       </view>
       <view v-else-if="hotProducts.length === 0" class="home-product-state">
-        <text class="home-product-state-title">{{ hotProductsLoadFailed ? '商品加载失败' : '暂无推荐商品' }}</text>
+        <text class="home-product-state-title">{{ hotProductsLoadFailed ? '暂未获取到商品' : '暂无精选商品' }}</text>
         <text class="home-product-state-hint" @click="retryHomeData">
-          {{ hotProductsLoadFailed ? '网络恢复后会自动重试 · 点击立即重试' : '商品上架后会展示在这里' }}
+          {{ hotProductsLoadFailed ? '点击重新加载' : '稍后再来看看' }}
         </text>
       </view>
       <view v-else class="waterfall-container">
@@ -229,6 +229,8 @@ const quickLinkFallbackIcons = {
   goToPointsMall: '/static/quick/points-prototype-v2.png',
   goToService: '/static/quick/service.png',
   goToSettings: '/static/quick/settings.png',
+  goToShops: '/static/quick/store.png',
+  goToProducts: '/static/quick/products.png',
   handleCustomQuickLink: '/static/quick/default.png',
   handleDefaultQuickLink: '/static/quick/default.png'
 }
@@ -237,11 +239,11 @@ const defaultQuickLinks = [
   { id: 1, name: '秒杀', action: 'goToSeckill' },
   { id: 2, name: '拼团', action: 'goToGroupBuy' },
   { id: 3, name: '新品', action: 'goToNewArrivals' },
-  { id: 4, name: '优惠券', action: 'goToCoupons' },
-  { id: 5, name: '会员', action: 'goToMember' },
-  { id: 6, name: '积分', action: 'goToPoints' },
+  { id: 4, name: '领券', action: 'goToCouponCenter' },
+  { id: 5, name: '店铺', action: 'goToShops' },
+  { id: 6, name: '积分商城', action: 'goToPointsMall' },
   { id: 7, name: '客服', action: 'goToService' },
-  { id: 8, name: '设置', action: 'goToSettings' }
+  { id: 8, name: '全部商品', action: 'goToProducts' }
 ].map((link) => ({
   ...link,
   icon: '',
@@ -268,31 +270,21 @@ const hasMore = ref(true)
 const navBarHeight = ref(0)
 const homeInitialized = ref(false)
 const PRODUCT_COLUMN_WIDTH_RPX = 342
+const TAB_BAR_PAGE_PATHS = new Set([
+  '/pages/index/index',
+  '/pages/category/category',
+  '/pages/cart/cart',
+  '/pages/profile/profile'
+])
 let waterfallReflowTimer = null
 
 const quickLinkRows = computed(() => {
-  const count = quickLinks.value.length
-  const displayCount = Math.min(count, 10)
-
-  if (displayCount <= 4) {
-    return [{
-      items: quickLinks.value.slice(0, displayCount),
-      count: displayCount,
-      maxCount: displayCount
-    }]
+  const visibleLinks = quickLinks.value.slice(0, 8)
+  const rows = []
+  for (let index = 0; index < visibleLinks.length; index += 4) {
+    rows.push({ items: visibleLinks.slice(index, index + 4), maxCount: 4 })
   }
-
-  const firstRowCount = Math.ceil(displayCount / 2)
-  const secondRowCount = displayCount - firstRowCount
-  return [{
-    items: quickLinks.value.slice(0, firstRowCount),
-    count: firstRowCount,
-    maxCount: firstRowCount
-  }, {
-    items: quickLinks.value.slice(firstRowCount, displayCount),
-    count: secondRowCount,
-    maxCount: firstRowCount
-  }]
+  return rows
 })
 
 function createRequestHeader() {
@@ -320,8 +312,23 @@ function goToAbout() {
   })
 }
 
-function handleBannerClick(bannerId) {
-  void bannerId
+function navigateToInternalPage(target) {
+  const url = String(target || '').trim()
+  if (!url.startsWith('/pages/')) {
+    return false
+  }
+
+  const pagePath = url.split('?')[0]
+  if (TAB_BAR_PAGE_PATHS.has(pagePath)) {
+    uni.switchTab({ url: pagePath })
+  } else {
+    uni.navigateTo({ url })
+  }
+  return true
+}
+
+function handleBannerClick(banner) {
+  navigateToInternalPage(banner?.target)
 }
 
 function handleQuickLinkClick(link) {
@@ -336,6 +343,8 @@ function handleQuickLinkClick(link) {
     goToPointsMall,
     goToService,
     goToSettings,
+    goToShops,
+    goToProducts,
     handleDefaultQuickLink,
     handleCustomQuickLink
   }
@@ -380,6 +389,14 @@ function goToSettings() {
   uni.navigateTo({
     url: '/pages/profile/settings'
   })
+}
+
+function goToShops() {
+  uni.navigateTo({ url: '/pages/shop/list' })
+}
+
+function goToProducts() {
+  uni.navigateTo({ url: '/pages/product/list' })
 }
 
 function handleNavBarHeightCalculated(event) {
@@ -490,6 +507,14 @@ function getActionForQuickLink(type, target) {
 
   if (target === '/pages/points-mall/list') {
     return 'goToPointsMall'
+  }
+
+  if (target === '/pages/shop/list') {
+    return 'goToShops'
+  }
+
+  if (target === '/pages/product/list') {
+    return 'goToProducts'
   }
 
   switch (type) {
@@ -645,10 +670,7 @@ function hasUsableBanner() {
 }
 
 function handleCustomQuickLink(link) {
-  if (link.target && link.target.startsWith('/pages/')) {
-    uni.navigateTo({
-      url: link.target
-    })
+  if (navigateToInternalPage(link.target)) {
     return
   }
 
@@ -672,7 +694,7 @@ function fetchQuickLinks() {
           const previousIconMap = new Map(quickLinks.value
             .filter((link) => link.icon)
             .map((link) => [link.icon, link]))
-          const nextLinks = (res.data.data || []).slice(0, 10).map((link, index) => {
+          const nextLinks = (res.data.data || []).slice(0, 8).map((link, index) => {
             const action = getActionForQuickLink(link.type, link.target)
             const icon = getStoragePreviewUrl(link.icon)
             const previousIcon = previousIconMap.get(icon)
@@ -721,8 +743,9 @@ function fetchBanners() {
         if (res.statusCode === 200 && res.data.code === 0) {
           const previousBannerMap = new Map(banners.value.map((banner) => [banner.image, banner]))
           const nextBanners = (res.data.data || []).map((banner, index) => ({
-            id: index + 1,
+            id: banner.id || index + 1,
             image: getStoragePreviewUrl(banner.imageUrl),
+            target: banner.target || '',
             imageLoaded: previousBannerMap.get(getStoragePreviewUrl(banner.imageUrl))?.imageLoaded || false,
             imageFailed: false
           })).filter((banner) => banner.image)
@@ -1179,24 +1202,25 @@ onUnmounted(() => {
 .container {
   min-height: 100%;
   box-sizing: border-box;
-  background: var(--ym-paper);
+  background: var(--ym-surface);
 }
 
 .banner-section {
-  margin: 18rpx 24rpx 16rpx;
+  width: 100%;
+  margin: 0 0 16rpx;
   overflow: hidden;
-  border-radius: var(--ym-radius-card);
+  border-radius: 0;
   background: #e6ebe8;
   box-shadow: none;
 }
 
 .banner-swiper {
-  height: 360rpx;
+  height: 400rpx;
   background: #e6ebe8;
 }
 
 .banner-placeholder {
-  height: 360rpx;
+  height: 400rpx;
   background: #e6ebe8;
 }
 
@@ -1211,9 +1235,9 @@ onUnmounted(() => {
 
 .quick-links {
   margin: 0;
-  padding: 12rpx 18rpx 20rpx;
+  padding: 8rpx 24rpx 20rpx;
   border-radius: 0;
-  background: var(--ym-paper);
+  background: var(--ym-surface);
   box-shadow: none;
 }
 
@@ -1241,8 +1265,8 @@ onUnmounted(() => {
 .quick-link-icon-shell {
   position: relative;
   display: flex;
-  width: 88rpx;
-  height: 88rpx;
+  width: 84rpx;
+  height: 84rpx;
   align-items: center;
   justify-content: center;
   margin-bottom: 0;
@@ -1317,6 +1341,7 @@ onUnmounted(() => {
 
 .section {
   margin: 0;
+  padding-bottom: calc(var(--window-bottom, 0px) + 24rpx);
   background: var(--ym-surface);
 }
 
@@ -1385,13 +1410,13 @@ onUnmounted(() => {
 }
 
 .waterfall-container {
-  gap: 18rpx;
+  gap: 24rpx;
   min-height: 0;
-  padding: 0 24rpx 32rpx;
+  padding: 0 28rpx 32rpx;
 }
 
 .waterfall-column {
-  width: calc(50% - 9rpx);
+  width: calc(50% - 12rpx);
   margin: 0;
 }
 
