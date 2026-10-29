@@ -1,7 +1,10 @@
 <template>
   <view class="shop-list-page">
     <view class="search-panel">
-      <input v-model="keyword" class="search-input" placeholder="搜索店铺名称" confirm-type="search" @confirm="search" />
+      <view class="search-field">
+        <view class="search-icon"><view class="search-icon-handle"></view></view>
+        <input v-model="keyword" class="search-input" placeholder="搜索店铺" confirm-type="search" @confirm="search" />
+      </view>
       <button class="search-button" @click="search">搜索</button>
     </view>
 
@@ -22,8 +25,7 @@
         <view v-else class="shop-logo-placeholder">{{ shopInitial(shop.shopName) }}</view>
         <view class="shop-copy">
           <text class="shop-name">{{ shop.shopName || '未命名店铺' }}</text>
-          <text class="shop-meta">店铺编号 {{ shop.shopNo || '-' }}</text>
-          <text class="shop-products">在售商品 {{ shop.productCount || 0 }} 件</text>
+          <text class="shop-products">商品 {{ shop.productCount || 0 }} 件</text>
         </view>
         <view class="shop-arrow"></view>
       </view>
@@ -89,23 +91,30 @@ function search() {
 onLoad(() => loadShops(true))
 onReachBottom(() => loadShops())
 onPullDownRefresh(async () => {
-  await loadShops(true)
-  uni.stopPullDownRefresh()
+  try {
+    await loadShops(true)
+  } finally {
+    uni.stopPullDownRefresh()
+  }
 })
 </script>
 
 <style scoped>
-.shop-list-page { min-height: 100vh; box-sizing: border-box; padding: 20rpx 24rpx 48rpx; background: var(--ym-paper); }
-.search-panel { display: grid; grid-template-columns: minmax(0, 1fr) 112rpx; gap: 12rpx; margin-bottom: 20rpx; }
-.search-input { height: 76rpx; padding: 0 22rpx; border: 1rpx solid var(--ym-line); border-radius: var(--ym-radius-control); background: var(--ym-surface); font-size: 26rpx; }
+.shop-list-page { min-height: 100vh; box-sizing: border-box; padding-bottom: 48rpx; background: var(--ym-surface); }
+.search-panel { display: grid; grid-template-columns: minmax(0, 1fr) 112rpx; gap: 16rpx; padding: 24rpx; background: var(--ym-surface); }
+.search-field { display: flex; height: 76rpx; align-items: center; gap: 16rpx; box-sizing: border-box; padding: 0 22rpx; border: 1rpx solid var(--ym-line); border-radius: var(--ym-radius-control); background: var(--ym-surface-subtle); }
+.search-icon { position: relative; width: 24rpx; height: 24rpx; flex: 0 0 24rpx; box-sizing: border-box; border: 3rpx solid var(--ym-muted); border-radius: 50%; }
+.search-icon-handle { position: absolute; right: -8rpx; bottom: -6rpx; width: 10rpx; height: 3rpx; border-radius: 2rpx; background: var(--ym-muted); transform: rotate(45deg); transform-origin: left center; }
+.search-input { min-width: 0; height: 76rpx; flex: 1; padding: 0; border: 0; background: transparent; font-size: 26rpx; }
 .search-button { width: 112rpx; height: 76rpx; margin: 0; padding: 0; color: #fff; border-radius: var(--ym-radius-control); background: var(--ym-brand); font-size: 25rpx; line-height: 76rpx; }
-.shop-list { display: flex; flex-direction: column; gap: 16rpx; }
-.shop-card { display: flex; align-items: center; gap: 20rpx; padding: 24rpx; border: 1rpx solid var(--ym-line); border-radius: var(--ym-radius-card); background: var(--ym-surface); }
-.shop-logo, .shop-logo-placeholder { width: 112rpx; height: 112rpx; flex: 0 0 112rpx; border-radius: var(--ym-radius-control); }
+.shop-list { background: var(--ym-surface); }
+.shop-card { display: flex; min-height: 180rpx; align-items: center; gap: 24rpx; box-sizing: border-box; padding: 28rpx 32rpx; border-bottom: 1rpx solid var(--ym-line); background: var(--ym-surface); }
+.shop-logo, .shop-logo-placeholder { width: 124rpx; height: 124rpx; flex: 0 0 124rpx; border-radius: 20rpx; }
+.shop-logo { background: transparent; }
 .shop-logo-placeholder { display: flex; align-items: center; justify-content: center; color: #fff; background: var(--ym-brand); font-size: 40rpx; font-weight: 800; }
-.shop-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 8rpx; }
+.shop-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 16rpx; }
 .shop-name { overflow: hidden; color: var(--ym-ink); font-size: 30rpx; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
-.shop-meta, .shop-products { color: var(--ym-muted); font-size: 23rpx; }
+.shop-products { color: var(--ym-muted); font-size: 23rpx; }
 .shop-arrow { width: 14rpx; height: 14rpx; color: var(--ym-muted); border-top: 2rpx solid currentColor; border-right: 2rpx solid currentColor; transform: rotate(45deg); }
 .page-state { display: flex; min-height: 480rpx; align-items: center; justify-content: center; flex-direction: column; color: var(--ym-muted); text-align: center; }
 .state-title { color: var(--ym-ink); font-size: 30rpx; font-weight: 700; }.state-copy { margin-top: 10rpx; font-size: 24rpx; }

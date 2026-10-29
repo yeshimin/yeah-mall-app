@@ -60,7 +60,7 @@ export const fetchShops = (params = {}) => {
     uni.request({
       url: `${BASE_API}/app/shop/query`,
       method: 'GET',
-      data: params,
+      data: compactQueryParams(params),
       success: (res) => {
         if (res.statusCode === 200 && res.data && res.data.code === 0) {
           resolve(res.data.data)

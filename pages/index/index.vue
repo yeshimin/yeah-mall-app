@@ -279,12 +279,28 @@ const TAB_BAR_PAGE_PATHS = new Set([
 let waterfallReflowTimer = null
 
 const quickLinkRows = computed(() => {
-  const visibleLinks = quickLinks.value.slice(0, 8)
-  const rows = []
-  for (let index = 0; index < visibleLinks.length; index += 4) {
-    rows.push({ items: visibleLinks.slice(index, index + 4), maxCount: 4 })
+  const count = quickLinks.value.length
+  const displayCount = Math.min(count, 10)
+
+  if (displayCount <= 4) {
+    return [{
+      items: quickLinks.value.slice(0, displayCount),
+      count: displayCount,
+      maxCount: displayCount
+    }]
   }
-  return rows
+
+  const firstRowCount = Math.ceil(displayCount / 2)
+  const secondRowCount = displayCount - firstRowCount
+  return [{
+    items: quickLinks.value.slice(0, firstRowCount),
+    count: firstRowCount,
+    maxCount: firstRowCount
+  }, {
+    items: quickLinks.value.slice(firstRowCount, displayCount),
+    count: secondRowCount,
+    maxCount: firstRowCount
+  }]
 })
 
 function createRequestHeader() {
@@ -694,7 +710,7 @@ function fetchQuickLinks() {
           const previousIconMap = new Map(quickLinks.value
             .filter((link) => link.icon)
             .map((link) => [link.icon, link]))
-          const nextLinks = (res.data.data || []).slice(0, 8).map((link, index) => {
+          const nextLinks = (res.data.data || []).slice(0, 10).map((link, index) => {
             const action = getActionForQuickLink(link.type, link.target)
             const icon = getStoragePreviewUrl(link.icon)
             const previousIcon = previousIconMap.get(icon)

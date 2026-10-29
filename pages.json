@@ -19,8 +19,10 @@
 		{
 			"path": "pages/shop/list",
 			"style": {
-				"navigationBarTitleText": "店铺列表",
-				"enablePullDownRefresh": true
+				"navigationBarTitleText": "店铺",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"onReachBottomDistance": 120
 			}
 		},
 		{
